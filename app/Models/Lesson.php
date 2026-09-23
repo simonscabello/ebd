@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
-use Carbon\CarbonInterface;
 use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -22,33 +21,38 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $classroom_id
  * @property int|null $series_id
+ * @property int|null $number
  * @property string $title
  * @property string $slug
  * @property string|null $summary
  * @property Carbon|null $scheduled_for
  * @property string|null $bible_reference
  * @property string|null $bible_text
+ * @property string|null $magazine_author
+ * @property string|null $key_verse
+ * @property string|null $goal
  * @property string|null $content
- * @property string|null $teacher_notes
+ * @property string|null $blocks_text
  * @property LessonStatus $status
  * @property LessonVisibility $visibility
  * @property Carbon|null $published_at
- * @property Carbon|null $completed_at
  * @property int|null $created_by
  * @property-read Classroom $classroom
  * @property-read Series|null $series
  */
 #[Fillable([
+    'number',
     'title',
     'summary',
-    'scheduled_for',
     'bible_reference',
     'bible_text',
+    'magazine_author',
+    'key_verse',
+    'goal',
     'content',
-    'teacher_notes',
     'visibility',
 ])]
-#[Hidden(['search_vector', 'teacher_notes'])]
+#[Hidden(['search_vector', 'blocks_text'])]
 class Lesson extends Model
 {
     /** @use HasFactory<LessonFactory> */
@@ -72,7 +76,7 @@ class Lesson extends Model
             'status' => LessonStatus::class,
             'visibility' => LessonVisibility::class,
             'published_at' => 'datetime',
-            'completed_at' => 'datetime',
+            'number' => 'integer',
         ];
     }
 
@@ -134,6 +138,32 @@ class Lesson extends Model
         return $this->hasMany(LessonReading::class)->ordered();
     }
 
+    /**
+     * @return HasMany<LessonBlock, $this>
+     */
+    public function blocks(): HasMany
+    {
+        return $this->hasMany(LessonBlock::class)->ordered();
+    }
+
+    /**
+     * Encontros em que a lição é (ou foi) estudada, em ordem de data.
+     *
+     * @return HasMany<ClassMeeting, $this>
+     */
+    public function meetings(): HasMany
+    {
+        return $this->hasMany(ClassMeeting::class)->chronological();
+    }
+
+    /**
+     * "Lição 11 — É Necessário", como na revista.
+     */
+    public function displayTitle(): string
+    {
+        return $this->number ? "Lição {$this->number} — {$this->title}" : $this->title;
+    }
+
     public function isPublic(): bool
     {
         return $this->status->isVisible() && $this->visibility === LessonVisibility::Public;
@@ -172,16 +202,5 @@ class Lesson extends Model
                 $query->orWhereIn($query->qualifyColumn('classroom_id'), $user->memberClassroomIds());
             }
         });
-    }
-
-    /**
-     * @param  Builder<self>  $query
-     */
-    #[Scope]
-    protected function upcoming(Builder $query, CarbonInterface $today): void
-    {
-        $query->where($query->qualifyColumn('status'), LessonStatus::Published)
-            ->whereDate($query->qualifyColumn('scheduled_for'), '>=', $today->toDateString())
-            ->orderBy($query->qualifyColumn('scheduled_for'));
     }
 }

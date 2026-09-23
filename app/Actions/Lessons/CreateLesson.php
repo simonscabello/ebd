@@ -2,23 +2,28 @@
 
 namespace App\Actions\Lessons;
 
+use App\Enums\MeetingStatus;
+use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
- * Cria uma lição (sempre como rascunho) em uma classe.
+ * Cria uma lição (sempre como rascunho) em uma classe e, opcionalmente, já a
+ * coloca no encontro (domingo) informado.
  */
 class CreateLesson
 {
     /** Campos tratados explicitamente pela action (não entram via mass assignment). */
-    public const NON_FILLABLE = ['classroom_id', 'series_id', 'slug', 'author_ids'];
+    public const NON_FILLABLE = ['classroom_id', 'series_id', 'slug', 'author_ids', 'meeting_on'];
 
     public function __construct(
         private readonly GenerateLessonSlug $generateSlug,
         private readonly EnsureSeriesBelongsToClassroom $ensureSeries,
+        private readonly SyncLessonSchedule $syncSchedule,
     ) {}
 
     /**
@@ -41,7 +46,34 @@ class CreateLesson
 
             $lesson->authors()->sync($authorIds);
 
+            if (is_string($data['meeting_on'] ?? null) && $data['meeting_on'] !== '') {
+                $this->scheduleOn($classroom, $lesson, $data['meeting_on']);
+            }
+
             return $lesson;
         });
+    }
+
+    /**
+     * Usa o encontro do dia se ele ainda não tiver lição; senão, cria um novo.
+     */
+    private function scheduleOn(Classroom $classroom, Lesson $lesson, string $date): void
+    {
+        $meeting = ClassMeeting::query()->whereBelongsTo($classroom)->whereDate('held_on', $date)->first();
+
+        if ($meeting !== null && $meeting->lesson_id !== null) {
+            throw ValidationException::withMessages([
+                'meeting_on' => 'Já existe uma lição neste domingo. Ajuste pela agenda da classe.',
+            ]);
+        }
+
+        $meeting ??= new ClassMeeting(['held_on' => $date]);
+        $meeting->classroom_id = $classroom->id;
+        $meeting->lesson_id = $lesson->id;
+        $meeting->status = MeetingStatus::Planned;
+        $meeting->save();
+
+        $this->syncSchedule->handle($classroom);
+        $lesson->refresh();
     }
 }

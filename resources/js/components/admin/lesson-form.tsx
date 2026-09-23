@@ -14,14 +14,17 @@ import type { Classroom, Option, Series } from '@/types';
 export type LessonFormData = {
     classroom_id: number | null;
     series_id: number | null;
+    number: string;
     title: string;
     slug: string;
-    scheduled_for: string;
+    meeting_on?: string;
     bible_reference: string;
     bible_text: string;
+    magazine_author: string;
+    key_verse: string;
+    goal: string;
     summary: string;
     content: string;
-    teacher_notes: string;
     visibility: 'public' | 'members';
     author_ids: number[];
 };
@@ -66,6 +69,7 @@ export function LessonForm({
 
             if (editing) {
                 delete payload.classroom_id;
+                delete payload.meeting_on;
             } else {
                 delete payload.slug;
                 delete payload.author_ids;
@@ -139,16 +143,38 @@ export function LessonForm({
                 </NativeSelect>
             </Field>
 
-            <Field label="Título" htmlFor="title" error={errors.title}>
-                <Input
-                    id="title"
-                    value={data.title}
-                    onChange={(event) => setData('title', event.target.value)}
-                    required
-                    maxLength={180}
-                    placeholder="Ex.: A Santidade de Deus"
-                />
-            </Field>
+            <div className="grid gap-6 sm:grid-cols-[8rem_1fr]">
+                <Field
+                    label="Nº na revista"
+                    htmlFor="number"
+                    error={errors.number}
+                >
+                    <Input
+                        id="number"
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={999}
+                        value={data.number}
+                        onChange={(event) =>
+                            setData('number', event.target.value)
+                        }
+                        placeholder="11"
+                    />
+                </Field>
+                <Field label="Título" htmlFor="title" error={errors.title}>
+                    <Input
+                        id="title"
+                        value={data.title}
+                        onChange={(event) =>
+                            setData('title', event.target.value)
+                        }
+                        required
+                        maxLength={180}
+                        placeholder="Ex.: É Necessário"
+                    />
+                </Field>
+            </div>
 
             {editing && (
                 <Field
@@ -174,21 +200,23 @@ export function LessonForm({
             )}
 
             <div className="grid gap-6 sm:grid-cols-2">
-                <Field
-                    label="Data da aula"
-                    htmlFor="scheduled_for"
-                    error={errors.scheduled_for}
-                    hint="Necessária para publicar."
-                >
-                    <Input
-                        id="scheduled_for"
-                        type="date"
-                        value={data.scheduled_for}
-                        onChange={(event) =>
-                            setData('scheduled_for', event.target.value)
-                        }
-                    />
-                </Field>
+                {!editing && (
+                    <Field
+                        label="Domingo da aula"
+                        htmlFor="meeting_on"
+                        error={errors.meeting_on}
+                        hint="Opcional. Depois é só ajustar pela agenda da classe."
+                    >
+                        <Input
+                            id="meeting_on"
+                            type="date"
+                            value={data.meeting_on ?? ''}
+                            onChange={(event) =>
+                                setData('meeting_on', event.target.value)
+                            }
+                        />
+                    </Field>
+                )}
                 <Field
                     label="Texto bíblico principal"
                     htmlFor="bible_reference"
@@ -200,11 +228,50 @@ export function LessonForm({
                         onChange={(event) =>
                             setData('bible_reference', event.target.value)
                         }
-                        placeholder="Ex.: Lucas 5:1–11"
+                        placeholder="Ex.: Jo 9.1-41"
+                        maxLength={120}
+                    />
+                </Field>
+                <Field
+                    label="Comentarista da revista"
+                    htmlFor="magazine_author"
+                    error={errors.magazine_author}
+                >
+                    <Input
+                        id="magazine_author"
+                        value={data.magazine_author}
+                        onChange={(event) =>
+                            setData('magazine_author', event.target.value)
+                        }
                         maxLength={120}
                     />
                 </Field>
             </div>
+
+            <Field
+                label="Versículo-chave"
+                htmlFor="key_verse"
+                error={errors.key_verse}
+            >
+                <Textarea
+                    id="key_verse"
+                    value={data.key_verse}
+                    onChange={(event) =>
+                        setData('key_verse', event.target.value)
+                    }
+                    rows={2}
+                    placeholder="“É necessário que façamos as obras daquele que me enviou…” (Jo 9.4-5)"
+                />
+            </Field>
+
+            <Field label="Alvo da lição" htmlFor="goal" error={errors.goal}>
+                <Textarea
+                    id="goal"
+                    value={data.goal}
+                    onChange={(event) => setData('goal', event.target.value)}
+                    rows={2}
+                />
+            </Field>
 
             <Field
                 label="Versículos em destaque"
@@ -238,15 +305,17 @@ export function LessonForm({
             </Field>
 
             <Field
-                label="Conteúdo do estudo"
+                label="Estudo principal"
                 htmlFor="content"
                 error={errors.content}
                 hint={
                     <>
-                        Aceita Markdown: <code>## Título de seção</code>,{' '}
+                        Siga a revista: introdução, <code>## I. …</code>,{' '}
+                        <code>### 1. …</code> e conclusão. Aceita Markdown (
                         <code>**negrito**</code>, <code>*itálico*</code>,{' '}
-                        <code>&gt; citação</code> e listas. Os títulos{' '}
-                        <code>##</code> viram os tópicos do Modo Domingo.
+                        <code>&gt; citação</code>, listas). Os títulos viram os
+                        tópicos do Modo Domingo. Roteiro, contexto, curiosidades
+                        e conceitos entram como blocos, mais abaixo.
                     </>
                 }
             >
@@ -255,23 +324,6 @@ export function LessonForm({
                     value={data.content}
                     onChange={(event) => setData('content', event.target.value)}
                     rows={14}
-                    className="font-mono text-sm"
-                />
-            </Field>
-
-            <Field
-                label="Notas do professor"
-                htmlFor="teacher_notes"
-                error={errors.teacher_notes}
-                hint="Visíveis apenas para professores da classe (inclusive no Modo Domingo)."
-            >
-                <Textarea
-                    id="teacher_notes"
-                    value={data.teacher_notes}
-                    onChange={(event) =>
-                        setData('teacher_notes', event.target.value)
-                    }
-                    rows={5}
                     className="font-mono text-sm"
                 />
             </Field>

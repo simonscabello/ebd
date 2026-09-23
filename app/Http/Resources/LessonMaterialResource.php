@@ -24,6 +24,7 @@ class LessonMaterialResource extends JsonResource
             'id' => $this->id,
             'type' => $this->type->value,
             'type_label' => $this->type->label(),
+            'audience' => $this->audience->value,
             'title' => $this->title,
             'description' => $this->description,
             'url' => $hasFile ? null : $this->url,

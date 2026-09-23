@@ -18,7 +18,10 @@ class LessonQuestionResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'kind' => $this->kind->value,
             'body' => $this->body,
+            // Gabarito de perguntas de revisão: a página esconde até a pessoa responder.
+            'answer' => $this->isReview() ? $this->answer : null,
             'position' => $this->position,
         ];
     }

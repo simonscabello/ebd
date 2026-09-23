@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContentAudience;
 use App\Enums\MaterialType;
 use App\Models\Concerns\HasPosition;
 use Database\Factories\LessonMaterialFactory;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $lesson_id
  * @property MaterialType $type
+ * @property ContentAudience $audience
  * @property string $title
  * @property string|null $description
  * @property string|null $url
@@ -27,12 +29,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $position
  * @property-read Lesson $lesson
  */
-#[Fillable(['type', 'title', 'description', 'url', 'is_primary', 'position'])]
+#[Fillable(['type', 'audience', 'title', 'description', 'url', 'is_primary', 'position'])]
 #[Hidden(['disk', 'path'])]
 class LessonMaterial extends Model
 {
     /** @use HasFactory<LessonMaterialFactory> */
     use HasFactory, HasPosition;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'audience' => 'student',
+    ];
 
     /**
      * @return array<string, string>
@@ -41,6 +50,7 @@ class LessonMaterial extends Model
     {
         return [
             'type' => MaterialType::class,
+            'audience' => ContentAudience::class,
             'is_primary' => 'boolean',
             'position' => 'integer',
             'size_bytes' => 'integer',
@@ -53,6 +63,11 @@ class LessonMaterial extends Model
     public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class);
+    }
+
+    public function isForTeachers(): bool
+    {
+        return $this->audience === ContentAudience::Teacher;
     }
 
     public function hasFile(): bool

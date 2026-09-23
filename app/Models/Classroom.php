@@ -75,6 +75,22 @@ class Classroom extends Model
     }
 
     /**
+     * @return HasMany<ClassMeeting, $this>
+     */
+    public function meetings(): HasMany
+    {
+        return $this->hasMany(ClassMeeting::class);
+    }
+
+    /**
+     * @return BelongsToMany<User, $this, ClassroomMember>
+     */
+    public function students(): BelongsToMany
+    {
+        return $this->members()->wherePivot('role', ClassroomRole::Student->value);
+    }
+
+    /**
      * @param  Builder<self>  $query
      */
     #[Scope]

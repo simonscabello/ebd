@@ -30,10 +30,13 @@ export type MaterialTypeValue =
     | 'audio'
     | 'reference';
 
+export type Audience = 'teacher' | 'student';
+
 export type LessonMaterial = {
     id: number;
     type: MaterialTypeValue;
     type_label: string;
+    audience: Audience;
     title: string;
     description: string | null;
     url: string | null;
@@ -61,17 +64,74 @@ export type LessonReading = {
     position: number;
 };
 
+export type QuestionKind = 'reflection' | 'review';
+
 export type LessonQuestion = {
     id: number;
+    kind: QuestionKind;
     body: string;
+    /** Gabarito (só perguntas de revisão). */
+    answer: string | null;
     position: number;
 };
 
-export type LessonStatus = 'draft' | 'published' | 'completed';
+export type LessonBlockKind =
+    | 'roteiro'
+    | 'extra_time'
+    | 'accuracy_note'
+    | 'teacher_note'
+    | 'context'
+    | 'theology'
+    | 'curiosity'
+    | 'application'
+    | 'concept';
+
+export type LessonBlock = {
+    id: number;
+    kind: LessonBlockKind;
+    kind_label: string;
+    audience: Audience;
+    title: string | null;
+    display_title: string;
+    body_html: string | null;
+    body?: string;
+    drip_weekday: number | null;
+    drip_weekday_label: string | null;
+    position: number;
+};
+
+export type MeetingStatus = 'planned' | 'held' | 'cancelled';
+
+export type ClassMeeting = {
+    id: number;
+    held_on: string;
+    date_label: string;
+    date_short: string;
+    days_until: number;
+    status: MeetingStatus;
+    status_label: string;
+    title: string | null;
+    lesson_id: number | null;
+    lesson?: {
+        id: number;
+        title: string;
+        display_title: string;
+        number: number | null;
+        slug: string;
+        status: LessonStatus;
+    } | null;
+    has_attendance: boolean;
+    visitors_count: number;
+    notes?: string | null;
+};
+
+export type LessonStatus = 'draft' | 'published';
 
 export type Lesson = {
     id: number;
     title: string;
+    number: number | null;
+    display_title: string;
     slug: string;
     url: string;
     summary: string | null;
@@ -81,6 +141,9 @@ export type Lesson = {
     days_until: number | null;
     date_parts: { day: string; month: string } | null;
     bible_reference: string | null;
+    key_verse: string | null;
+    goal: string | null;
+    magazine_author: string | null;
     status: LessonStatus;
     status_label: string;
     visibility: 'public' | 'members';
@@ -91,12 +154,14 @@ export type Lesson = {
     materials?: LessonMaterial[];
     readings?: LessonReading[];
     questions?: LessonQuestion[];
+    blocks?: LessonBlock[];
+    teacher_blocks?: LessonBlock[];
+    meetings?: ClassMeeting[];
     questions_count?: number;
     materials_count?: number;
     bible_text?: string | null;
     content_html?: string | null;
     topics?: string[];
-    teacher_notes_html?: string | null;
     headline?: string | null;
 };
 

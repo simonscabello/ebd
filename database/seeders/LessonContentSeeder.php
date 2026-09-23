@@ -2,10 +2,16 @@
 
 namespace Database\Seeders;
 
+use App\Actions\Lessons\SyncLessonSearchText;
+use App\Enums\ContentAudience;
+use App\Enums\LessonBlockKind;
 use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
 use App\Enums\MaterialType;
+use App\Enums\MeetingStatus;
+use App\Enums\QuestionKind;
 use App\Enums\Weekday;
+use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
@@ -58,6 +64,7 @@ class LessonContentSeeder extends Seeder
             ['O que você tem nas mãos que pode ser entregue a Jesus?', 'Por que Jesus mandou recolher os pedaços que sobraram?']);
 
         $this->santidadeDeDeus($series, $teacher);
+        $this->eNecessario($series, $teacher);
 
         $draft = new Lesson([
             'title' => 'A Cura do Leproso',
@@ -113,7 +120,16 @@ O encontro com a santidade de Deus poderia terminar em condenação, mas termina
 2. **Obediência:** confiar na Palavra mesmo quando ela contraria a nossa experiência.
 3. **Esperança:** reconhecer o pecado não é o fim da história; em Cristo, é o começo de um chamado.
 MD,
-            'teacher_notes' => <<<'MD'
+            'visibility' => LessonVisibility::Public,
+        ]);
+
+        $this->saveLesson($lesson, $series, $teacher, 'a-santidade-de-deus', LessonStatus::Published);
+
+        $lesson->blocks()->create([
+            'kind' => LessonBlockKind::TeacherNote,
+            'audience' => ContentAudience::Teacher,
+            'title' => 'Notas do professor',
+            'body' => <<<'MD'
 - **Abertura (5 min):** perguntar quem já passou uma "noite inteira sem pescar nada" em alguma área da vida.
 - **Leitura (5 min):** pedir a um aluno para ler Lucas 5:1–11 em voz alta.
 - **Discussão (25 min):** usar as perguntas 1 e 3 com mais tempo; a 5 pode ficar para casa.
@@ -121,10 +137,7 @@ MD,
 - **Encerramento:** oração pedindo reverência e disposição para obedecer.
 - Avisar que na próxima semana veremos a cura do leproso (Lucas 5:12-16).
 MD,
-            'visibility' => LessonVisibility::Public,
         ]);
-
-        $this->saveLesson($lesson, $series, $teacher, 'a-santidade-de-deus', LessonStatus::Published);
 
         $this->readings($lesson, [
             [Weekday::Monday, 'Isaías 6:1-8', 'A visão de Isaías: "Santo, santo, santo". Compare a reação de Isaías com a de Pedro.'],
@@ -225,10 +238,14 @@ MD,
             'scheduled_for' => $this->nextSunday->toDateString(),
             'bible_reference' => 'Filipenses 2:1-11',
             'content' => "## Introdução\n\nO hino de Filipenses 2 é um dos textos mais antigos sobre quem é Jesus.\n\n## O mesmo sentimento\n\nPaulo pede unidade, humildade e cuidado mútuo.\n\n## O caminho da cruz\n\nCristo, sendo Deus, não se apegou à sua posição: esvaziou-se, fez-se servo e obedeceu até a morte.",
-            'teacher_notes' => '- Dividir a turma em duplas para ler os versos 5 a 8.',
             'visibility' => LessonVisibility::Public,
         ]);
         $this->saveLesson($next, $filipenses, $teacher, 'o-exemplo-de-cristo', LessonStatus::Published);
+        $next->blocks()->create([
+            'kind' => LessonBlockKind::TeacherNote,
+            'audience' => ContentAudience::Teacher,
+            'body' => '- Dividir a turma em duplas para ler os versos 5 a 8.',
+        ]);
 
         $this->readings($next, [
             [Weekday::Monday, 'Filipenses 2:1-4', 'O mesmo sentimento e o mesmo amor.'],
@@ -243,6 +260,98 @@ MD,
             'type' => MaterialType::Reference,
             'title' => 'Comentário de Filipenses — John Stott',
             'description' => 'Série "A Bíblia Fala Hoje".',
+        ]);
+    }
+
+    /**
+     * Lição no formato completo da revista, com blocos de aprofundamento,
+     * curiosidades liberadas ao longo da semana e perguntas de revisão.
+     */
+    private function eNecessario(Series $series, User $teacher): void
+    {
+        $lesson = new Lesson([
+            'number' => 11,
+            'title' => 'É Necessário',
+            'summary' => 'Na cura do cego de nascença, Jesus desmonta a lógica do "quem pecou?" e se revela como a luz do mundo.',
+            'scheduled_for' => $this->sunday(2)->toDateString(),
+            'bible_reference' => 'Jo 9.1-41',
+            'magazine_author' => 'Márcia Geralda Gonçalves Silva',
+            'key_verse' => '"É necessário que façamos as obras daquele que me enviou enquanto é dia; a noite vem, quando ninguém pode trabalhar. Enquanto estou no mundo, sou a luz do mundo." (Jo 9.4-5)',
+            'goal' => 'Analisar de que maneiras Jesus Cristo demonstrou ser a luz do mundo no episódio da cura do cego de nascença.',
+            'content' => <<<'MD'
+Quando alguém se vê subitamente acometido por uma doença, não é raro pensar: *por que o Senhor permitiu isso? Será castigo?* Foi assim que os discípulos perguntaram: *"Mestre, quem pecou para que este homem nascesse cego?"* (Jo 9.2).
+
+## I. "Quem pecou?"
+
+A pergunta refletia a cosmovisão da época. Jesus quebra o paradigma: *"Nem ele pecou, nem seus pais"* (Jo 9.3). A cegueira não era castigo, mas palco para a obra de Deus.
+
+## II. "É necessário"
+
+### 1. É necessário ser curado da cegueira espiritual
+
+Todos nascemos com o entendimento obscurecido pelo pecado (1Co 2.14).
+
+### 2. É necessário que façamos a obra de Deus
+
+Jesus inclui os discípulos: *"é necessário que **façamos**"*. E há urgência: *"enquanto é dia"*.
+
+## III. "Eu sou a luz do mundo"
+
+O ex-cego testemunha sem ter visto Jesus, e o reencontra para crer e adorar (v.38). Os fariseus, com olhos perfeitos, permanecem cegos (v.40-41).
+
+## Conclusão
+
+Aquele que é a luz da nossa vida nos comanda a ser luz do mundo (Mt 5.16).
+MD,
+            'visibility' => LessonVisibility::Public,
+        ]);
+
+        $this->saveLesson($lesson, $series, $teacher, 'e-necessario', LessonStatus::Published);
+
+        $this->readings($lesson, [
+            [Weekday::Monday, 'Jo 1.1-14', 'A luz verdadeira que ilumina a todo homem.'],
+            [Weekday::Tuesday, '1Co 2.4-16', 'O homem natural não compreende as coisas do Espírito.'],
+            [Weekday::Wednesday, 'Rm 12.1-2', 'Transformados pela renovação da mente.'],
+            [Weekday::Thursday, 'Jo 3.16-21', 'A luz veio ao mundo — e o juízo que ela provoca.'],
+            [Weekday::Friday, 'Mt 5.14-16', 'Vós sois a luz do mundo.'],
+            [Weekday::Saturday, 'Ef 5.1-14', 'Andai como filhos da luz.'],
+            [Weekday::Sunday, '1Ts 5.1-11', 'Filhos do dia.'],
+        ]);
+
+        $blocks = [
+            [LessonBlockKind::Roteiro, 'Fio da aula', "1. Abrir com a pergunta: *\"o que eu fiz para merecer isso?\"*\n2. Contexto: Festa dos Tabernáculos (luz e água).\n3. Ler o capítulo como drama em sete cenas.\n4. A escada de fé do ex-cego (v.11, 17, 33, 38).\n5. Fechar com \"Uma coisa sei: eu era cego e agora vejo\" (v.25).", null],
+            [LessonBlockKind::ExtraTime, 'Saliva como "remédio" no mundo antigo', 'Tácito registra que Vespasiano teria "curado" um cego em Alexandria com saliva. Jesus usa um gesto conhecido — mas o resultado não tinha paralelo.', null],
+            [LessonBlockKind::AccuracyNote, 'Globos oculares?', 'A revista menciona que o homem "possivelmente nasceu sem os globos oculares". Trate como **especulação homilética**, não como dado do texto: João diz apenas que ele era cego de nascença (v.1).', null],
+            [LessonBlockKind::Context, 'O pano de fundo: a Festa dos Tabernáculos', "João 9 fecha o bloco iniciado em João 7, durante Sucot. Dois rituais iluminam o capítulo:\n\n- **A cerimônia da iluminação:** quatro candelabros gigantes no Pátio das Mulheres. É nesse cenário que Jesus diz \"Eu sou a luz do mundo\" (Jo 8.12; 9.5).\n- **A libação da água:** todo dia um sacerdote buscava água justamente na piscina de Siloé.", null],
+            [LessonBlockKind::Context, 'A expulsão da sinagoga', 'O medo dos pais (v.22) gira em torno de *aposynagōgos*, palavra que só aparece em João. Ser expulso significava morte social e econômica — o que torna a coragem do ex-cego ainda maior.', null],
+            [LessonBlockKind::Theology, 'A escada de fé do ex-cego', "1. \"Um homem chamado Jesus\" (v.11)\n2. \"É um profeta\" (v.17)\n3. \"Se este homem não fosse de Deus, nada poderia fazer\" (v.33)\n4. \"Eu creio, Senhor!\" — e o adorou (v.38)", null],
+            [LessonBlockKind::Application, 'O testemunho do "eu não sei, mas sei"', 'Pressionado por especialistas, o ex-cego não venceu o debate: disse apenas *"Uma coisa sei: eu era cego e agora vejo"* (v.25). Ninguém refuta um testemunho vivido.', null],
+            [LessonBlockKind::Curiosity, 'Siloé significa "Enviado"', 'João faz questão de traduzir (v.7). Jesus é chamado de "Enviado" do Pai mais de 40 vezes no evangelho: ao se lavar em Siloé, o cego mergulhava, simbolicamente, no próprio Cristo.', Weekday::Monday],
+            [LessonBlockKind::Curiosity, 'A piscina de Siloé foi encontrada em 2004', 'Operários em uma obra de esgoto na Cidade de Davi encontraram os degraus da piscina do Segundo Templo — a mesma de João 9. Dá para visitar.', Weekday::Wednesday],
+            [LessonBlockKind::Curiosity, 'Nenhum cego curado no Antigo Testamento', 'Nem Moisés, nem Elias, nem Eliseu. Abrir olhos de cegos era a assinatura do Messias (Is 35.5; 42.7) — e o ex-cego percebe isso no v.32.', Weekday::Friday],
+            [LessonBlockKind::Concept, 'As 39 categorias de trabalho proibido (melachot)', 'A tradição oral listava 39 trabalhos proibidos no sábado (Mishná, Shabat 7.2). Ao fazer lama, Jesus "amassou" — violando a interpretação rabínica, não o sábado bíblico (Mc 2.27-28).', null],
+            [LessonBlockKind::Concept, 'As sete obras-sinais de João', "1. Água em vinho (Jo 2)\n2. Filho do oficial (Jo 4)\n3. Paralítico de Betesda (Jo 5)\n4. Multiplicação dos pães (Jo 6)\n5. Jesus anda sobre o mar (Jo 6)\n6. **Cego de nascença (Jo 9)**\n7. Lázaro (Jo 11)", null],
+            [LessonBlockKind::Concept, 'As sete declarações "Eu Sou"', 'Pão da vida, **luz do mundo**, porta, bom pastor, ressurreição e vida, caminho-verdade-vida, videira verdadeira. Todas ecoam o "EU SOU" de Êxodo 3.14.', null],
+        ];
+
+        foreach ($blocks as [$kind, $title, $body, $drip]) {
+            $lesson->blocks()->create([
+                'kind' => $kind,
+                'audience' => $kind->defaultAudience(),
+                'title' => $title,
+                'body' => $body,
+                'drip_weekday' => $drip,
+            ]);
+        }
+
+        app(SyncLessonSearchText::class)->handle($lesson);
+
+        $lesson->questions()->createMany([
+            ['kind' => QuestionKind::Reflection, 'body' => 'Quando algo difícil acontece, você pergunta "quem pecou?" ou "onde Deus quer manifestar Sua glória aqui"?'],
+            ['kind' => QuestionKind::Reflection, 'body' => 'Existe alguma área em que você "vê demais" e por isso não enxerga o que Jesus quer mostrar?'],
+            ['kind' => QuestionKind::Review, 'body' => 'O que significa o nome "Siloé" e por que isso importa no capítulo?', 'answer' => '"Enviado". Jesus é o Enviado do Pai: lavar-se em Siloé aponta para o próprio Cristo.'],
+            ['kind' => QuestionKind::Review, 'body' => 'Quais os quatro degraus da fé do ex-cego ao longo do capítulo?', 'answer' => '"Um homem chamado Jesus" (v.11), "é um profeta" (v.17), "vem de Deus" (v.33) e "Eu creio, Senhor!", com adoração (v.38).'],
+            ['kind' => QuestionKind::Review, 'body' => 'Por que fazer lama no sábado irritou os fariseus?', 'answer' => 'Pela tradição oral, misturar saliva e terra era "amassar", uma das 39 categorias de trabalho proibido no sábado.'],
         ]);
     }
 
@@ -275,7 +384,7 @@ MD,
             'visibility' => LessonVisibility::Public,
         ]);
 
-        $this->saveLesson($lesson, $series, $teacher, null, LessonStatus::Completed);
+        $this->saveLesson($lesson, $series, $teacher, null, LessonStatus::Published);
 
         foreach ($questions as $question) {
             $lesson->questions()->create(['body' => $question]);
@@ -292,6 +401,7 @@ MD,
 
         $existing = Lesson::withTrashed()->where('slug', $slug)->first();
         if ($existing) {
+            ClassMeeting::query()->where('lesson_id', $existing->id)->delete();
             $existing->forceDelete();
         }
 
@@ -302,10 +412,20 @@ MD,
             'status' => $status,
             'created_by' => $teacher->id,
             'published_at' => $status === LessonStatus::Draft ? null : now()->subDays(6),
-            'completed_at' => $status === LessonStatus::Completed ? now()->subDay() : null,
         ])->save();
 
         $lesson->authors()->sync([$teacher->id]);
+
+        // A data da lição vira um encontro na agenda da classe (realizado se já passou).
+        if ($lesson->scheduled_for !== null) {
+            ClassMeeting::query()->updateOrCreate(
+                ['classroom_id' => $lesson->classroom_id, 'held_on' => $lesson->scheduled_for->toDateString()],
+                [
+                    'lesson_id' => $lesson->id,
+                    'status' => $lesson->scheduled_for->lt(ChurchCalendar::today()) ? MeetingStatus::Held : MeetingStatus::Planned,
+                ],
+            );
+        }
     }
 
     /**

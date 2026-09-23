@@ -1,10 +1,14 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     ArrowLeft,
+    BookOpenText,
     BookText,
     CalendarDays,
+    CheckSquare,
     HelpCircle,
+    Layers,
     Library,
+    Lightbulb,
     Lock,
     NotebookPen,
     Paperclip,
@@ -13,9 +17,16 @@ import {
 } from 'lucide-react';
 import { BiblePassage } from '@/components/lesson/bible-passage';
 import { countdownLabel } from '@/components/lesson/countdown';
+import {
+    BlockAccordion,
+    BlockCards,
+    groupStudentBlocks,
+} from '@/components/lesson/lesson-blocks';
 import { MaterialCard, MaterialIcon } from '@/components/lesson/material-card';
 import { QuestionList } from '@/components/lesson/question-list';
 import { ReadingPlan } from '@/components/lesson/reading-plan';
+import { ReviewQuiz } from '@/components/lesson/review-quiz';
+import { RevistaHeader } from '@/components/lesson/revista-header';
 import { ShareButton } from '@/components/lesson/share-button';
 import { Page, Section } from '@/components/page';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +46,12 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
     const materials = lesson.materials ?? [];
     const readings = lesson.readings ?? [];
     const questions = lesson.questions ?? [];
+    const reflection = questions.filter((q) => q.kind === 'reflection');
+    const review = questions.filter((q) => q.kind === 'review');
+    const { deepen, curiosities, concepts, other } = groupStudentBlocks(
+        lesson.blocks ?? [],
+    );
+    const teacherBlocks = lesson.teacher_blocks ?? [];
 
     const primary = materials.filter(
         (m) => m.is_primary && m.type !== 'reference',
@@ -47,22 +64,39 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
     const sections = [
         readings.length > 0 && { id: 'leituras', label: 'Leituras' },
         lesson.content_html && { id: 'estudo', label: 'Estudo' },
+        (deepen.length > 0 || other.length > 0) && {
+            id: 'aprofunde',
+            label: 'Aprofunde',
+        },
+        curiosities.length > 0 && { id: 'curiosidades', label: 'Curiosidades' },
+        concepts.length > 0 && { id: 'conceitos', label: 'Conceitos' },
         (primary.length > 0 || complementary.length > 0) && {
             id: 'materiais',
             label: 'Materiais',
         },
-        questions.length > 0 && { id: 'perguntas', label: 'Perguntas' },
+        reflection.length > 0 && { id: 'perguntas', label: 'Perguntas' },
+        review.length > 0 && { id: 'revisao', label: 'Revisão' },
         references.length > 0 && { id: 'referencias', label: 'Referências' },
+        teacherBlocks.length > 0 && { id: 'professor', label: 'Professor' },
     ].filter(Boolean) as { id: string; label: string }[];
 
-    const countdown =
-        lesson.status === 'completed'
-            ? 'Aula realizada'
-            : countdownLabel(lesson.days_until);
+    // A data vem dos encontros: o próximo domingo da lição ou o último, se já passou.
+    const meetings = lesson.meetings ?? [];
+    const nextMeeting = meetings.find((m) => m.days_until >= 0);
+    const shownMeeting = nextMeeting ?? meetings[meetings.length - 1];
+    const meetingPosition =
+        shownMeeting && meetings.length > 1
+            ? `encontro ${meetings.indexOf(shownMeeting) + 1} de ${meetings.length}`
+            : null;
+    const countdown = nextMeeting
+        ? countdownLabel(nextMeeting.days_until)
+        : shownMeeting
+          ? 'Aula realizada'
+          : null;
 
     return (
         <>
-            <Head title={lesson.title}>
+            <Head title={lesson.display_title}>
                 <meta
                     name="description"
                     content={lesson.summary ?? `Lição: ${lesson.title}`}
@@ -103,14 +137,20 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                             </>
                         )}
                     </p>
-                    <h1 className="mt-2 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
+                    {lesson.number && (
+                        <p className="mt-3 text-sm font-semibold tracking-wide text-primary uppercase">
+                            Lição {lesson.number}
+                        </p>
+                    )}
+                    <h1 className="mt-1 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
                         {lesson.title}
                     </h1>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground">
-                        {lesson.date_label && (
+                        {shownMeeting && (
                             <span className="inline-flex items-center gap-1.5 first-letter:uppercase">
                                 <CalendarDays className="size-4" />{' '}
-                                {lesson.date_label}
+                                {shownMeeting.date_label}
+                                {meetingPosition && ` · ${meetingPosition}`}
                             </span>
                         )}
                         {countdown && lesson.status !== 'draft' && (
@@ -137,6 +177,12 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                             reference={lesson.bible_reference}
                             text={lesson.bible_text}
                         />
+                    </div>
+                )}
+
+                {(lesson.key_verse || lesson.goal) && (
+                    <div className="mt-3">
+                        <RevistaHeader lesson={lesson} />
                     </div>
                 )}
 
@@ -207,6 +253,39 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                         </Section>
                     )}
 
+                    {(deepen.length > 0 || other.length > 0) && (
+                        <Section
+                            id="aprofunde"
+                            title="Aprofunde"
+                            icon={<Layers />}
+                            description="Contexto histórico, teologia e aplicação para ir além da revista."
+                        >
+                            <BlockCards blocks={[...deepen, ...other]} />
+                        </Section>
+                    )}
+
+                    {curiosities.length > 0 && (
+                        <Section
+                            id="curiosidades"
+                            title="Curiosidades"
+                            icon={<Lightbulb />}
+                            description="Detalhes que fazem o texto ganhar vida."
+                        >
+                            <BlockCards blocks={curiosities} tone="highlight" />
+                        </Section>
+                    )}
+
+                    {concepts.length > 0 && (
+                        <Section
+                            id="conceitos"
+                            title="Conceitos citados"
+                            icon={<BookOpenText />}
+                            description="Toque em um conceito para ler a explicação."
+                        >
+                            <BlockAccordion blocks={concepts} />
+                        </Section>
+                    )}
+
                     {(primary.length > 0 || complementary.length > 0) && (
                         <Section
                             id="materiais"
@@ -241,14 +320,25 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                         </Section>
                     )}
 
-                    {questions.length > 0 && (
+                    {reflection.length > 0 && (
                         <Section
                             id="perguntas"
                             title="Perguntas para reflexão"
                             icon={<HelpCircle />}
                             description="Pense nelas durante a semana. Vamos conversar sobre elas no domingo."
                         >
-                            <QuestionList questions={questions} />
+                            <QuestionList questions={reflection} />
+                        </Section>
+                    )}
+
+                    {review.length > 0 && (
+                        <Section
+                            id="revisao"
+                            title="Revise o que aprendeu"
+                            icon={<CheckSquare />}
+                            description="Responda, confira o gabarito e veja como você foi."
+                        >
+                            <ReviewQuiz questions={review} />
                         </Section>
                     )}
 
@@ -295,18 +385,14 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                         </Section>
                     )}
 
-                    {lesson.teacher_notes_html && (
+                    {teacherBlocks.length > 0 && (
                         <Section
-                            title="Notas do professor"
+                            id="professor"
+                            title="Para o professor"
                             icon={<NotebookPen />}
                             description="Visível apenas para quem gerencia a classe."
                         >
-                            <div
-                                className="reading rounded-2xl border border-dashed bg-card p-5 text-base"
-                                dangerouslySetInnerHTML={{
-                                    __html: lesson.teacher_notes_html,
-                                }}
-                            />
+                            <BlockCards blocks={teacherBlocks} tone="teacher" />
                         </Section>
                     )}
 

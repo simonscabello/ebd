@@ -4,8 +4,11 @@ import {
     BookMarked,
     BookOpen,
     CalendarDays,
+    CalendarOff,
     FileText,
     HelpCircle,
+    Hourglass,
+    KeyRound,
     Layers,
     Sparkles,
 } from 'lucide-react';
@@ -16,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { home, library, login } from '@/routes';
 import { show } from '@/routes/lessons';
-import type { Classroom, Lesson, Series } from '@/types';
+import type { ClassMeeting, Classroom, Lesson, Series } from '@/types';
 
 type Props = {
     greeting: string;
@@ -24,7 +27,13 @@ type Props = {
     classrooms: Classroom[];
     classroom: Classroom | null;
     isMember: boolean;
+    isStudent: boolean;
     nextLesson: Lesson | null;
+    meeting: ClassMeeting | null;
+    meetingIndex: number;
+    meetingTotal: number;
+    preparing: boolean;
+    cancelledBefore: ClassMeeting[];
     currentSeries: Series | null;
     recentLessons: Lesson[];
 };
@@ -35,6 +44,11 @@ export default function Home({
     classroom,
     isMember,
     nextLesson,
+    meeting,
+    meetingIndex,
+    meetingTotal,
+    preparing,
+    cancelledBefore,
     currentSeries,
     recentLessons,
 }: Props) {
@@ -52,7 +66,7 @@ export default function Home({
                         {name ? `, ${name}` : ''}.
                     </h1>
                     <p className="mt-2 text-lg text-muted-foreground">
-                        {headline(nextLesson)}
+                        {headline(meeting)}
                     </p>
                 </header>
 
@@ -101,8 +115,39 @@ export default function Home({
                     </div>
                 )}
 
+                {cancelledBefore.map((cancelled) => (
+                    <p
+                        key={cancelled.id}
+                        className="mb-3 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200"
+                    >
+                        <CalendarOff className="size-4 shrink-0" />
+                        <span className="first-letter:uppercase">
+                            {cancelled.date_short}: não teremos EBD
+                            {cancelled.title ? ` (${cancelled.title})` : ''}.
+                        </span>
+                    </p>
+                ))}
+
                 {nextLesson ? (
-                    <NextLesson lesson={nextLesson} />
+                    <NextLesson
+                        lesson={nextLesson}
+                        meeting={meeting}
+                        position={
+                            meetingTotal > 1
+                                ? `Encontro ${meetingIndex} de ${meetingTotal}`
+                                : null
+                        }
+                    />
+                ) : preparing && meeting ? (
+                    <EmptyState
+                        icon={<Hourglass />}
+                        title="A próxima lição está sendo preparada"
+                    >
+                        <span className="first-letter:uppercase">
+                            {meeting.date_label}
+                        </span>
+                        . Assim que for publicada, ela aparece aqui.
+                    </EmptyState>
                 ) : (
                     <EmptyState
                         icon={<CalendarDays />}
@@ -138,7 +183,7 @@ export default function Home({
                                     >
                                         <span className="min-w-0">
                                             <span className="block truncate font-medium">
-                                                {lesson.title}
+                                                {lesson.display_title}
                                             </span>
                                             <span className="text-sm text-muted-foreground">
                                                 {lesson.date_short}
@@ -179,25 +224,35 @@ export default function Home({
     );
 }
 
-function headline(lesson: Lesson | null): string {
-    if (!lesson || lesson.days_until === null) {
+function headline(meeting: ClassMeeting | null): string {
+    if (!meeting || meeting.days_until < 0) {
         return 'Que bom ter você por aqui.';
     }
 
-    if (lesson.days_until === 0) {
+    if (meeting.days_until === 0) {
         return 'Hoje é dia de EBD!';
     }
 
-    if (lesson.days_until === 1) {
+    if (meeting.days_until === 1) {
         return 'Amanhã tem EBD. Vamos nos preparar?';
     }
 
-    return `Faltam ${lesson.days_until} dias para a nossa próxima EBD.`;
+    return `Faltam ${meeting.days_until} dias para a nossa próxima EBD.`;
 }
 
-function NextLesson({ lesson }: { lesson: Lesson }) {
+function NextLesson({
+    lesson,
+    meeting,
+    position,
+}: {
+    lesson: Lesson;
+    meeting: ClassMeeting | null;
+    position: string | null;
+}) {
     const readings = lesson.readings ?? [];
-    const questions = lesson.questions ?? [];
+    const questions = (lesson.questions ?? []).filter(
+        (q) => q.kind === 'reflection',
+    );
     const materials = lesson.materials ?? [];
     const primary = materials.find((m) => m.is_primary && m.file);
     const complementary = materials.filter(
@@ -211,13 +266,28 @@ function NextLesson({ lesson }: { lesson: Lesson }) {
             <article className="overflow-hidden rounded-3xl bg-primary text-primary-foreground shadow-sm">
                 <div className="p-6 md:p-8">
                     <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium opacity-90">
-                        <span>Próxima aula</span>
-                        <span aria-hidden>·</span>
-                        <span className="first-letter:uppercase">
-                            {lesson.date_label}
-                        </span>
+                        <span>{meeting ? 'Próxima aula' : 'Última aula'}</span>
+                        {meeting && (
+                            <>
+                                <span aria-hidden>·</span>
+                                <span className="first-letter:uppercase">
+                                    {meeting.date_label}
+                                </span>
+                            </>
+                        )}
+                        {position && (
+                            <>
+                                <span aria-hidden>·</span>
+                                <span>{position}</span>
+                            </>
+                        )}
                     </p>
-                    <h2 className="mt-3 font-serif text-3xl leading-tight font-semibold tracking-tight text-balance md:text-4xl">
+                    {lesson.number && (
+                        <p className="mt-3 text-sm font-semibold tracking-wide uppercase opacity-80">
+                            Lição {lesson.number}
+                        </p>
+                    )}
+                    <h2 className="mt-1 font-serif text-3xl leading-tight font-semibold tracking-tight text-balance md:text-4xl">
                         {lesson.title}
                     </h2>
                     {lesson.bible_reference && (
@@ -227,6 +297,12 @@ function NextLesson({ lesson }: { lesson: Lesson }) {
                             <span className="font-semibold">
                                 {lesson.bible_reference}
                             </span>
+                        </p>
+                    )}
+                    {lesson.key_verse && (
+                        <p className="mt-4 flex gap-2 font-serif leading-relaxed text-pretty italic opacity-95">
+                            <KeyRound className="mt-1 size-4 shrink-0" />
+                            {lesson.key_verse}
                         </p>
                     )}
                     {lesson.summary && (
@@ -248,8 +324,8 @@ function NextLesson({ lesson }: { lesson: Lesson }) {
                         <div className="[&_button]:h-12 [&_button]:w-full [&_button]:border-primary-foreground/30 [&_button]:bg-transparent [&_button]:text-primary-foreground [&_button]:hover:bg-primary-foreground/10 sm:[&_button]:w-auto">
                             <ShareButton
                                 url={lesson.url}
-                                title={lesson.title}
-                                text={`📖 ${lesson.title}${lesson.bible_reference ? `\nTexto base: ${lesson.bible_reference}` : ''}\n${lesson.url}`}
+                                title={lesson.display_title}
+                                text={`📖 ${lesson.display_title}${lesson.bible_reference ? `\nTexto base: ${lesson.bible_reference}` : ''}\n${lesson.url}`}
                             />
                         </div>
                     </div>

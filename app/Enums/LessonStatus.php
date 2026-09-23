@@ -3,33 +3,34 @@
 namespace App\Enums;
 
 /**
- * Ciclo de vida de uma lição:
+ * Estado editorial de uma lição:
  *
- *   draft ──publicar──▶ published ──concluir──▶ completed
- *     ▲                    │  ▲                     │
- *     └────despublicar─────┘  └──────reabrir────────┘
+ *   draft ──publicar──▶ published
+ *     ▲                    │
+ *     └────despublicar─────┘
+ *
+ * "Já foi dada" / "em andamento" não é status: vem dos encontros (ClassMeeting),
+ * porque uma lição pode ocupar mais de um domingo.
  */
 enum LessonStatus: string
 {
     case Draft = 'draft';
     case Published = 'published';
-    case Completed = 'completed';
 
     public function label(): string
     {
         return match ($this) {
             self::Draft => 'Rascunho',
             self::Published => 'Publicada',
-            self::Completed => 'Concluída',
         };
     }
 
     /**
-     * Uma lição é visível fora da administração quando publicada ou concluída.
+     * Uma lição é visível fora da administração quando publicada.
      */
     public function isVisible(): bool
     {
-        return $this !== self::Draft;
+        return $this === self::Published;
     }
 
     public function canTransitionTo(self $target): bool
@@ -44,8 +45,7 @@ enum LessonStatus: string
     {
         return match ($this) {
             self::Draft => [self::Published],
-            self::Published => [self::Draft, self::Completed],
-            self::Completed => [self::Published],
+            self::Published => [self::Draft],
         };
     }
 
@@ -54,6 +54,6 @@ enum LessonStatus: string
      */
     public static function visibleCases(): array
     {
-        return [self::Published, self::Completed];
+        return [self::Published];
     }
 }

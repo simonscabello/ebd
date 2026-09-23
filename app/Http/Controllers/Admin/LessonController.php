@@ -5,13 +5,19 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Lessons\CreateLesson;
 use App\Actions\Lessons\UpdateLesson;
 use App\Enums\ClassroomRole;
+use App\Enums\ContentAudience;
+use App\Enums\LessonBlockKind;
 use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
 use App\Enums\MaterialType;
+use App\Enums\MeetingStatus;
+use App\Enums\QuestionKind;
 use App\Enums\Weekday;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
+use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\ClassroomResource;
+use App\Http\Resources\LessonBlockResource;
 use App\Http\Resources\LessonMaterialResource;
 use App\Http\Resources\LessonQuestionResource;
 use App\Http\Resources\LessonReadingResource;
@@ -25,6 +31,7 @@ use App\Support\ChurchCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -82,7 +89,7 @@ class LessonController extends Controller
             'defaults' => [
                 'classroom_id' => $request->integer('classe') ?: $classroomIds->first(),
                 'series_id' => $request->integer('serie') ?: null,
-                'scheduled_for' => ChurchCalendar::nextSunday()->toDateString(),
+                'meeting_on' => ChurchCalendar::nextSunday()->toDateString(),
             ],
             'visibilities' => $this->visibilityOptions(),
         ]);
@@ -104,23 +111,25 @@ class LessonController extends Controller
     {
         Gate::authorize('update', $lesson);
 
-        $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'questions']);
+        $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'questions', 'blocks', 'meetings']);
 
         return Inertia::render('admin/lessons/edit', [
             'lesson' => [
                 'id' => $lesson->id,
                 'classroom' => ClassroomResource::make($lesson->classroom),
                 'series_id' => $lesson->series_id,
+                'number' => $lesson->number,
                 'title' => $lesson->title,
                 'slug' => $lesson->slug,
                 'url' => route('lessons.show', $lesson->slug),
                 'sunday_url' => route('lessons.sunday', $lesson->slug),
                 'summary' => $lesson->summary,
-                'scheduled_for' => $lesson->scheduled_for?->toDateString(),
                 'bible_reference' => $lesson->bible_reference,
                 'bible_text' => $lesson->bible_text,
+                'magazine_author' => $lesson->magazine_author,
+                'key_verse' => $lesson->key_verse,
+                'goal' => $lesson->goal,
                 'content' => $lesson->content,
-                'teacher_notes' => $lesson->teacher_notes,
                 'visibility' => $lesson->visibility->value,
                 'status' => $lesson->status->value,
                 'status_label' => $lesson->status->label(),
@@ -130,6 +139,9 @@ class LessonController extends Controller
                 'materials' => LessonMaterialResource::collection($lesson->materials),
                 'readings' => LessonReadingResource::collection($lesson->readings),
                 'questions' => LessonQuestionResource::collection($lesson->questions),
+                'blocks' => LessonBlockResource::editable($lesson->blocks, $request),
+                'meetings' => ClassMeetingResource::collection($lesson->meetings),
+                'agenda_url' => route('admin.classrooms.meetings.index', $lesson->classroom),
             ],
             'series' => SeriesResource::collection($lesson->classroom->series()->orderByDesc('starts_on')->orderBy('title')->get()),
             'authors' => $lesson->classroom->members()
@@ -148,6 +160,13 @@ class LessonController extends Controller
                 'max_mb' => (int) floor($type->maxUploadKilobytes() / 1024),
             ]),
             'weekdays' => collect(Weekday::cases())->map(fn (Weekday $d) => ['value' => $d->value, 'label' => $d->label()]),
+            'blockKinds' => collect(LessonBlockKind::cases())->map(fn (LessonBlockKind $k) => [
+                'value' => $k->value,
+                'label' => $k->label(),
+                'default_audience' => $k->defaultAudience()->value,
+            ]),
+            'audiences' => collect(ContentAudience::cases())->map(fn (ContentAudience $a) => ['value' => $a->value, 'label' => $a->label()]),
+            'questionKinds' => collect(QuestionKind::cases())->map(fn (QuestionKind $k) => ['value' => $k->value, 'label' => $k->label()]),
         ]);
     }
 
@@ -164,7 +183,12 @@ class LessonController extends Controller
     {
         Gate::authorize('delete', $lesson);
 
-        $lesson->delete();
+        DB::transaction(function () use ($lesson) {
+            // Domingos planejados ficam livres; encontros já realizados continuam
+            // como histórico (a lição excluída pode ser restaurada).
+            $lesson->meetings()->where('status', MeetingStatus::Planned)->update(['lesson_id' => null]);
+            $lesson->delete();
+        });
 
         $this->toast('Lição excluída.');
 

@@ -45,6 +45,15 @@ Route::middleware(['auth', 'can:access-admin'])
             ->names('classrooms')
             ->except(['show', 'destroy']);
 
+        Route::get('classes/{classroom}/agenda', [Admin\ClassMeetingController::class, 'index'])->name('classrooms.meetings.index');
+        Route::post('classes/{classroom}/agenda', [Admin\ClassMeetingController::class, 'store'])->name('classrooms.meetings.store');
+        Route::post('classes/{classroom}/agenda/planejar', [Admin\ClassMeetingController::class, 'plan'])->name('classrooms.meetings.plan');
+        Route::put('encontros/{meeting}', [Admin\ClassMeetingController::class, 'update'])->name('meetings.update');
+        Route::delete('encontros/{meeting}', [Admin\ClassMeetingController::class, 'destroy'])->name('meetings.destroy');
+        Route::post('encontros/{meeting}/cancelar', [Admin\MeetingStatusController::class, 'cancel'])->name('meetings.cancel');
+        Route::post('encontros/{meeting}/continuar', [Admin\MeetingStatusController::class, 'continue'])->name('meetings.continue');
+        Route::post('encontros/{meeting}/realizado', [Admin\MeetingStatusController::class, 'held'])->name('meetings.held');
+
         Route::get('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'index'])->name('classrooms.members.index');
         Route::post('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'store'])->name('classrooms.members.store');
         Route::delete('classes/{classroom}/membros/{user}', [Admin\ClassroomMemberController::class, 'destroy'])->name('classrooms.members.destroy');
@@ -60,7 +69,7 @@ Route::middleware(['auth', 'can:access-admin'])
 
         Route::post('licoes/{lesson}/status', Admin\LessonStatusController::class)->name('lessons.status');
         Route::put('licoes/{lesson}/ordem/{relation}', Admin\LessonOrderController::class)
-            ->whereIn('relation', ['materials', 'questions', 'readings'])
+            ->whereIn('relation', ['materials', 'questions', 'readings', 'blocks'])
             ->name('lessons.reorder');
 
         Route::scopeBindings()->group(function () {
@@ -72,6 +81,10 @@ Route::middleware(['auth', 'can:access-admin'])
             Route::post('licoes/{lesson}/perguntas', [Admin\LessonQuestionController::class, 'store'])->name('lessons.questions.store');
             Route::put('licoes/{lesson}/perguntas/{question}', [Admin\LessonQuestionController::class, 'update'])->name('lessons.questions.update');
             Route::delete('licoes/{lesson}/perguntas/{question}', [Admin\LessonQuestionController::class, 'destroy'])->name('lessons.questions.destroy');
+
+            Route::post('licoes/{lesson}/blocos', [Admin\LessonBlockController::class, 'store'])->name('lessons.blocks.store');
+            Route::put('licoes/{lesson}/blocos/{block}', [Admin\LessonBlockController::class, 'update'])->name('lessons.blocks.update');
+            Route::delete('licoes/{lesson}/blocos/{block}', [Admin\LessonBlockController::class, 'destroy'])->name('lessons.blocks.destroy');
 
             Route::post('licoes/{lesson}/leituras', [Admin\LessonReadingController::class, 'store'])->name('lessons.readings.store');
             Route::put('licoes/{lesson}/leituras/{reading}', [Admin\LessonReadingController::class, 'update'])->name('lessons.readings.update');

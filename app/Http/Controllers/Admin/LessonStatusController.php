@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
- * Publicar / despublicar / concluir / reabrir.
+ * Publicar / despublicar.
  */
 class LessonStatusController extends Controller
 {
@@ -28,7 +28,6 @@ class LessonStatusController extends Controller
 
         $this->toast(match ($target) {
             LessonStatus::Published => 'Lição publicada. O link já pode ser compartilhado.',
-            LessonStatus::Completed => 'Lição concluída e arquivada na biblioteca.',
             LessonStatus::Draft => 'Lição voltou para rascunho.',
         });
 

@@ -2,8 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ContentAudience;
+use App\Enums\LessonBlockKind;
 use App\Models\Classroom;
 use App\Models\Lesson;
+use App\Models\LessonBlock;
+use App\Models\LessonMaterial;
+use App\Models\LessonQuestion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -30,8 +35,8 @@ class LessonAccessTest extends TestCase
     {
         $lesson = Lesson::factory()->published()->for($this->classroom)->create([
             'slug' => 'a-santidade-de-deus',
-            'teacher_notes' => 'Segredo do professor',
         ]);
+        LessonBlock::factory()->for($lesson)->teacherOnly()->create(['body' => 'Segredo do professor']);
 
         $this->get('/licoes/a-santidade-de-deus')
             ->assertOk()
@@ -40,7 +45,7 @@ class LessonAccessTest extends TestCase
                 ->component('lessons/show')
                 ->where('lesson.id', $lesson->id)
                 ->where('lesson.title', $lesson->title)
-                ->missing('lesson.teacher_notes_html')
+                ->missing('lesson.teacher_blocks')
                 ->where('canManage', false));
     }
 
@@ -77,35 +82,75 @@ class LessonAccessTest extends TestCase
         $this->actingAs($student)->get('/licoes/rascunho')->assertNotFound();
     }
 
-    public function test_teacher_sees_draft_and_teacher_notes(): void
+    public function test_teacher_sees_draft_and_teacher_content(): void
     {
         $teacher = User::factory()->teacherOf($this->classroom)->create();
-        Lesson::factory()->for($this->classroom)->create([
-            'slug' => 'rascunho',
-            'teacher_notes' => '**Abrir com oração**',
-        ]);
+        $lesson = Lesson::factory()->for($this->classroom)->create(['slug' => 'rascunho']);
+        LessonBlock::factory()->for($lesson)->teacherOnly()->create(['body' => '**Abrir com oração**']);
 
         $this->actingAs($teacher)->get('/licoes/rascunho/domingo')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('lessons/sunday')
-                ->where('lesson.teacher_notes_html', '<p><strong>Abrir com oração</strong></p>')
+                ->where('lesson.teacher_blocks.0.body_html', '<p><strong>Abrir com oração</strong></p>')
+                ->where('lesson.teacher_blocks.0.kind', 'roteiro')
                 ->where('canManage', true));
     }
 
-    public function test_sunday_mode_is_available_to_readers_without_teacher_notes(): void
+    public function test_sunday_mode_is_available_to_readers_without_teacher_content(): void
     {
-        Lesson::factory()->published()->for($this->classroom)->create([
+        $lesson = Lesson::factory()->published()->for($this->classroom)->create([
             'slug' => 'publica',
             'content' => "## Introdução\n\nTexto\n\n## Aplicação\n\nMais",
-            'teacher_notes' => 'Notas',
         ]);
+        LessonBlock::factory()->for($lesson)->teacherOnly()->create();
 
         $this->get('/licoes/publica/domingo')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('lesson.topics', ['Introdução', 'Aplicação'])
-                ->missing('lesson.teacher_notes_html'));
+                ->missing('lesson.teacher_blocks'));
+    }
+
+    public function test_teacher_only_blocks_and_materials_never_reach_students(): void
+    {
+        $student = User::factory()->studentOf($this->classroom)->create();
+        $teacher = User::factory()->teacherOf($this->classroom)->create();
+        $lesson = Lesson::factory()->published()->for($this->classroom)->create(['slug' => 'licao']);
+        LessonBlock::factory()->for($lesson)->kind(LessonBlockKind::Curiosity)->create(['body' => 'Siloé foi encontrada em 2004']);
+        LessonBlock::factory()->for($lesson)->kind(LessonBlockKind::AccuracyNote)->create(['body' => 'Especulação homilética']);
+        LessonMaterial::factory()->for($lesson)->create(['title' => 'Guia do aluno']);
+        LessonMaterial::factory()->for($lesson)->create(['title' => 'Manual completo', 'audience' => ContentAudience::Teacher]);
+
+        foreach ([null, $student] as $reader) {
+            ($reader ? $this->actingAs($reader) : $this)->get('/licoes/licao')
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->has('lesson.blocks', 1)
+                    ->where('lesson.blocks.0.kind', 'curiosity')
+                    ->has('lesson.materials', 1)
+                    ->where('lesson.materials.0.title', 'Guia do aluno')
+                    ->missing('lesson.teacher_blocks'));
+        }
+
+        $this->actingAs($teacher)->get('/licoes/licao')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('lesson.blocks', 1)
+                ->has('lesson.teacher_blocks', 1)
+                ->has('lesson.materials', 2));
+    }
+
+    public function test_review_questions_carry_the_answer_key_and_reflection_questions_do_not(): void
+    {
+        $lesson = Lesson::factory()->published()->for($this->classroom)->create(['slug' => 'licao']);
+        LessonQuestion::factory()->for($lesson)->create(['body' => 'Reflita']);
+        LessonQuestion::factory()->for($lesson)->review('Siloé significa Enviado')->create(['body' => 'O que significa Siloé?']);
+
+        $this->get('/licoes/licao')->assertInertia(fn (Assert $page) => $page
+            ->where('lesson.questions.0.kind', 'reflection')
+            ->where('lesson.questions.0.answer', null)
+            ->where('lesson.questions.1.kind', 'review')
+            ->where('lesson.questions.1.answer', 'Siloé significa Enviado'));
     }
 
     public function test_lesson_content_is_rendered_without_raw_html(): void

@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { Lock, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
 import { Field } from '@/components/form-field';
@@ -35,6 +35,7 @@ type MaterialForm = {
     description: string;
     url: string;
     is_primary: boolean;
+    teacher_only: boolean;
     file: File | null;
 };
 
@@ -78,6 +79,13 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                                 <Star className="size-3.5 fill-current text-amber-500" />
                                             )}
                                             {material.type_label}
+                                            {material.audience ===
+                                                'teacher' && (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                                                    <Lock className="size-3" />{' '}
+                                                    Só professor
+                                                </span>
+                                            )}
                                             {material.file &&
                                                 ` · ${material.file.name} · ${material.file.size}`}
                                         </p>
@@ -153,6 +161,7 @@ function MaterialEditor({
         description: material?.description ?? '',
         url: material?.url ?? '',
         is_primary: material?.is_primary ?? false,
+        teacher_only: material?.audience === 'teacher',
         file: null,
     });
     const { data, setData, errors, processing, progress } = form;
@@ -173,6 +182,7 @@ function MaterialEditor({
                 description: values.description,
                 url: values.url,
                 is_primary: values.is_primary ? 1 : 0,
+                audience: values.teacher_only ? 'teacher' : 'student',
             };
 
             if (!material) payload.type = values.type;
@@ -343,6 +353,19 @@ function MaterialEditor({
                     </Label>
                 </div>
             )}
+
+            <div className="flex items-center gap-2">
+                <Checkbox
+                    id={`${prefix}-teacher`}
+                    checked={data.teacher_only}
+                    onCheckedChange={(value) =>
+                        setData('teacher_only', value === true)
+                    }
+                />
+                <Label htmlFor={`${prefix}-teacher`} className="font-normal">
+                    Só para professores (ex.: manual completo, roteiro em PDF)
+                </Label>
+            </div>
 
             <div className="flex justify-end gap-2">
                 {onDone && (

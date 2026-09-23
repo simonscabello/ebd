@@ -9,7 +9,7 @@ type Props = {
     defaults: {
         classroom_id: number | null;
         series_id: number | null;
-        scheduled_for: string;
+        meeting_on: string;
     };
     visibilities: Option[];
 };
@@ -26,7 +26,7 @@ export default function CreateLesson({
             <Page>
                 <PageHeader
                     title="Nova lição"
-                    description="A lição começa como rascunho. Depois você adiciona leituras, materiais e perguntas e publica."
+                    description="A lição começa como rascunho. Depois você adiciona leituras, blocos de aprofundamento, materiais e perguntas e publica."
                 />
                 <LessonForm
                     classrooms={classrooms}
@@ -35,14 +35,18 @@ export default function CreateLesson({
                     initial={{
                         classroom_id: defaults.classroom_id,
                         series_id: defaults.series_id,
+                        number: '',
                         title: '',
                         slug: '',
-                        scheduled_for: defaults.scheduled_for,
+                        meeting_on: defaults.meeting_on,
                         bible_reference: '',
                         bible_text: '',
+                        magazine_author: '',
+                        key_verse: '',
+                        goal: '',
                         summary: '',
-                        content: '## Introdução\n\n',
-                        teacher_notes: '',
+                        content:
+                            '## I. \n\n### 1. \n\n## II. \n\n## III. \n\n## Conclusão\n\n',
                         visibility: 'public',
                         author_ids: [],
                     }}

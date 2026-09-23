@@ -24,6 +24,10 @@ class UpdateLessonMaterial
             'is_primary' => (bool) ($data['is_primary'] ?? false),
         ]);
 
+        if (array_key_exists('audience', $data)) {
+            $material->audience = $data['audience'];
+        }
+
         if (! $material->hasFile() && array_key_exists('url', $data) && $file === null) {
             $material->url = $data['url'];
         }

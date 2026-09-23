@@ -6,7 +6,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { destroy, store, update } from '@/routes/admin/lessons/questions';
-import type { LessonQuestion } from '@/types';
+import type { LessonQuestion, QuestionKind } from '@/types';
 
 export function QuestionsManager({
     lessonId,
@@ -44,9 +44,24 @@ export function QuestionsManager({
                                 />
                             ) : (
                                 <>
-                                    <p className="flex-1 py-1.5 font-serif">
-                                        {question.body}
-                                    </p>
+                                    <div className="flex-1 py-1.5">
+                                        {question.kind === 'review' && (
+                                            <span className="mb-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+                                                Revisão
+                                            </span>
+                                        )}
+                                        <p className="font-serif">
+                                            {question.body}
+                                        </p>
+                                        {question.answer && (
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                <span className="font-medium">
+                                                    Gabarito:
+                                                </span>{' '}
+                                                {question.answer}
+                                            </p>
+                                        )}
+                                    </div>
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -101,7 +116,16 @@ function QuestionEditor({
     question?: LessonQuestion;
     onDone?: () => void;
 }) {
-    const form = useForm({ body: question?.body ?? '' });
+    const form = useForm<{
+        kind: QuestionKind;
+        body: string;
+        answer: string;
+    }>({
+        kind: question?.kind ?? 'reflection',
+        body: question?.body ?? '',
+        answer: question?.answer ?? '',
+    });
+    const id = question?.id ?? 'new';
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -127,14 +151,39 @@ function QuestionEditor({
                     : 'space-y-2 rounded-2xl border border-dashed p-4'
             }
         >
-            <label
-                htmlFor={`question-${question?.id ?? 'new'}`}
-                className={question ? 'sr-only' : 'text-sm font-medium'}
+            {!question && <p className="text-sm font-medium">Nova pergunta</p>}
+            <div
+                className="flex gap-1 rounded-lg bg-muted p-1 text-sm"
+                role="radiogroup"
+                aria-label="Tipo da pergunta"
             >
-                {question ? 'Pergunta' : 'Nova pergunta para reflexão'}
+                {(
+                    [
+                        ['reflection', 'Reflexão'],
+                        ['review', 'Revisão (com gabarito)'],
+                    ] as const
+                ).map(([value, label]) => (
+                    <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={form.data.kind === value}
+                        onClick={() => form.setData('kind', value)}
+                        className={
+                            form.data.kind === value
+                                ? 'flex-1 rounded-md bg-background px-3 py-1.5 font-medium shadow-xs'
+                                : 'flex-1 rounded-md px-3 py-1.5 text-muted-foreground'
+                        }
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            <label htmlFor={`question-${id}`} className="sr-only">
+                Pergunta
             </label>
             <Textarea
-                id={`question-${question?.id ?? 'new'}`}
+                id={`question-${id}`}
                 value={form.data.body}
                 onChange={(event) => form.setData('body', event.target.value)}
                 rows={2}
@@ -143,6 +192,28 @@ function QuestionEditor({
                 required
             />
             <InputError message={form.errors.body} />
+            {form.data.kind === 'review' && (
+                <>
+                    <label
+                        htmlFor={`answer-${id}`}
+                        className="text-sm font-medium"
+                    >
+                        Gabarito
+                    </label>
+                    <Textarea
+                        id={`answer-${id}`}
+                        value={form.data.answer}
+                        onChange={(event) =>
+                            form.setData('answer', event.target.value)
+                        }
+                        rows={2}
+                        className="min-h-16"
+                        placeholder="O aluno vê depois de tentar responder."
+                        required
+                    />
+                    <InputError message={form.errors.answer} />
+                </>
+            )}
             <div className="flex justify-end gap-2">
                 {onDone && (
                     <Button type="button" variant="ghost" onClick={onDone}>

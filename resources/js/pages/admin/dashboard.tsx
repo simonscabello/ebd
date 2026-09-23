@@ -1,8 +1,9 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
-    ArrowRight,
     CalendarDays,
+    CalendarOff,
+    CheckCircle2,
     Layers,
     Plus,
     Users,
@@ -11,24 +12,30 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { index as membersIndex } from '@/routes/admin/classrooms/members';
+import { index as agendaIndex } from '@/routes/admin/classrooms/meetings';
+import { cancel, held } from '@/routes/admin/meetings';
 import {
     create as createLesson,
     edit as editLesson,
 } from '@/routes/admin/lessons';
 import { create as createSeries } from '@/routes/admin/series';
-import type { Classroom, Lesson } from '@/types';
+import type { ClassMeeting, Classroom, Lesson } from '@/types';
+
+type MeetingToConfirm = ClassMeeting & {
+    classroom: { name: string; slug: string };
+};
 
 type Props = {
     classrooms: Classroom[];
     upcoming: Lesson[];
-    pendingCompletion: Lesson[];
+    meetingsToConfirm: MeetingToConfirm[];
     isAdmin: boolean;
 };
 
 export default function AdminDashboard({
     classrooms,
     upcoming,
-    pendingCompletion,
+    meetingsToConfirm,
 }: Props) {
     const { auth } = usePage().props;
 
@@ -61,33 +68,62 @@ export default function AdminDashboard({
                     }
                 />
 
-                {pendingCompletion.length > 0 && (
+                {meetingsToConfirm.length > 0 && (
                     <section className="mb-8 rounded-2xl border border-amber-300/60 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
                         <h2 className="flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-200">
-                            <AlertCircle className="size-5" /> Aulas que já
-                            aconteceram
+                            <AlertCircle className="size-5" /> Domingos para
+                            confirmar
                         </h2>
                         <p className="mt-1 text-sm text-amber-900/80 dark:text-amber-200/80">
-                            Conclua para arquivá-las na biblioteca.
+                            Teve aula nestes domingos? Confirme para manter a
+                            agenda e o histórico da classe em dia.
                         </p>
                         <ul className="mt-3 space-y-2">
-                            {pendingCompletion.map((lesson) => (
-                                <li key={lesson.id}>
-                                    <Link
-                                        href={editLesson(lesson.id)}
-                                        className="flex items-center justify-between rounded-xl bg-card px-3 py-2.5 text-sm hover:bg-muted"
-                                    >
-                                        <span>
-                                            <span className="font-medium">
-                                                {lesson.title}
-                                            </span>
-                                            <span className="text-muted-foreground">
-                                                {' '}
-                                                · {lesson.date_short}
-                                            </span>
+                            {meetingsToConfirm.map((meeting) => (
+                                <li
+                                    key={meeting.id}
+                                    className="flex flex-col gap-2 rounded-xl bg-card px-3 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between"
+                                >
+                                    <span>
+                                        <span className="font-medium">
+                                            {meeting.lesson?.display_title ??
+                                                meeting.title ??
+                                                'Encontro sem lição'}
                                         </span>
-                                        <ArrowRight className="size-4 text-muted-foreground" />
-                                    </Link>
+                                        <span className="text-muted-foreground">
+                                            {' '}
+                                            · {meeting.classroom.name} ·{' '}
+                                            {meeting.date_short}
+                                        </span>
+                                    </span>
+                                    <span className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                router.post(
+                                                    held.url(meeting.id),
+                                                    {},
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            <CheckCircle2 /> Teve aula
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                router.post(
+                                                    cancel.url(meeting.id),
+                                                    { shift: false },
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            <CalendarOff /> Não teve
+                                        </Button>
+                                    </span>
                                 </li>
                             ))}
                         </ul>
@@ -126,7 +162,7 @@ export default function AdminDashboard({
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="line-clamp-2 font-medium">
-                                                {lesson.title}
+                                                {lesson.display_title}
                                             </p>
                                             <p className="truncate text-sm text-muted-foreground">
                                                 {[
@@ -169,18 +205,42 @@ export default function AdminDashboard({
                         </h2>
                         <div className="grid gap-3 sm:grid-cols-2">
                             {classrooms.map((classroom) => (
-                                <Link
+                                <div
                                     key={classroom.id}
-                                    href={membersIndex(classroom.slug)}
-                                    className="rounded-2xl border bg-card p-4 hover:border-primary/40"
+                                    className="rounded-2xl border bg-card p-4"
                                 >
                                     <p className="font-semibold">
                                         {classroom.name}
                                     </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Ver e adicionar alunos
-                                    </p>
-                                </Link>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                        >
+                                            <Link
+                                                href={agendaIndex(
+                                                    classroom.slug,
+                                                )}
+                                            >
+                                                <CalendarDays /> Agenda
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                        >
+                                            <Link
+                                                href={membersIndex(
+                                                    classroom.slug,
+                                                )}
+                                            >
+                                                <Users /> Alunos
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </section>

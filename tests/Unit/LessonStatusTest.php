@@ -17,11 +17,8 @@ class LessonStatusTest extends TestCase
     {
         return [
             'publicar rascunho' => [LessonStatus::Draft, LessonStatus::Published, true],
-            'concluir rascunho' => [LessonStatus::Draft, LessonStatus::Completed, false],
-            'concluir publicada' => [LessonStatus::Published, LessonStatus::Completed, true],
             'despublicar' => [LessonStatus::Published, LessonStatus::Draft, true],
-            'reabrir concluída' => [LessonStatus::Completed, LessonStatus::Published, true],
-            'concluída para rascunho' => [LessonStatus::Completed, LessonStatus::Draft, false],
+            'rascunho para rascunho' => [LessonStatus::Draft, LessonStatus::Draft, false],
         ];
     }
 
@@ -31,11 +28,11 @@ class LessonStatusTest extends TestCase
         $this->assertSame($allowed, $from->canTransitionTo($to));
     }
 
-    public function test_only_published_and_completed_are_visible(): void
+    public function test_only_published_is_visible(): void
     {
         $this->assertFalse(LessonStatus::Draft->isVisible());
         $this->assertTrue(LessonStatus::Published->isVisible());
-        $this->assertTrue(LessonStatus::Completed->isVisible());
+        $this->assertSame([LessonStatus::Published], LessonStatus::visibleCases());
     }
 
     public function test_search_input_becomes_a_safe_prefix_tsquery(): void

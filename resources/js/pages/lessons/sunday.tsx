@@ -1,7 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
-import { Check, Minus, Plus, X } from 'lucide-react';
+import { Check, Eye, EyeOff, Minus, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { BiblePassage } from '@/components/lesson/bible-passage';
+import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
+import { RevistaHeader } from '@/components/lesson/revista-header';
 import { cn } from '@/lib/utils';
 import { show } from '@/routes/lessons';
 import type { Lesson } from '@/types';
@@ -56,12 +58,27 @@ export default function SundayMode({ lesson, canManage }: Props) {
                 : [...current, id],
         );
 
-    const questions = lesson.questions ?? [];
+    const [showAnswers, setShowAnswers] = useState(false);
+
+    const questions = (lesson.questions ?? []).filter(
+        (q) => q.kind === 'reflection',
+    );
+    const review = (lesson.questions ?? []).filter((q) => q.kind === 'review');
     const topics = lesson.topics ?? [];
+    const teacher = lesson.teacher_blocks ?? [];
+    const roteiro = teacher.filter((b) =>
+        ['roteiro', 'teacher_note'].includes(b.kind),
+    );
+    const accuracy = teacher.filter((b) => b.kind === 'accuracy_note');
+    const extraTime = teacher.filter((b) => b.kind === 'extra_time');
+    const meetings = lesson.meetings ?? [];
+    const meeting =
+        meetings.find((m) => m.days_until >= 0) ??
+        meetings[meetings.length - 1];
 
     return (
         <div className="min-h-svh bg-background">
-            <Head title={`Modo Domingo · ${lesson.title}`} />
+            <Head title={`Modo Domingo · ${lesson.display_title}`} />
 
             <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 backdrop-blur">
                 <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
@@ -114,14 +131,29 @@ export default function SundayMode({ lesson, canManage }: Props) {
                         </p>
                     )}
                     <h1 className="mt-1 font-serif text-[2.2em] leading-tight font-semibold tracking-tight text-balance">
-                        {lesson.title}
+                        {lesson.display_title}
                     </h1>
-                    {lesson.date_label && (
+                    {meeting && (
                         <p className="mt-1 text-[0.85em] text-muted-foreground first-letter:uppercase">
-                            {lesson.date_label}
+                            {meeting.date_label}
+                            {meetings.length > 1 &&
+                                ` · encontro ${meetings.indexOf(meeting) + 1} de ${meetings.length}`}
                         </p>
                     )}
                 </header>
+
+                {canManage && roteiro.length > 0 && (
+                    <section>
+                        <h2 className="mb-3 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
+                            Roteiro da aula
+                        </h2>
+                        <BlockCards
+                            blocks={roteiro}
+                            tone="teacher"
+                            size="large"
+                        />
+                    </section>
+                )}
 
                 {lesson.bible_reference && (
                     <BiblePassage
@@ -130,6 +162,8 @@ export default function SundayMode({ lesson, canManage }: Props) {
                         size="large"
                     />
                 )}
+
+                <RevistaHeader lesson={lesson} size="large" />
 
                 {topics.length > 0 && (
                     <section>
@@ -199,17 +233,66 @@ export default function SundayMode({ lesson, canManage }: Props) {
                     </section>
                 )}
 
-                {canManage && lesson.teacher_notes_html && (
-                    <section className="rounded-2xl border border-highlight bg-highlight/40 p-5">
-                        <h2 className="mb-2 text-[0.8em] font-semibold tracking-wide text-highlight-foreground uppercase">
-                            Notas do professor
+                {review.length > 0 && (
+                    <section>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                            <h2 className="text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
+                                Revisão
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setShowAnswers((v) => !v)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-[0.75em] font-medium"
+                            >
+                                {showAnswers ? (
+                                    <EyeOff className="size-4" />
+                                ) : (
+                                    <Eye className="size-4" />
+                                )}
+                                {showAnswers
+                                    ? 'Esconder gabarito'
+                                    : 'Mostrar gabarito'}
+                            </button>
+                        </div>
+                        <ol className="space-y-3">
+                            {review.map((question, index) => (
+                                <li
+                                    key={question.id}
+                                    className="rounded-2xl border bg-card p-5"
+                                >
+                                    <p className="font-serif text-[1.15em] leading-relaxed text-pretty">
+                                        {index + 1}. {question.body}
+                                    </p>
+                                    {showAnswers && (
+                                        <p className="mt-2 text-[0.9em] text-emerald-800 dark:text-emerald-300">
+                                            {question.answer}
+                                        </p>
+                                    )}
+                                </li>
+                            ))}
+                        </ol>
+                    </section>
+                )}
+
+                {canManage && accuracy.length > 0 && (
+                    <section>
+                        <h2 className="mb-3 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
+                            Notas de precisão
                         </h2>
-                        <div
-                            className="reading text-[1em]"
-                            dangerouslySetInnerHTML={{
-                                __html: lesson.teacher_notes_html,
-                            }}
+                        <BlockCards
+                            blocks={accuracy}
+                            tone="highlight"
+                            size="large"
                         />
+                    </section>
+                )}
+
+                {canManage && extraTime.length > 0 && (
+                    <section>
+                        <h2 className="mb-3 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
+                            Se houver tempo
+                        </h2>
+                        <BlockAccordion blocks={extraTime} />
                     </section>
                 )}
 

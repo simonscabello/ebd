@@ -1,18 +1,20 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
-    Archive,
+    CalendarCheck,
     CalendarDays,
     ExternalLink,
     EyeOff,
     FileText,
     HelpCircle,
+    Layers,
     Paperclip,
     Presentation,
-    RotateCcw,
     Send,
     Trash2,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import type { BlockKindOption } from '@/components/admin/blocks-manager';
+import { BlocksManager } from '@/components/admin/blocks-manager';
 import { LessonForm } from '@/components/admin/lesson-form';
 import type { MaterialTypeOption } from '@/components/admin/materials-manager';
 import { MaterialsManager } from '@/components/admin/materials-manager';
@@ -22,8 +24,11 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { Page, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { destroy, status as changeStatus } from '@/routes/admin/lessons';
+import { cn } from '@/lib/utils';
 import type {
+    ClassMeeting,
     Classroom,
+    LessonBlock,
     LessonMaterial,
     LessonQuestion,
     LessonReading,
@@ -36,16 +41,18 @@ type EditableLesson = {
     id: number;
     classroom: Classroom;
     series_id: number | null;
+    number: number | null;
     title: string;
     slug: string;
     url: string;
     sunday_url: string;
     summary: string | null;
-    scheduled_for: string | null;
     bible_reference: string | null;
     bible_text: string | null;
+    magazine_author: string | null;
+    key_verse: string | null;
+    goal: string | null;
     content: string | null;
-    teacher_notes: string | null;
     visibility: 'public' | 'members';
     status: LessonStatus;
     status_label: string;
@@ -55,6 +62,9 @@ type EditableLesson = {
     materials: LessonMaterial[];
     readings: LessonReading[];
     questions: LessonQuestion[];
+    blocks: LessonBlock[];
+    meetings: ClassMeeting[];
+    agenda_url: string;
 };
 
 type Props = {
@@ -64,6 +74,7 @@ type Props = {
     visibilities: Option[];
     materialTypes: MaterialTypeOption[];
     weekdays: Option<number>[];
+    blockKinds: BlockKindOption[];
 };
 
 const transitionButtons: Record<
@@ -76,11 +87,6 @@ const transitionButtons: Record<
     }
 > = {
     published: { label: 'Publicar', icon: <Send />, variant: 'default' },
-    completed: {
-        label: 'Concluir aula',
-        icon: <Archive />,
-        variant: 'outline',
-    },
     draft: {
         label: 'Despublicar',
         icon: <EyeOff />,
@@ -96,6 +102,7 @@ export default function EditLesson({
     visibilities,
     materialTypes,
     weekdays,
+    blockKinds,
 }: Props) {
     const transition = (target: LessonStatus) => {
         const config = transitionButtons[target];
@@ -121,6 +128,7 @@ export default function EditLesson({
                         Classe {lesson.classroom.name}
                     </p>
                     <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight text-balance">
+                        {lesson.number ? `Lição ${lesson.number} — ` : ''}
                         {lesson.title}
                     </h1>
                     <div className="mt-2 flex items-center gap-2">
@@ -137,15 +145,7 @@ export default function EditLesson({
 
                     <div className="mt-4 flex flex-wrap gap-2">
                         {lesson.transitions.map((target) => {
-                            const config =
-                                lesson.status === 'completed' &&
-                                target === 'published'
-                                    ? {
-                                          label: 'Reabrir',
-                                          icon: <RotateCcw />,
-                                          variant: 'outline' as const,
-                                      }
-                                    : transitionButtons[target];
+                            const config = transitionButtons[target];
 
                             return (
                                 <Button
@@ -182,6 +182,8 @@ export default function EditLesson({
                 >
                     {[
                         ['dados', 'Dados'],
+                        ['domingos', `Domingos (${lesson.meetings.length})`],
+                        ['blocos', `Aprofundamento (${lesson.blocks.length})`],
                         ['leituras', `Leituras (${lesson.readings.length})`],
                         ['materiais', `Materiais (${lesson.materials.length})`],
                         ['perguntas', `Perguntas (${lesson.questions.length})`],
@@ -211,17 +213,76 @@ export default function EditLesson({
                             initial={{
                                 classroom_id: lesson.classroom.id,
                                 series_id: lesson.series_id,
+                                number: lesson.number?.toString() ?? '',
                                 title: lesson.title,
                                 slug: lesson.slug,
-                                scheduled_for: lesson.scheduled_for ?? '',
                                 bible_reference: lesson.bible_reference ?? '',
                                 bible_text: lesson.bible_text ?? '',
+                                magazine_author: lesson.magazine_author ?? '',
+                                key_verse: lesson.key_verse ?? '',
+                                goal: lesson.goal ?? '',
                                 summary: lesson.summary ?? '',
                                 content: lesson.content ?? '',
-                                teacher_notes: lesson.teacher_notes ?? '',
                                 visibility: lesson.visibility,
                                 author_ids: lesson.author_ids,
                             }}
+                        />
+                    </Section>
+
+                    <Section
+                        id="domingos"
+                        title="Domingos desta lição"
+                        icon={<CalendarCheck />}
+                        description="Uma lição pode ocupar mais de um domingo. As datas são definidas na agenda da classe."
+                    >
+                        {lesson.meetings.length > 0 ? (
+                            <ul className="divide-y rounded-2xl border bg-card">
+                                {lesson.meetings.map((meeting, index) => (
+                                    <li
+                                        key={meeting.id}
+                                        className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+                                    >
+                                        <span className="first-letter:uppercase">
+                                            {meeting.date_label}
+                                            {lesson.meetings.length > 1 &&
+                                                ` · encontro ${index + 1} de ${lesson.meetings.length}`}
+                                        </span>
+                                        <span
+                                            className={cn(
+                                                'rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                                meeting.status === 'held'
+                                                    ? 'bg-muted text-muted-foreground'
+                                                    : 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200',
+                                            )}
+                                        >
+                                            {meeting.status_label}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
+                                Esta lição ainda não está em nenhum domingo.
+                            </p>
+                        )}
+                        <Button asChild variant="outline" className="mt-3">
+                            <Link href={lesson.agenda_url}>
+                                <CalendarDays /> Abrir agenda da classe
+                            </Link>
+                        </Button>
+                    </Section>
+
+                    <Section
+                        id="blocos"
+                        title="Aprofundamento"
+                        icon={<Layers />}
+                        description="Roteiro, contexto histórico, teologia, curiosidades, conceitos e notas de precisão. Marque o que é só do professor."
+                    >
+                        <BlocksManager
+                            lessonId={lesson.id}
+                            blocks={lesson.blocks}
+                            kinds={blockKinds}
+                            weekdays={weekdays}
                         />
                     </Section>
 
@@ -253,8 +314,9 @@ export default function EditLesson({
 
                     <Section
                         id="perguntas"
-                        title="Perguntas para reflexão"
+                        title="Perguntas"
                         icon={<HelpCircle />}
+                        description="Reflexão para discutir no domingo; revisão (com gabarito) para o aluno conferir o que aprendeu."
                     >
                         <QuestionsManager
                             lessonId={lesson.id}

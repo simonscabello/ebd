@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\LessonStatus;
 use App\Events\LessonPublished;
+use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
@@ -36,7 +37,6 @@ class LessonManagementTest extends TestCase
         return [
             'classroom_id' => $this->classroom->id,
             'title' => 'A Santidade de Deus',
-            'scheduled_for' => '2026-09-27',
             'bible_reference' => 'Lucas 5:1-11',
             'summary' => 'Resumo',
             'content' => "## Introdução\n\nTexto",
@@ -105,7 +105,7 @@ class LessonManagementTest extends TestCase
         $this->assertSame($this->teacher->id, $lesson->created_by);
     }
 
-    public function test_publish_complete_reopen_and_unpublish_lifecycle(): void
+    public function test_publish_and_unpublish_lifecycle(): void
     {
         Event::fake([LessonPublished::class]);
         $lesson = Lesson::factory()->for($this->classroom)->create();
@@ -115,28 +115,70 @@ class LessonManagementTest extends TestCase
         $this->assertNotNull($lesson->published_at);
         Event::assertDispatched(LessonPublished::class);
 
-        $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'completed']);
-        $this->assertSame(LessonStatus::Completed, $lesson->refresh()->status);
-        $this->assertNotNull($lesson->completed_at);
-
-        // Concluída não volta direto para rascunho.
-        $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'draft'])->assertSessionHasErrors('status');
-
-        $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published']);
-        $this->assertSame(LessonStatus::Published, $lesson->refresh()->status);
-        $this->assertNull($lesson->completed_at);
+        // "Concluída" deixou de ser status: vem dos encontros.
+        $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'completed'])->assertSessionHasErrors('status');
 
         $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'draft']);
         $this->assertSame(LessonStatus::Draft, $lesson->refresh()->status);
+        $this->assertNull($lesson->published_at);
     }
 
-    public function test_lesson_without_date_cannot_be_published(): void
+    public function test_lesson_can_be_published_before_having_a_date(): void
     {
-        $lesson = Lesson::factory()->for($this->classroom)->create(['scheduled_for' => null]);
+        $lesson = Lesson::factory()->for($this->classroom)->create();
 
         $this->actingAs($this->teacher)
             ->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published'])
-            ->assertSessionHasErrors('scheduled_for');
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(LessonStatus::Published, $lesson->refresh()->status);
+        $this->assertNull($lesson->scheduled_for);
+    }
+
+    public function test_creating_with_a_sunday_schedules_the_lesson_in_the_agenda(): void
+    {
+        $this->actingAs($this->teacher)->post('/admin/licoes', $this->payload(['meeting_on' => '2026-09-27']))->assertSessionHasNoErrors();
+
+        $lesson = Lesson::query()->sole();
+        $this->assertSame('2026-09-27', $lesson->scheduled_for?->toDateString());
+        $this->assertDatabaseHas('class_meetings', [
+            'classroom_id' => $this->classroom->id,
+            'lesson_id' => $lesson->id,
+            'held_on' => '2026-09-27',
+            'status' => 'planned',
+        ]);
+
+        // O mesmo domingo já tem lição: a nova precisa ser ajustada pela agenda.
+        $this->actingAs($this->teacher)
+            ->post('/admin/licoes', $this->payload(['title' => 'Outra', 'meeting_on' => '2026-09-27']))
+            ->assertSessionHasErrors('meeting_on');
+    }
+
+    public function test_revista_number_is_unique_within_the_series(): void
+    {
+        $series = Series::factory()->for($this->classroom)->create();
+        Lesson::factory()->forSeries($series)->number(11)->create();
+
+        $this->actingAs($this->teacher)
+            ->post('/admin/licoes', $this->payload(['series_id' => $series->id, 'number' => 11]))
+            ->assertSessionHasErrors('number');
+
+        $this->actingAs($this->teacher)
+            ->post('/admin/licoes', $this->payload(['number' => 11]))
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_deleting_a_lesson_frees_planned_sundays_but_keeps_history(): void
+    {
+        $lesson = Lesson::factory()->for($this->classroom)->published()->on('2026-09-13')->create();
+        ClassMeeting::factory()->forLesson($lesson)->on('2026-09-20')->held()->create();
+        $planned = ClassMeeting::factory()->forLesson($lesson)->on('2026-10-04')->create();
+
+        $this->actingAs($this->teacher)->delete("/admin/licoes/{$lesson->id}")->assertRedirect();
+
+        $this->assertSoftDeleted($lesson);
+        $this->assertNull($planned->refresh()->lesson_id);
+        $this->assertSame(2, ClassMeeting::query()->where('lesson_id', $lesson->id)->count());
     }
 
     public function test_slug_is_locked_after_publication(): void

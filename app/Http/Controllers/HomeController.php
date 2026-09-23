@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ContentAudience;
+use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\ClassroomResource;
 use App\Http\Resources\LessonResource;
 use App\Http\Resources\SeriesResource;
-use App\Models\Classroom;
 use App\Models\User;
-use App\Queries\NextLessonQuery;
+use App\Queries\CurrentLessonQuery;
 use App\Support\ChurchCalendar;
+use App\Support\ClassroomSelector;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,19 +20,26 @@ use Inertia\Response;
  */
 class HomeController extends Controller
 {
-    public function __invoke(Request $request, NextLessonQuery $lessons): Response
+    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector): Response
     {
         /** @var User|null $user */
         $user = $request->user();
 
-        $classrooms = $this->availableClassrooms($user);
-        $classroom = $this->selectedClassroom($classrooms, $request->query('classe'), $user);
+        $classrooms = $selector->available($user);
+        $classroom = $selector->selected($classrooms, $request->query('classe'));
 
-        $nextLesson = $classroom ? $lessons->next($classroom, $user) : null;
-        $recent = $classroom ? $lessons->recent($classroom, $user) : collect();
+        $current = $classroom ? $lessons->for($classroom, $user) : null;
+        $lesson = $current?->lesson;
 
-        // Série em estudo: a da próxima aula ou, se ela for avulsa, a da aula mais recente.
-        $currentSeries = $nextLesson?->series;
+        $lesson?->load([
+            'readings', 'questions',
+            'materials' => fn ($q) => $q->where('audience', ContentAudience::Student),
+        ]);
+
+        $recent = $classroom ? $lessons->recent($classroom, $user, exceptLessonId: $lesson?->id) : collect();
+
+        // Série em estudo: a da lição da semana ou, se ela for avulsa, a da aula mais recente.
+        $currentSeries = $lesson?->series;
         $currentSeries ??= $recent->first()?->series;
 
         return Inertia::render('home', [
@@ -44,41 +52,15 @@ class HomeController extends Controller
             'classrooms' => ClassroomResource::collection($classrooms),
             'classroom' => $classroom ? ClassroomResource::make($classroom) : null,
             'isMember' => $classroom && $user?->isMemberOf($classroom),
-            'nextLesson' => $nextLesson ? LessonResource::make($nextLesson) : null,
+            'isStudent' => $classroom && $user && $user->isMemberOf($classroom) && ! $user->isTeacherOf($classroom),
+            'nextLesson' => $lesson ? LessonResource::make($lesson) : null,
+            'meeting' => $current?->meeting && ! $current->isFallback ? ClassMeetingResource::make($current->meeting) : null,
+            'meetingIndex' => $current->meetingIndex ?? 0,
+            'meetingTotal' => $current->meetingTotal ?? 0,
+            'preparing' => $current->preparing ?? false,
+            'cancelledBefore' => ClassMeetingResource::collection($current->cancelledBefore ?? collect()),
             'currentSeries' => $currentSeries ? SeriesResource::make($currentSeries) : null,
             'recentLessons' => LessonResource::collection($recent),
         ]);
-    }
-
-    /**
-     * Classes ativas. Membros veem primeiro as próprias classes.
-     *
-     * @return Collection<int, Classroom>
-     */
-    private function availableClassrooms(?User $user): Collection
-    {
-        $classrooms = Classroom::query()->active()->ordered()->get();
-
-        if ($user === null) {
-            return $classrooms;
-        }
-
-        $mine = $user->memberClassroomIds();
-
-        return $classrooms
-            ->sortBy(fn (Classroom $c) => in_array($c->id, $mine, true) ? 0 : 1)
-            ->values();
-    }
-
-    /**
-     * @param  Collection<int, Classroom>  $classrooms
-     */
-    private function selectedClassroom(Collection $classrooms, mixed $slug, ?User $user): ?Classroom
-    {
-        if (is_string($slug) && ($found = $classrooms->firstWhere('slug', $slug))) {
-            return $found;
-        }
-
-        return $classrooms->first();
     }
 }

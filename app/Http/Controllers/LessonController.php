@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ContentAudience;
 use App\Http\Resources\LessonResource;
 use App\Models\Lesson;
+use App\Support\WeeklyMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -21,7 +23,7 @@ class LessonController extends Controller
         return Inertia::render('lessons/show', [
             'lesson' => $this->present($request, $lesson),
             'canManage' => $request->user()?->can('update', $lesson) ?? false,
-            'shareText' => $this->shareText($lesson),
+            'shareText' => app(WeeklyMessage::class)->share($lesson),
         ]);
     }
 
@@ -54,21 +56,20 @@ class LessonController extends Controller
 
     private function present(Request $request, Lesson $lesson): LessonResource
     {
-        $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'questions']);
+        $teacher = Gate::allows('viewTeacherContent', $lesson);
+        $audience = fn ($query) => $teacher ? $query : $query->where('audience', ContentAudience::Student);
+
+        // O filtro é na consulta: conteúdo do professor nem chega a ser carregado
+        // para alunos e visitantes.
+        $lesson->load([
+            'classroom', 'series', 'authors', 'readings', 'questions',
+            'materials' => $audience,
+            'blocks' => $audience,
+            'meetings' => fn ($query) => $query->active(),
+        ]);
 
         return LessonResource::make($lesson)
             ->withContent()
-            ->withTeacherNotes(Gate::allows('viewTeacherNotes', $lesson));
-    }
-
-    private function shareText(Lesson $lesson): string
-    {
-        $parts = array_filter([
-            "📖 {$lesson->title}",
-            $lesson->bible_reference ? "Texto base: {$lesson->bible_reference}" : null,
-            route('lessons.show', $lesson->slug),
-        ]);
-
-        return implode("\n", $parts);
+            ->withTeacherContent($teacher);
     }
 }
