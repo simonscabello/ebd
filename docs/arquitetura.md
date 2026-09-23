@@ -32,16 +32,16 @@ users ──< classroom_user >── classrooms ──< series ──< lessons
                                                          └──< lesson_readings
 ```
 
-| Tabela | Observações |
-| --- | --- |
-| `users` | `is_admin` para a administração geral. Não existe "papel global" de professor/aluno. |
-| `classroom_user` | Papel **por classe** (`teacher`/`student`), com `unique(classroom_id, user_id)`. A mesma pessoa pode ser professora em Jovens e aluna em Adultos. |
-| `classrooms` | Classe (Jovens, Adultos…). `Classroom` porque `Class` é palavra reservada. |
-| `series` | Pertence a uma classe (cada classe estuda sua revista). Slug único por classe. |
-| `lessons` | Pertence a uma classe e, opcionalmente, a uma série da mesma classe (validado na Action). `status`, `visibility`, `published_at`, `completed_at`, soft delete e coluna `search_vector` gerada. |
-| `lesson_materials` | Uma tabela para todos os tipos (`pdf`, `file`, `link`, `video`, `audio`, `reference`). A origem é arquivo (`disk` + `path`) **ou** URL. `is_primary` marca o material principal (a revista). |
-| `lesson_questions` | Perguntas para reflexão, ordenadas por `position`. |
-| `lesson_readings` | Leituras da semana; `weekday` ISO (1 = segunda … 7 = domingo) ou nulo. |
+| Tabela             | Observações                                                                                                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`            | `is_admin` para a administração geral. Não existe "papel global" de professor/aluno.                                                                                                           |
+| `classroom_user`   | Papel **por classe** (`teacher`/`student`), com `unique(classroom_id, user_id)`. A mesma pessoa pode ser professora em Jovens e aluna em Adultos.                                              |
+| `classrooms`       | Classe (Jovens, Adultos…). `Classroom` porque `Class` é palavra reservada.                                                                                                                     |
+| `series`           | Pertence a uma classe (cada classe estuda sua revista). Slug único por classe.                                                                                                                 |
+| `lessons`          | Pertence a uma classe e, opcionalmente, a uma série da mesma classe (validado na Action). `status`, `visibility`, `published_at`, `completed_at`, soft delete e coluna `search_vector` gerada. |
+| `lesson_materials` | Uma tabela para todos os tipos (`pdf`, `file`, `link`, `video`, `audio`, `reference`). A origem é arquivo (`disk` + `path`) **ou** URL. `is_primary` marca o material principal (a revista).   |
+| `lesson_questions` | Perguntas para reflexão, ordenadas por `position`.                                                                                                                                             |
+| `lesson_readings`  | Leituras da semana; `weekday` ISO (1 = segunda … 7 = domingo) ou nulo.                                                                                                                         |
 
 Integridade no banco, não só na aplicação: FKs com `restrict`/`cascade` conforme o caso, `CHECK` para enums (`status`, `visibility`, `type`, `role`, `weekday`), `CHECK` que impede lição publicada sem data e `CHECK` que exige arquivo ou URL nos materiais (exceto referências).
 
@@ -63,12 +63,12 @@ Regras em `LessonStatus::canTransitionTo()` e `ChangeLessonStatus`. Publicar exi
 
 O objetivo é: **link do WhatsApp → conteúdo**, sem tela de login no meio.
 
-| Situação | Visitante | Membro da classe | Professor da classe / admin |
-| --- | --- | --- | --- |
-| Rascunho | 404 | 404 | ✅ |
-| Publicada, **pública** | ✅ | ✅ | ✅ |
-| Publicada, **só membros** | redireciona para login | ✅ | ✅ |
-| Notas do professor | ❌ (nem vão nas props) | ❌ | ✅ |
+| Situação                  | Visitante              | Membro da classe | Professor da classe / admin |
+| ------------------------- | ---------------------- | ---------------- | --------------------------- |
+| Rascunho                  | 404                    | 404              | ✅                          |
+| Publicada, **pública**    | ✅                     | ✅               | ✅                          |
+| Publicada, **só membros** | redireciona para login | ✅               | ✅                          |
+| Notas do professor        | ❌ (nem vão nas props) | ❌               | ✅                          |
 
 - A regra vive em `LessonPolicy::view()` e é espelhada no escopo `Lesson::visibleTo()` para listas (home, biblioteca).
 - Arquivos seguem exatamente a regra da lição (`MaterialFileController`). Nada fica em `public/`.
@@ -84,7 +84,7 @@ URL pública: `/licoes/{slug}`, curta e boa para WhatsApp.
 - Lições excluídas continuam reservando o slug, para um link antigo nunca apontar para outro conteúdo.
 - O slug pode ser editado **só enquanto a lição é rascunho**. Depois de publicada, o link pode ter sido compartilhado e fica congelado.
 
-*Trade-off:* não usamos `/classes/{classe}/licoes/{slug}` para manter a URL curta. Se um dia for preciso renomear links publicados, o caminho é uma tabela de redirecionamentos (`lesson_slug_redirects`).
+_Trade-off:_ não usamos `/classes/{classe}/licoes/{slug}` para manter a URL curta. Se um dia for preciso renomear links publicados, o caminho é uma tabela de redirecionamentos (`lesson_slug_redirects`).
 
 ## Busca da biblioteca
 
@@ -96,13 +96,13 @@ PostgreSQL full-text, sem Elasticsearch:
 - a entrada do usuário é convertida em termos-prefixo (`sant:*`), apenas letras e números, sempre via binding: não há como injetar sintaxe de `tsquery`;
 - o trecho destacado (`ts_headline`) é escapado no servidor e só então recebe `<mark>`.
 
-*Limitações conhecidas:* abreviações bíblicas ("Lc 5") não são expandidas; conteúdo de materiais e perguntas não entra no índice.
+_Limitações conhecidas:_ abreviações bíblicas ("Lc 5") não são expandidas; conteúdo de materiais e perguntas não entra no índice.
 
 ## Conteúdo em Markdown
 
 O professor escreve o estudo em Markdown. A conversão é no servidor (`App\Support\Markdown`) com HTML bruto removido e links inseguros bloqueados, então o front pode renderizar o HTML com segurança. Títulos `##`/`###` viram os **tópicos do Modo Domingo**.
 
-*Trade-off:* um editor visual (rich text) seria mais amigável para alguns professores, mas traria sanitização de HTML, mais dependências e mais superfície de XSS. Markdown com dicas no formulário é suficiente para começar.
+_Trade-off:_ um editor visual (rich text) seria mais amigável para alguns professores, mas traria sanitização de HTML, mais dependências e mais superfície de XSS. Markdown com dicas no formulário é suficiente para começar.
 
 ## Modo Domingo
 

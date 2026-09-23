@@ -18,16 +18,16 @@ O fluxo do produto:
 
 ## Stack
 
-| Camada | Tecnologia |
-| --- | --- |
-| Backend | Laravel 13 · PHP 8.5 (Docker/CI; funciona a partir do 8.3) |
-| Frontend | Inertia 3 · React 19 · TypeScript · Tailwind CSS 4 · Vite 8 (via Vite+) |
-| Banco | PostgreSQL 18 (busca full-text com `unaccent`) |
-| Cache e filas | Redis 8 |
-| Autenticação | Laravel Fortify (starter kit oficial React) |
-| Rotas tipadas no front | Laravel Wayfinder |
-| E-mail em dev | Mailpit |
-| Qualidade | PHPUnit 12 · Pint · Larastan (nível 7) · Oxlint/Oxfmt (`vp check`) · `tsc` |
+| Camada                 | Tecnologia                                                                 |
+| ---------------------- | -------------------------------------------------------------------------- |
+| Backend                | Laravel 13 · PHP 8.5 (Docker/CI; funciona a partir do 8.3)                 |
+| Frontend               | Inertia 3 · React 19 · TypeScript · Tailwind CSS 4 · Vite 8 (via Vite+)    |
+| Banco                  | PostgreSQL 18 (busca full-text com `unaccent`)                             |
+| Cache e filas          | Redis 8                                                                    |
+| Autenticação           | Laravel Fortify (starter kit oficial React)                                |
+| Rotas tipadas no front | Laravel Wayfinder                                                          |
+| E-mail em dev          | Mailpit                                                                    |
+| Qualidade              | PHPUnit 12 · Pint · Larastan (nível 7) · Oxlint/Oxfmt (`vp check`) · `tsc` |
 
 ---
 
@@ -47,14 +47,14 @@ cp .env.example .env
 
 O `.env.example` já vem pronto para o Docker. Os pontos que você talvez queira mudar:
 
-| Variável | Para quê |
-| --- | --- |
-| `EBD_CHURCH_NAME` | Nome da igreja exibido na interface |
-| `EBD_TIMEZONE` | Fuso usado para "hoje", próxima aula e leitura do dia (padrão `Europe/Madrid`) |
-| `EBD_REGISTRATION_ENABLED` | Liga/desliga o auto-cadastro |
-| `EBD_MATERIALS_DISK` | Disco dos arquivos enviados (`local` em dev; `s3` para S3/R2) |
-| `APP_PORT`, `VITE_PORT`, `FORWARD_DB_PORT`, `FORWARD_MAILPIT_UI_PORT` | Portas publicadas no host |
-| `DOCKER_UID`, `DOCKER_GID` | Seu usuário no Linux (`id -u`/`id -g`), para os arquivos criados pelo container ficarem com o seu dono |
+| Variável                                                              | Para quê                                                                                               |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `EBD_CHURCH_NAME`                                                     | Nome da igreja exibido na interface                                                                    |
+| `EBD_TIMEZONE`                                                        | Fuso usado para "hoje", próxima aula e leitura do dia (padrão `Europe/Madrid`)                         |
+| `EBD_REGISTRATION_ENABLED`                                            | Liga/desliga o auto-cadastro                                                                           |
+| `EBD_MATERIALS_DISK`                                                  | Disco dos arquivos enviados (`local` em dev; `s3` para S3/R2)                                          |
+| `APP_PORT`, `VITE_PORT`, `FORWARD_DB_PORT`, `FORWARD_MAILPIT_UI_PORT` | Portas publicadas no host                                                                              |
+| `DOCKER_UID`, `DOCKER_GID`                                            | Seu usuário no Linux (`id -u`/`id -g`), para os arquivos criados pelo container ficarem com o seu dono |
 
 `DB_HOST`, `REDIS_HOST` e `MAIL_HOST` ficam como `127.0.0.1` no `.env` (útil para rodar comandos fora do Docker); dentro dos containers o `compose.yaml` sobrescreve com os nomes dos serviços.
 
@@ -85,14 +85,14 @@ docker compose exec app php artisan migrate:fresh --seed
 
 ### Serviços do `compose.yaml`
 
-| Serviço | O que faz |
-| --- | --- |
-| `app` | `php artisan serve` na porta 8000 (healthcheck em `/up`) |
-| `vite` | servidor do Vite com hot reload (porta 5173) |
-| `worker` | `queue:listen` processando a fila (Redis) |
+| Serviço    | O que faz                                                                        |
+| ---------- | -------------------------------------------------------------------------------- |
+| `app`      | `php artisan serve` na porta 8000 (healthcheck em `/up`)                         |
+| `vite`     | servidor do Vite com hot reload (porta 5173)                                     |
+| `worker`   | `queue:listen` processando a fila (Redis)                                        |
 | `postgres` | PostgreSQL 18 com volume persistente `pgdata`; cria também o banco `ebd_testing` |
-| `redis` | cache e filas |
-| `mailpit` | caixa de e-mail falsa para desenvolvimento |
+| `redis`    | cache e filas                                                                    |
+| `mailpit`  | caixa de e-mail falsa para desenvolvimento                                       |
 
 ## 4. Instalar dependências
 
@@ -117,13 +117,13 @@ O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres
 
 **Usuários de desenvolvimento (apenas ambiente local, senha `password` para todos):**
 
-| E-mail | Perfil |
-| --- | --- |
-| `admin@ebd.test` | Administrador (todas as classes, cadastro de classes e professores) |
-| `professor@ebd.test` | Professor da classe Jovens |
-| `professora@ebd.test` | Professora da classe Adultos |
-| `aluno@ebd.test` | Aluno da classe Jovens |
-| `aluna@ebd.test` | Aluna da classe Adultos |
+| E-mail                | Perfil                                                              |
+| --------------------- | ------------------------------------------------------------------- |
+| `admin@ebd.test`      | Administrador (todas as classes, cadastro de classes e professores) |
+| `professor@ebd.test`  | Professor da classe Jovens                                          |
+| `professora@ebd.test` | Professora da classe Adultos                                        |
+| `aluno@ebd.test`      | Aluno da classe Jovens                                              |
+| `aluna@ebd.test`      | Aluna da classe Adultos                                             |
 
 > ⚠️ Essas credenciais existem só para desenvolvimento. O `DatabaseSeeder` se recusa a rodar com `APP_ENV=production`.
 
