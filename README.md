@@ -4,13 +4,14 @@ O lugar permanente e organizado dos estudos da EBD. O WhatsApp continua sendo o 
 
 O fluxo do produto:
 
-**Próxima aula → preparação durante a semana → aula no domingo → biblioteca**
+**Agenda da classe → preparação durante a semana → aula no domingo → evolução da classe → biblioteca**
 
-- **Início**: responde "o que eu preciso estudar para o próximo domingo?" (contagem regressiva, texto base, leitura do dia, materiais e perguntas).
-- **Lição** (`/licoes/{slug}`): página de leitura pensada para o celular, com link bom para compartilhar. Lições públicas abrem **sem login**.
-- **Modo Domingo** (`/licoes/{slug}/domingo`): visual limpo para conduzir ou acompanhar a aula, com tópicos, perguntas e notas do professor.
+- **Início**: responde "o que eu preciso estudar para o próximo domingo?" (lição do próximo encontro, "encontro 2 de 2", aviso de domingo sem EBD, leitura do dia, materiais e perguntas).
+- **Lição** (`/licoes/{slug}`): no formato da revista (número, versículo-chave, alvo, estudo em I/II/III) e além dela: contexto, teologia, curiosidades, conceitos, revisão com gabarito e anotações pessoais. Lições públicas abrem **sem login**.
+- **Minha semana** (`/minha-semana`): leitura do dia com "Li hoje", curiosidade do dia, "Prepare-se para domingo", sequência de dias e selos. O aluno entra por um **link pessoal** enviado no WhatsApp, sem senha.
+- **Modo Domingo** (`/licoes/{slug}/domingo`): para conduzir ou acompanhar a aula; o professor vê roteiro, notas de precisão, "se houver tempo", faz a chamada e encerra a aula (lição concluída ou continua).
 - **Biblioteca** (`/biblioteca`): busca por título, conteúdo, série e texto bíblico, com filtros por classe, série e ano.
-- **Gestão** (`/admin`): professores criam séries e lições, adicionam leituras, materiais e perguntas, ordenam, publicam e concluem.
+- **Gestão** (`/admin`): agenda da classe (planejar trimestre, domingos sem EBD), lições e blocos de aprofundamento, alunos e links de acesso, evolução da classe e relatório do trimestre.
 
 > Decisões de arquitetura, modelagem e trade-offs estão em [`docs/arquitetura.md`](docs/arquitetura.md).
 
@@ -53,6 +54,9 @@ O `.env.example` já vem pronto para o Docker. Os pontos que você talvez queira
 | `EBD_TIMEZONE`                                                        | Fuso usado para "hoje", próxima aula e leitura do dia (padrão `Europe/Madrid`)                         |
 | `EBD_REGISTRATION_ENABLED`                                            | Liga/desliga o auto-cadastro                                                                           |
 | `EBD_MATERIALS_DISK`                                                  | Disco dos arquivos enviados (`local` em dev; `s3` para S3/R2)                                          |
+| `EBD_ACCESS_LINK_REMEMBER_DAYS`                                       | Dias que o aparelho do aluno fica conectado após usar o link pessoal (padrão 400)                      |
+| `EBD_ACCESS_LINK_TTL_DAYS`                                            | Validade do link pessoal em dias (vazio = até ser trocado ou bloqueado)                                |
+| `EBD_RISK_MISSED_MEETINGS`, `EBD_RISK_INACTIVE_DAYS`                  | Limites de "alunos que precisam de atenção" (padrão 2 faltas seguidas / 10 dias sem leitura)           |
 | `APP_PORT`, `VITE_PORT`, `FORWARD_DB_PORT`, `FORWARD_MAILPIT_UI_PORT` | Portas publicadas no host                                                                              |
 | `DOCKER_UID`, `DOCKER_GID`                                            | Seu usuário no Linux (`id -u`/`id -g`), para os arquivos criados pelo container ficarem com o seu dono |
 
@@ -113,7 +117,7 @@ make seed             # só popula
 make fresh            # apaga tudo, roda as migrations e popula
 ```
 
-O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres de Jesus** com a lição **A Santidade de Deus** (Lucas 5:1–11) no próximo domingo, aulas anteriores, uma série do ano passado, uma lição restrita a membros e um rascunho. As datas são calculadas a partir de hoje, então a home sempre tem uma "próxima aula".
+O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres de Jesus** com a lição **A Santidade de Deus** (Lucas 5:1–11) no próximo domingo, a **Lição 11 — É Necessário** (Jo 9) completa no formato da revista (blocos, curiosidades liberadas por dia, revisão com gabarito), aulas anteriores com chamada, uma série do ano passado, uma lição restrita a membros e um rascunho. As datas são calculadas a partir de hoje, então a home sempre tem uma "próxima aula".
 
 **Usuários de desenvolvimento (apenas ambiente local, senha `password` para todos):**
 
@@ -277,31 +281,34 @@ Não há Redis, worker nem scheduler, porque o sistema ainda não precisa deles:
 
 ### Variáveis de ambiente (serviço `app`)
 
-| Variável                                                        | Valor                                        | Observação                                              |
-| --------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------- |
-| `APP_NAME`                                                      | `EBD`                                        |                                                         |
-| `APP_ENV`                                                       | `production`                                 |                                                         |
-| `APP_DEBUG`                                                     | `false`                                      | nunca `true` em produção                                |
-| `APP_KEY`                                                       | gerada com `php artisan key:generate --show` | secreta; só no Railway                                  |
-| `APP_URL`                                                       | `https://${{RAILWAY_PUBLIC_DOMAIN}}`         | referência ao domínio do próprio serviço                |
-| `APP_LOCALE` / `APP_FALLBACK_LOCALE`                            | `pt_BR` / `en`                               |                                                         |
-| `LOG_CHANNEL` / `LOG_LEVEL`                                     | `stderr` / `info`                            | logs vão para o painel do Railway                       |
-| `DB_CONNECTION`                                                 | `pgsql`                                      | também faz o Railpack instalar `pdo_pgsql`              |
-| `DB_URL`                                                        | `${{Postgres.DATABASE_URL}}`                 | referência; nenhuma credencial fica no Git              |
-| `SESSION_DRIVER` / `SESSION_SECURE_COOKIE` / `SESSION_LIFETIME` | `database` / `true` / `120`                  |                                                         |
-| `CACHE_STORE`                                                   | `database`                                   |                                                         |
-| `QUEUE_CONNECTION`                                              | `sync`                                       |                                                         |
-| `FILESYSTEM_DISK` / `EBD_MATERIALS_DISK`                        | `local` / `local`                            | arquivos no volume                                      |
-| `MAIL_MAILER`                                                   | `log`                                        | provisório: e-mails só aparecem no log (ver pendências) |
-| `EBD_CHURCH_NAME`, `EBD_TIMEZONE`, `EBD_REGISTRATION_ENABLED`   | ver `.env.example`                           |                                                         |
-| `EBD_ADMIN_EMAILS`                                              | e-mails separados por vírgula                | contas promovidas a admin no pre-deploy                 |
-| `RAILPACK_SKIP_MIGRATIONS`                                      | `true`                                       | as migrations rodam no pre-deploy, não no start         |
+| Variável                                                        | Valor                                        | Observação                                                                                         |
+| --------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `APP_NAME`                                                      | `EBD`                                        |                                                                                                    |
+| `APP_ENV`                                                       | `production`                                 |                                                                                                    |
+| `APP_DEBUG`                                                     | `false`                                      | nunca `true` em produção                                                                           |
+| `APP_KEY`                                                       | gerada com `php artisan key:generate --show` | secreta; só no Railway                                                                             |
+| `APP_URL`                                                       | `https://${{RAILWAY_PUBLIC_DOMAIN}}`         | referência ao domínio do próprio serviço                                                           |
+| `APP_LOCALE` / `APP_FALLBACK_LOCALE`                            | `pt_BR` / `en`                               |                                                                                                    |
+| `LOG_CHANNEL` / `LOG_LEVEL`                                     | `stderr` / `info`                            | logs vão para o painel do Railway                                                                  |
+| `DB_CONNECTION`                                                 | `pgsql`                                      | também faz o Railpack instalar `pdo_pgsql`                                                         |
+| `DB_URL`                                                        | `${{Postgres.DATABASE_URL}}`                 | referência; nenhuma credencial fica no Git                                                         |
+| `SESSION_DRIVER` / `SESSION_SECURE_COOKIE` / `SESSION_LIFETIME` | `database` / `true` / `120`                  |                                                                                                    |
+| `CACHE_STORE`                                                   | `database`                                   |                                                                                                    |
+| `QUEUE_CONNECTION`                                              | `sync`                                       |                                                                                                    |
+| `FILESYSTEM_DISK` / `EBD_MATERIALS_DISK`                        | `local` / `local`                            | arquivos no volume                                                                                 |
+| `MAIL_MAILER`                                                   | `log`                                        | provisório: e-mails só aparecem no log (ver pendências)                                            |
+| `EBD_CHURCH_NAME`, `EBD_TIMEZONE`, `EBD_REGISTRATION_ENABLED`   | ver `.env.example`                           |                                                                                                    |
+| `EBD_ACCESS_LINK_*`, `EBD_RISK_*`                               | opcionais, ver `.env.example`                | padrões funcionam; `SESSION_DRIVER` precisa ser `database` para "Bloquear acesso" derrubar sessões |
+| `EBD_ADMIN_EMAILS`                                              | e-mails separados por vírgula                | contas promovidas a admin no pre-deploy                                                            |
+| `RAILPACK_SKIP_MIGRATIONS`                                      | `true`                                       | as migrations rodam no pre-deploy, não no start                                                    |
 
 ### Migrations
 
 Rodam no **pre-deploy command** (`php artisan ebd:predeploy`): um container temporário, com a imagem nova, executa `php artisan migrate --force` **uma vez por deploy**, antes de a versão nova receber tráfego. Se a migration falhar, o deploy é abortado e a versão anterior continua no ar; o erro aparece nos logs do deploy. A migration automática do Railpack no start fica desligada (`RAILPACK_SKIP_MIGRATIONS=true`) para não rodar em paralelo.
 
 Em produção nunca rode `migrate:fresh`, `db:wipe` nem `db:seed`: os seeders são só para desenvolvimento e se recusam a rodar com `APP_ENV=production`.
+
+> **Antes do deploy que separa lição de domingo** (migration `2026_09_23_001000_backfill_meetings_and_simplify_lesson_status`), faça um backup do PostgreSQL (_Postgres → Backups_ no Railway). Ela converte as datas das lições em encontros e remove as colunas `teacher_notes` e `completed_at` (o conteúdo das notas vira um bloco "Notas do professor"). O `down()` existe, mas o backup é a proteção real.
 
 ### Primeiro administrador
 
