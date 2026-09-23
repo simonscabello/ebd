@@ -26,6 +26,11 @@ class AddClassroomMember
             $user->id => ['role' => $role->value],
         ]);
 
+        // Professor entra com e-mail e senha: links pessoais deixam de valer.
+        if ($role === ClassroomRole::Teacher) {
+            $user->accessLinks()->active()->update(['revoked_at' => now()]);
+        }
+
         return $user;
     }
 }

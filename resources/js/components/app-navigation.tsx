@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     BookMarked,
+    CalendarCheck,
     Home,
     LogIn,
     LogOut,
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
-import { home, library, login, logout } from '@/routes';
+import { home, library, login, logout, myWeek } from '@/routes';
 import { dashboard } from '@/routes/admin';
 import { edit as editProfile } from '@/routes/profile';
 
@@ -28,10 +29,18 @@ type Item = { title: string; href: string; icon: LucideIcon; match?: string };
 function useNavItems(): Item[] {
     const { auth } = usePage().props;
 
-    const items: Item[] = [
-        { title: 'Início', href: home.url(), icon: Home },
-        { title: 'Biblioteca', href: library.url(), icon: BookMarked },
-    ];
+    const items: Item[] = [{ title: 'Início', href: home.url(), icon: Home }];
+
+    if (auth.user?.is_student) {
+        items.push({
+            title: 'Minha semana',
+            href: myWeek.url(),
+            icon: CalendarCheck,
+            match: '/minha-semana',
+        });
+    }
+
+    items.push({ title: 'Biblioteca', href: library.url(), icon: BookMarked });
 
     if (auth.user?.can_access_admin) {
         items.push({

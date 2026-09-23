@@ -1,16 +1,26 @@
 import { Head, Link } from '@inertiajs/react';
 import { Check, Eye, EyeOff, Minus, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { Roster } from '@/components/lesson/attendance-sheet';
+import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
 import { BiblePassage } from '@/components/lesson/bible-passage';
+import { FinishMeetingDialog } from '@/components/lesson/finish-meeting-dialog';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
 import { RevistaHeader } from '@/components/lesson/revista-header';
 import { cn } from '@/lib/utils';
 import { show } from '@/routes/lessons';
-import type { Lesson } from '@/types';
+import type { ClassMeeting, Lesson } from '@/types';
 
 type Props = {
     lesson: Lesson;
     canManage: boolean;
+    /** Chamada e encerramento: só para quem conduz a classe. */
+    conduct: {
+        meeting: ClassMeeting;
+        can_take_attendance: boolean;
+        roster: Roster;
+        present: number[];
+    } | null;
 };
 
 const SCALES = ['text-base', 'text-lg', 'text-xl', 'text-2xl'] as const;
@@ -32,7 +42,7 @@ function readScale(): number {
  * a aula no notebook, tablet ou celular. Sem navegação do app, fonte ajustável
  * e perguntas que podem ser marcadas como discutidas (apenas neste aparelho).
  */
-export default function SundayMode({ lesson, canManage }: Props) {
+export default function SundayMode({ lesson, canManage, conduct }: Props) {
     const [scale, setScale] = useState(1);
     const [discussed, setDiscussed] = useState<number[]>([]);
 
@@ -141,6 +151,22 @@ export default function SundayMode({ lesson, canManage }: Props) {
                         </p>
                     )}
                 </header>
+
+                {conduct?.can_take_attendance && (
+                    <>
+                        <AttendanceSheet
+                            key={conduct.meeting.id}
+                            meetingId={conduct.meeting.id}
+                            roster={conduct.roster}
+                            initialPresent={conduct.present}
+                            initialVisitors={conduct.meeting.visitors_count}
+                        />
+                        <FinishMeetingDialog
+                            meetingId={conduct.meeting.id}
+                            initialNotes={conduct.meeting.notes ?? null}
+                        />
+                    </>
+                )}
 
                 {canManage && roteiro.length > 0 && (
                     <section>

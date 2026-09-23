@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
     CalendarDays,
+    ChartLine,
     CalendarOff,
     CheckCircle2,
     Layers,
@@ -11,6 +12,7 @@ import {
 import { StatusBadge } from '@/components/admin/status-badge';
 import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
+import { insights } from '@/routes/admin/classrooms';
 import { index as membersIndex } from '@/routes/admin/classrooms/members';
 import { index as agendaIndex } from '@/routes/admin/classrooms/meetings';
 import { cancel, held } from '@/routes/admin/meetings';
@@ -237,6 +239,17 @@ export default function AdminDashboard({
                                                 )}
                                             >
                                                 <Users /> Alunos
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                        >
+                                            <Link
+                                                href={insights(classroom.slug)}
+                                            >
+                                                <ChartLine /> Evolução
                                             </Link>
                                         </Button>
                                     </div>

@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ClassroomSeeder::class,
             UserSeeder::class,
             LessonContentSeeder::class,
+            EngagementSeeder::class,
         ]);
     }
 }

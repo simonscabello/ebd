@@ -24,7 +24,7 @@ class ClassroomMemberController extends Controller
 
         $members = ClassroomMember::query()
             ->whereBelongsTo($classroom)
-            ->with('user')
+            ->with(['user.accessLinks' => fn ($q) => $q->active()])
             ->get()
             ->sortBy(fn (ClassroomMember $member) => $member->user->name)
             ->values()
@@ -32,14 +32,23 @@ class ClassroomMemberController extends Controller
                 'id' => $member->user->id,
                 'name' => $member->user->name,
                 'email' => $member->user->email,
+                'phone' => $member->user->phone,
                 'role' => $member->role->value,
                 'role_label' => $member->role->label(),
+                'is_managed' => $member->user->isManaged(),
+                'access_link' => ($link = $member->user->accessLinks->first()) ? [
+                    'created_at' => $link->created_at->toIso8601String(),
+                    'use_count' => $link->use_count,
+                    'last_used_at' => $link->last_used_at?->toIso8601String(),
+                    'expires_at' => $link->expires_at?->toIso8601String(),
+                ] : null,
             ]);
 
         return Inertia::render('admin/classrooms/members', [
             'classroom' => ClassroomResource::make($classroom),
             'members' => $members,
             'canAssignTeachers' => $request->user()->can('assignTeachers', $classroom),
+            'isAdmin' => $request->user()->isAdmin(),
         ]);
     }
 

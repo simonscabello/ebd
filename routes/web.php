@@ -1,10 +1,16 @@
 <?php
 
+use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LessonController;
+use App\Http\Controllers\LessonNoteController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\MaterialFileController;
+use App\Http\Controllers\MyProgressController;
+use App\Http\Controllers\MyWeekController;
+use App\Http\Controllers\QuestionAttemptController;
+use App\Http\Controllers\ReadingCheckinController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,9 +26,30 @@ Route::get('/', HomeController::class)->name('home');
 Route::get('licoes/{lesson:slug}', [LessonController::class, 'show'])->name('lessons.show');
 Route::get('licoes/{lesson:slug}/domingo', [LessonController::class, 'sunday'])->name('lessons.sunday');
 
+/*
+| Estudo do aluno (exige login): semana de estudo, "Li hoje", revisão e anotações.
+*/
+Route::middleware(['auth', 'throttle:engagement'])->group(function () {
+    Route::get('minha-semana', MyWeekController::class)->name('my-week');
+    Route::get('meu-progresso', MyProgressController::class)->name('my-progress');
+
+    Route::post('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'store'])->name('lessons.checkins.store');
+    Route::delete('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'destroy'])->name('lessons.checkins.destroy');
+    Route::post('licoes/{lesson:slug}/perguntas/{question}/tentativa', QuestionAttemptController::class)
+        ->scopeBindings()
+        ->name('lessons.questions.attempt');
+    Route::put('licoes/{lesson:slug}/anotacao', [LessonNoteController::class, 'update'])->name('lessons.note.update');
+});
+
 Route::get('materiais/{material}/arquivo', MaterialFileController::class)
     ->middleware('throttle:downloads')
     ->name('materials.file');
+
+// Link pessoal de acesso dos alunos: /entrar#token (ver AccessLinkController).
+Route::get('entrar', [AccessLinkController::class, 'show'])->name('access-link.show');
+Route::post('entrar', [AccessLinkController::class, 'store'])
+    ->middleware('throttle:access-link')
+    ->name('access-link.store');
 
 Route::get('biblioteca', LibraryController::class)
     ->middleware('throttle:library')
@@ -53,10 +80,19 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::post('encontros/{meeting}/cancelar', [Admin\MeetingStatusController::class, 'cancel'])->name('meetings.cancel');
         Route::post('encontros/{meeting}/continuar', [Admin\MeetingStatusController::class, 'continue'])->name('meetings.continue');
         Route::post('encontros/{meeting}/realizado', [Admin\MeetingStatusController::class, 'held'])->name('meetings.held');
+        Route::put('encontros/{meeting}/chamada', [Admin\AttendanceController::class, 'update'])->name('meetings.attendance.update');
+        Route::post('encontros/{meeting}/encerrar', [Admin\AttendanceController::class, 'finish'])->name('meetings.finish');
+
+        Route::get('classes/{classroom}/evolucao', Admin\ClassroomInsightsController::class)->name('classrooms.insights');
+        Route::get('classes/{classroom}/alunos/{user}', Admin\StudentProgressController::class)->name('classrooms.students.show');
+        Route::get('series/{series}/relatorio', Admin\SeriesReportController::class)->name('series.report');
 
         Route::get('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'index'])->name('classrooms.members.index');
         Route::post('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'store'])->name('classrooms.members.store');
         Route::delete('classes/{classroom}/membros/{user}', [Admin\ClassroomMemberController::class, 'destroy'])->name('classrooms.members.destroy');
+        Route::post('classes/{classroom}/alunos', [Admin\StudentAccessController::class, 'store'])->name('classrooms.students.store');
+        Route::post('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'issue'])->name('classrooms.members.link.store');
+        Route::delete('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'revoke'])->name('classrooms.members.link.destroy');
 
         Route::resource('series', Admin\SeriesController::class)
             ->parameters(['series' => 'series'])

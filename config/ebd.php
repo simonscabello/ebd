@@ -24,6 +24,24 @@ return [
     */
     'admin_emails' => array_values(array_filter(array_map('trim', explode(',', (string) env('EBD_ADMIN_EMAILS', ''))))),
 
+    /*
+    | Links pessoais de acesso dos alunos (enviados pelo WhatsApp).
+    | remember_days: por quanto tempo o aparelho continua logado.
+    | ttl_days: validade do link (vazio = até ser trocado ou bloqueado).
+    */
+    'access_links' => [
+        'remember_days' => (int) env('EBD_ACCESS_LINK_REMEMBER_DAYS', 400),
+        'ttl_days' => env('EBD_ACCESS_LINK_TTL_DAYS') ?: null,
+    ],
+
+    /*
+    | "Alunos que precisam de atenção" no painel de evolução da classe.
+    */
+    'insights' => [
+        'missed_meetings' => (int) env('EBD_RISK_MISSED_MEETINGS', 2),
+        'inactive_days' => (int) env('EBD_RISK_INACTIVE_DAYS', 10),
+    ],
+
     'materials' => [
         // Disco do config/filesystems.php. Troque para "s3" (S3, R2, MinIO) em produção.
         'disk' => env('EBD_MATERIALS_DISK', 'local'),

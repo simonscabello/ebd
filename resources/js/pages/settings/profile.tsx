@@ -64,13 +64,20 @@ export default function Profile() {
                                     id="email"
                                     type="email"
                                     className="mt-1 block w-full"
-                                    defaultValue={auth.user?.email}
+                                    defaultValue={auth.user?.email ?? ''}
                                     name="email"
-                                    required
+                                    required={auth.user?.has_password}
                                     autoComplete="username"
                                     placeholder="seu@email.com"
                                 />
 
+                                {!auth.user?.has_password && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Opcional. Você entra pelo link pessoal
+                                        enviado pelo professor. Cadastre um
+                                        e-mail se quiser criar uma senha.
+                                    </p>
+                                )}
                                 <InputError
                                     className="mt-2"
                                     message={errors.email}

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -16,11 +17,13 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $name
- * @property string $email
+ * @property string|null $email
+ * @property string|null $phone
+ * @property string|null $password
  * @property bool $is_admin
  * @property Carbon|null $email_verified_at
  */
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -65,6 +68,38 @@ class User extends Authenticatable
             ->using(ClassroomMember::class)
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<AccessLink, $this>
+     */
+    public function accessLinks(): HasMany
+    {
+        return $this->hasMany(AccessLink::class);
+    }
+
+    /**
+     * @return HasMany<ReadingCheckin, $this>
+     */
+    public function readingCheckins(): HasMany
+    {
+        return $this->hasMany(ReadingCheckin::class);
+    }
+
+    /**
+     * @return HasMany<UserBadge, $this>
+     */
+    public function badges(): HasMany
+    {
+        return $this->hasMany(UserBadge::class);
+    }
+
+    /**
+     * Conta criada pelo professor, sem senha: entra só pelo link pessoal.
+     */
+    public function isManaged(): bool
+    {
+        return $this->password === null;
     }
 
     /**

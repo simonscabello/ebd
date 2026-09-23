@@ -45,6 +45,18 @@ class UserFactory extends Factory
         ]);
     }
 
+    /**
+     * Aluno criado pelo professor: sem e-mail e sem senha (entra pelo link pessoal).
+     */
+    public function managed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email' => null,
+            'email_verified_at' => null,
+            'password' => null,
+        ]);
+    }
+
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [

@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpenText,
@@ -11,6 +11,7 @@ import {
     Lightbulb,
     Lock,
     NotebookPen,
+    NotebookText,
     Paperclip,
     PenLine,
     Presentation,
@@ -25,6 +26,8 @@ import {
 import { MaterialCard, MaterialIcon } from '@/components/lesson/material-card';
 import { QuestionList } from '@/components/lesson/question-list';
 import { ReadingPlan } from '@/components/lesson/reading-plan';
+import { PersonalNote } from '@/components/lesson/personal-note';
+import type { SelfAssessment } from '@/components/lesson/review-quiz';
 import { ReviewQuiz } from '@/components/lesson/review-quiz';
 import { RevistaHeader } from '@/components/lesson/revista-header';
 import { ShareButton } from '@/components/lesson/share-button';
@@ -34,15 +37,36 @@ import { Button } from '@/components/ui/button';
 import { home, library } from '@/routes';
 import { edit } from '@/routes/admin/lessons';
 import { sunday } from '@/routes/lessons';
+import {
+    destroy as undoCheckin,
+    store as storeCheckin,
+} from '@/routes/lessons/checkins';
+import { attempt } from '@/routes/lessons/questions';
 import type { Lesson } from '@/types';
+
+type Study = {
+    checkins: string[];
+    attempts: Record<number, SelfAssessment>;
+    note: string | null;
+    today: string;
+};
 
 type Props = {
     lesson: Lesson;
     canManage: boolean;
     shareText: string;
+    /** Estudo da própria pessoa; só para membros da classe. */
+    study: Study | null;
 };
 
-export default function LessonShow({ lesson, canManage, shareText }: Props) {
+export default function LessonShow({
+    lesson,
+    canManage,
+    shareText,
+    study,
+}: Props) {
+    const visit = { preserveScroll: true, preserveState: true };
+
     const materials = lesson.materials ?? [];
     const readings = lesson.readings ?? [];
     const questions = lesson.questions ?? [];
@@ -77,6 +101,7 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
         reflection.length > 0 && { id: 'perguntas', label: 'Perguntas' },
         review.length > 0 && { id: 'revisao', label: 'Revisão' },
         references.length > 0 && { id: 'referencias', label: 'Referências' },
+        study && { id: 'anotacoes', label: 'Anotações' },
         teacherBlocks.length > 0 && { id: 'professor', label: 'Professor' },
     ].filter(Boolean) as { id: string; label: string }[];
 
@@ -237,7 +262,39 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                             icon={<CalendarDays />}
                             description="Um pouco por dia até domingo."
                         >
-                            <ReadingPlan readings={readings} />
+                            <ReadingPlan
+                                readings={readings}
+                                tracking={
+                                    study
+                                        ? {
+                                              checkins: study.checkins,
+                                              today: study.today,
+                                              onCheck: (reading, yesterday) =>
+                                                  router.post(
+                                                      storeCheckin.url(
+                                                          lesson.slug,
+                                                      ),
+                                                      {
+                                                          reading_id:
+                                                              reading.id,
+                                                          yesterday,
+                                                      },
+                                                      visit,
+                                                  ),
+                                              onUndo: (date) =>
+                                                  router.delete(
+                                                      undoCheckin.url(
+                                                          lesson.slug,
+                                                      ),
+                                                      {
+                                                          data: { date },
+                                                          ...visit,
+                                                      },
+                                                  ),
+                                          }
+                                        : undefined
+                                }
+                            />
                         </Section>
                     )}
 
@@ -338,7 +395,23 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                             icon={<CheckSquare />}
                             description="Responda, confira o gabarito e veja como você foi."
                         >
-                            <ReviewQuiz questions={review} />
+                            <ReviewQuiz
+                                questions={review}
+                                attempts={study?.attempts}
+                                onAssess={
+                                    study
+                                        ? (question, value) =>
+                                              router.post(
+                                                  attempt.url({
+                                                      lesson: lesson.slug,
+                                                      question: question.id,
+                                                  }),
+                                                  { self_assessment: value },
+                                                  visit,
+                                              )
+                                        : undefined
+                                }
+                            />
                         </Section>
                     )}
 
@@ -382,6 +455,19 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                                     </li>
                                 ))}
                             </ul>
+                        </Section>
+                    )}
+
+                    {study && (
+                        <Section
+                            id="anotacoes"
+                            title="Minhas anotações"
+                            icon={<NotebookText />}
+                        >
+                            <PersonalNote
+                                lessonSlug={lesson.slug}
+                                initial={study.note}
+                            />
                         </Section>
                     )}
 

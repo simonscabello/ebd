@@ -40,4 +40,27 @@ class ClassroomPolicy
     {
         return $user->isAdmin();
     }
+
+    /** Painel de evolução da classe. */
+    public function viewInsights(User $user, Classroom $classroom): bool
+    {
+        return $user->canManageClassroom($classroom);
+    }
+
+    /**
+     * Progresso de um aluno: só de quem é aluno desta classe. Para os demais,
+     * 404 (não confirma que a pessoa existe).
+     */
+    public function viewStudentProgress(User $user, Classroom $classroom, User $student): bool
+    {
+        if (! $user->canManageClassroom($classroom)) {
+            return false;
+        }
+
+        if (! $student->isMemberOf($classroom) || $student->isTeacherOf($classroom)) {
+            abort(404);
+        }
+
+        return true;
+    }
 }

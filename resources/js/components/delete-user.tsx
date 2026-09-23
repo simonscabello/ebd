@@ -1,4 +1,4 @@
-import { Form } from '@inertiajs/react';
+import { Form, usePage } from '@inertiajs/react';
 import { useRef } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
@@ -17,6 +17,7 @@ import {
 import { Label } from '@/components/ui/label';
 
 export default function DeleteUser() {
+    const hasPassword = usePage().props.auth.user?.has_password ?? true;
     const passwordInput = useRef<HTMLInputElement>(null);
 
     return (
@@ -61,7 +62,13 @@ export default function DeleteUser() {
                         >
                             {({ resetAndClearErrors, processing, errors }) => (
                                 <>
-                                    <div className="grid gap-2">
+                                    <div
+                                        className={
+                                            hasPassword
+                                                ? 'grid gap-2'
+                                                : 'hidden'
+                                        }
+                                    >
                                         <Label
                                             htmlFor="password"
                                             className="sr-only"

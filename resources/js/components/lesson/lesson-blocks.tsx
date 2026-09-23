@@ -34,7 +34,9 @@ export function BlockCards({
                             kind={block.kind}
                             className="size-4 text-primary"
                         />
-                        {block.title ? block.kind_label : null}
+                        {block.title && block.title !== block.kind_label
+                            ? block.kind_label
+                            : null}
                     </p>
                     <h3 className="mt-1 font-serif text-xl font-semibold tracking-tight text-balance">
                         {block.display_title}

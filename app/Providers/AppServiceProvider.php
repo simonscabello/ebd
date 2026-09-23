@@ -95,6 +95,14 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('downloads', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
+        // Tentativas de entrar por link pessoal: limite por IP (por minuto e por dia).
+        RateLimiter::for('access-link', fn (Request $request) => [
+            Limit::perMinute(10)->by('min:'.$request->ip()),
+            Limit::perDay(50)->by('day:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('engagement', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('library', fn (Request $request) => Limit::perMinute(90)->by($request->user()?->id ?: $request->ip()));
     }
 }

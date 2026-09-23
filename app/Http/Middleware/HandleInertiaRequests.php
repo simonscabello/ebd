@@ -53,8 +53,14 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'first_name' => strtok($user->name, ' '),
                     'email' => $user->email,
+                    'has_password' => ! $user->isManaged(),
                     'is_admin' => $user->isAdmin(),
                     'can_access_admin' => $user->canAccessAdmin(),
+                    // Aluno de ao menos uma classe: mostra "Minha semana" na navegação.
+                    'is_student' => array_filter(
+                        $user->memberClassroomIds(),
+                        fn (int $id) => ! $user->isTeacherOf($id),
+                    ) !== [],
                 ] : null,
             ],
             'features' => [

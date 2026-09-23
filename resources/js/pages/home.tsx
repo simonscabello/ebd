@@ -17,7 +17,7 @@ import { ShareButton } from '@/components/lesson/share-button';
 import { EmptyState, Page } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { home, library, login } from '@/routes';
+import { home, library, login, myWeek } from '@/routes';
 import { show } from '@/routes/lessons';
 import type { ClassMeeting, Classroom, Lesson, Series } from '@/types';
 
@@ -43,6 +43,7 @@ export default function Home({
     classrooms,
     classroom,
     isMember,
+    isStudent,
     nextLesson,
     meeting,
     meetingIndex,
@@ -128,6 +129,21 @@ export default function Home({
                     </p>
                 ))}
 
+                {isStudent && nextLesson && (
+                    <Link
+                        href={myWeek({
+                            query: classroom ? { classe: classroom.slug } : {},
+                        })}
+                        className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-accent/60 px-4 py-3 font-medium text-accent-foreground hover:bg-accent"
+                    >
+                        <span>
+                            Minha semana: leitura de hoje, curiosidade do dia e
+                            preparação para domingo
+                        </span>
+                        <ArrowRight className="size-4 shrink-0" />
+                    </Link>
+                )}
+
                 {nextLesson ? (
                     <NextLesson
                         lesson={nextLesson}
@@ -201,14 +217,16 @@ export default function Home({
 
                 {!auth.user && (
                     <p className="mt-10 rounded-2xl bg-muted/70 p-4 text-sm text-muted-foreground">
-                        Faz parte de uma classe?{' '}
+                        Faz parte de uma classe? Peça ao seu professor o seu
+                        link pessoal: com ele você marca as leituras, faz a
+                        revisão e acompanha seu progresso. Já tem senha?{' '}
                         <Link
                             href={login()}
                             className="font-medium text-primary"
                         >
                             Entre na sua conta
-                        </Link>{' '}
-                        para ver também os conteúdos exclusivos da turma.
+                        </Link>
+                        .
                     </p>
                 )}
 
