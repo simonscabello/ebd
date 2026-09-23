@@ -23,7 +23,7 @@ env: ## Cria o .env a partir do .env.example (se ainda não existir)
 build: ## Constrói a imagem da aplicação
 	$(COMPOSE) build
 
-up: ## Sobe todos os serviços (app, vite, worker, scheduler, postgres, redis, mailpit)
+up: ## Sobe todos os serviços (app, vite, worker, postgres, redis, mailpit)
 	$(COMPOSE) up -d
 
 down: ## Derruba os containers (mantém o banco)

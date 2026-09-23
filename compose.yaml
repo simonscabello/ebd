@@ -51,10 +51,6 @@ services:
         # queue:listen recarrega o código a cada job (ideal em dev). Em produção use queue:work.
         command: ['php', 'artisan', 'queue:listen', '--tries=3', '--timeout=90']
 
-    scheduler:
-        <<: *app
-        command: ['php', 'artisan', 'schedule:work']
-
     postgres:
         image: postgres:18-alpine
         environment:
