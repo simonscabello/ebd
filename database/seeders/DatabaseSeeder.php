@@ -2,24 +2,26 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * Dados de DESENVOLVIMENTO. Cria usuários com senha conhecida,
+     * por isso é bloqueado em produção.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        if (app()->isProduction()) {
+            $this->command->error('Os seeders de desenvolvimento não rodam em produção.');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            return;
+        }
+
+        $this->call([
+            ClassroomSeeder::class,
+            UserSeeder::class,
+            LessonContentSeeder::class,
         ]);
     }
 }

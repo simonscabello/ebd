@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\ClassroomRole;
+use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -43,8 +45,26 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+        ]);
+    }
+
     /**
-     * Indicate that the model has two-factor authentication configured.
+     * Vincula o usuário a uma classe como professor(a).
      */
-    public function withTwoFactor(): static {}
+    public function teacherOf(Classroom $classroom): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->classrooms()->attach($classroom, ['role' => ClassroomRole::Teacher]));
+    }
+
+    /**
+     * Vincula o usuário a uma classe como aluno(a).
+     */
+    public function studentOf(Classroom $classroom): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->classrooms()->attach($classroom, ['role' => ClassroomRole::Student]));
+    }
 }

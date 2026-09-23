@@ -73,7 +73,7 @@ return [
     |
     */
 
-    'home' => '/dashboard',
+    'home' => '/',
 
     /*
     |--------------------------------------------------------------------------
@@ -142,9 +142,10 @@ return [
     |
     */
 
-    'features' => [
-        Features::registration(),
+    'features' => array_values(array_filter([
+        // Auto-cadastro pode ser desligado em config/ebd.php (EBD_REGISTRATION_ENABLED).
+        env('EBD_REGISTRATION_ENABLED', true) ? Features::registration() : null,
         Features::resetPasswords(),
-    ],
+    ])),
 
 ];

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\ClassroomRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -14,25 +16,25 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $name
  * @property string $email
+ * @property bool $is_admin
  * @property Carbon|null $email_verified_at
- * @property string $password
- * @property string|null $two_factor_secret
- * @property string|null $two_factor_recovery_codes
- * @property Carbon|null $two_factor_confirmed_at
- * @property string|null $remember_token
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
  */
 #[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * Get the attributes that should be cast.
+     * Papéis do usuário por classe, carregados uma única vez por instância
+     * para que policies não disparem uma consulta a cada verificação.
      *
+     * @var array<int, ClassroomRole>|null
+     */
+    protected ?array $classroomRoles = null;
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -40,6 +42,104 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
+    }
+
+    /**
+     * @return BelongsToMany<Classroom, $this, ClassroomMember>
+     */
+    public function classrooms(): BelongsToMany
+    {
+        return $this->belongsToMany(Classroom::class)
+            ->using(ClassroomMember::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->is_admin;
+    }
+
+    public function roleIn(Classroom|int $classroom): ?ClassroomRole
+    {
+        $id = $classroom instanceof Classroom ? $classroom->id : $classroom;
+
+        return $this->classroomRoles()[$id] ?? null;
+    }
+
+    public function isTeacherOf(Classroom|int $classroom): bool
+    {
+        return $this->roleIn($classroom) === ClassroomRole::Teacher;
+    }
+
+    public function isMemberOf(Classroom|int $classroom): bool
+    {
+        return $this->roleIn($classroom) !== null;
+    }
+
+    /**
+     * Pode gerenciar conteúdo (séries, lições) da classe.
+     */
+    public function canManageClassroom(Classroom|int $classroom): bool
+    {
+        return $this->isAdmin() || $this->isTeacherOf($classroom);
+    }
+
+    /**
+     * Professores de ao menos uma classe e administradores acessam a área de gestão.
+     */
+    public function canAccessAdmin(): bool
+    {
+        return $this->isAdmin() || in_array(ClassroomRole::Teacher, $this->classroomRoles(), true);
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function memberClassroomIds(): array
+    {
+        return array_keys($this->classroomRoles());
+    }
+
+    /**
+     * IDs das classes cujo conteúdo o usuário pode gerenciar.
+     * Para administradores retorna null, que significa "todas".
+     *
+     * @return list<int>|null
+     */
+    public function manageableClassroomIds(): ?array
+    {
+        if ($this->isAdmin()) {
+            return null;
+        }
+
+        return array_keys(array_filter(
+            $this->classroomRoles(),
+            fn (ClassroomRole $role) => $role === ClassroomRole::Teacher,
+        ));
+    }
+
+    /**
+     * @return array<int, ClassroomRole>
+     */
+    protected function classroomRoles(): array
+    {
+        return $this->classroomRoles ??= ClassroomMember::query()
+            ->where('user_id', $this->id)
+            ->pluck('role', 'classroom_id')
+            ->map(fn (ClassroomRole|string $role) => $role instanceof ClassroomRole ? $role : ClassroomRole::from($role))
+            ->all();
+    }
+
+    /**
+     * Descarta o cache de papéis (útil após alterar vínculos na mesma requisição).
+     */
+    public function flushClassroomRoles(): static
+    {
+        $this->classroomRoles = null;
+
+        return $this;
     }
 }
