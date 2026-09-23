@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Em produção (Railway) a aplicação só é alcançável através do proxy da
+        // plataforma, que termina o HTTPS e envia X-Forwarded-*. Confiar nele faz o
+        // Laravel reconhecer HTTPS, host e IP real do visitante.
+        $middleware->trustProxies(at: '*');
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [

@@ -18,6 +18,12 @@ return [
     */
     'registration_enabled' => (bool) env('EBD_REGISTRATION_ENABLED', true),
 
+    /*
+    | Contas (já cadastradas) promovidas a administrador por
+    | `php artisan ebd:promote-admins`, executado no pre-deploy. Separe por vírgula.
+    */
+    'admin_emails' => array_values(array_filter(array_map('trim', explode(',', (string) env('EBD_ADMIN_EMAILS', ''))))),
+
     'materials' => [
         // Disco do config/filesystems.php. Troque para "s3" (S3, R2, MinIO) em produção.
         'disk' => env('EBD_MATERIALS_DISK', 'local'),

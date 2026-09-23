@@ -6,13 +6,16 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -32,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureHealthcheck();
 
         // URLs em português: /admin/licoes/criar, /admin/licoes/1/editar
         Route::resourceVerbs(['create' => 'criar', 'edit' => 'editar']);
@@ -59,6 +63,9 @@ class AppServiceProvider extends ServiceProvider
         // Sem o envelope "data" as props ficam diretas; paginação mantém data/links/meta.
         JsonResource::withoutWrapping();
 
+        // Atrás do proxy do Railway, garante links e redirects sempre em HTTPS.
+        URL::forceHttps(app()->isProduction());
+
         Password::defaults(fn (): ?Password => app()->isProduction()
             ? Password::min(10)
                 ->letters()
@@ -66,6 +73,17 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * O endpoint /up (healthcheck do deploy) também confirma que o banco responde.
+     * Em caso de falha retorna 500 sem detalhes (APP_DEBUG=false).
+     */
+    protected function configureHealthcheck(): void
+    {
+        Event::listen(DiagnosingHealth::class, function (): void {
+            DB::connection()->select('select 1');
+        });
     }
 
     protected function configureAuthorization(): void

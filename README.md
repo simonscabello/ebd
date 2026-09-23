@@ -235,6 +235,112 @@ e no `.env`: `EBD_MATERIALS_DISK=s3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KE
 
 Limites de upload: PDF/arquivos 30 MB, áudio 60 MB (`EBD_MAX_UPLOAD_KB`, `EBD_MAX_AUDIO_KB`). Em produção, `upload_max_filesize`/`post_max_size` do PHP e o limite do proxy (nginx `client_max_body_size`) precisam acompanhar.
 
+## Deploy no Railway
+
+Produção roda no [Railway](https://railway.com), no projeto **EBD**, seguindo o mesmo modelo dos outros projetos Laravel da conta: build automático pelo **Railpack**, sem Dockerfile de produção. O `compose.yaml` e o `docker/php/Dockerfile` continuam sendo **só para desenvolvimento local**.
+
+### Arquitetura
+
+```
+GitHub (main) ──push──▶ Railway build (Railpack) ──▶ serviço "app" (FrankenPHP)
+                                                        │   └─ volume: /app/storage/app (uploads)
+                                                        ▼
+                                                  serviço "Postgres" (PostgreSQL 18 + volume)
+```
+
+| Serviço    | O que é                                                                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app`      | Laravel servido pelo **FrankenPHP** (Caddy + PHP 8.4), escutando na porta `$PORT` do Railway. Domínio público `*.up.railway.app` com HTTPS do próprio Railway. |
+| `Postgres` | PostgreSQL gerenciado do Railway, com volume próprio. Acessado pela rede privada.                                                                              |
+
+Não há Redis, worker nem scheduler, porque o sistema ainda não precisa deles: cache e sessões ficam no PostgreSQL, a fila é `sync` e não existem tarefas agendadas. Se um dia houver jobs pesados, crie um serviço `worker` com o mesmo repositório e o start command `php artisan queue:work --tries=3 --backoff=10 --timeout=90`, e troque para `QUEUE_CONNECTION=database`.
+
+### Como o Railpack builda e inicia
+
+- Detecta Laravel pelo `artisan` e usa a imagem `dunglas/frankenphp` na versão de PHP do `composer.json` (`^8.4`).
+- Instala as extensões declaradas como `ext-*` no `composer.json` (`intl`, `pdo_pgsql`) mais as exigidas pelo Laravel.
+- Roda `composer install`, `npm ci` e `npm run build` na mesma imagem (o Wayfinder precisa do PHP durante o build do Vite).
+- No start, roda `storage:link`, `optimize:clear` e `optimize`. Os caches são refeitos **em runtime**, com as variáveis reais do ambiente, e só então sobe o FrankenPHP.
+
+### Configuração do serviço `app`
+
+| Configuração       | Valor                                                                     |
+| ------------------ | ------------------------------------------------------------------------- |
+| Source             | GitHub `simonscabello/ebd`, branch `main` (deploy automático a cada push) |
+| Builder            | Railpack                                                                  |
+| Pre-deploy command | `php artisan ebd:predeploy` (migrations + `ebd:promote-admins`)           |
+| Healthcheck        | `/up`, timeout de 300 s                                                   |
+| Volume             | montado em `/app/storage/app`                                             |
+| Réplicas           | 1 (o volume exige uma única instância)                                    |
+
+### Variáveis de ambiente (serviço `app`)
+
+| Variável                                                        | Valor                                        | Observação                                              |
+| --------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| `APP_NAME`                                                      | `EBD`                                        |                                                         |
+| `APP_ENV`                                                       | `production`                                 |                                                         |
+| `APP_DEBUG`                                                     | `false`                                      | nunca `true` em produção                                |
+| `APP_KEY`                                                       | gerada com `php artisan key:generate --show` | secreta; só no Railway                                  |
+| `APP_URL`                                                       | `https://${{RAILWAY_PUBLIC_DOMAIN}}`         | referência ao domínio do próprio serviço                |
+| `APP_LOCALE` / `APP_FALLBACK_LOCALE`                            | `pt_BR` / `en`                               |                                                         |
+| `LOG_CHANNEL` / `LOG_LEVEL`                                     | `stderr` / `info`                            | logs vão para o painel do Railway                       |
+| `DB_CONNECTION`                                                 | `pgsql`                                      | também faz o Railpack instalar `pdo_pgsql`              |
+| `DB_URL`                                                        | `${{Postgres.DATABASE_URL}}`                 | referência; nenhuma credencial fica no Git              |
+| `SESSION_DRIVER` / `SESSION_SECURE_COOKIE` / `SESSION_LIFETIME` | `database` / `true` / `120`                  |                                                         |
+| `CACHE_STORE`                                                   | `database`                                   |                                                         |
+| `QUEUE_CONNECTION`                                              | `sync`                                       |                                                         |
+| `FILESYSTEM_DISK` / `EBD_MATERIALS_DISK`                        | `local` / `local`                            | arquivos no volume                                      |
+| `MAIL_MAILER`                                                   | `log`                                        | provisório: e-mails só aparecem no log (ver pendências) |
+| `EBD_CHURCH_NAME`, `EBD_TIMEZONE`, `EBD_REGISTRATION_ENABLED`   | ver `.env.example`                           |                                                         |
+| `EBD_ADMIN_EMAILS`                                              | e-mails separados por vírgula                | contas promovidas a admin no pre-deploy                 |
+| `RAILPACK_SKIP_MIGRATIONS`                                      | `true`                                       | as migrations rodam no pre-deploy, não no start         |
+
+### Migrations
+
+Rodam no **pre-deploy command** (`php artisan ebd:predeploy`): um container temporário, com a imagem nova, executa `php artisan migrate --force` **uma vez por deploy**, antes de a versão nova receber tráfego. Se a migration falhar, o deploy é abortado e a versão anterior continua no ar; o erro aparece nos logs do deploy. A migration automática do Railpack no start fica desligada (`RAILPACK_SKIP_MIGRATIONS=true`) para não rodar em paralelo.
+
+Em produção nunca rode `migrate:fresh`, `db:wipe` nem `db:seed`: os seeders são só para desenvolvimento e se recusam a rodar com `APP_ENV=production`.
+
+### Primeiro administrador
+
+O banco de produção começa vazio. Para ter o primeiro admin:
+
+1. Crie sua conta normalmente em `/register`.
+2. No Railway, defina `EBD_ADMIN_EMAILS` com o seu e-mail.
+3. Faça um redeploy. O pre-deploy (`ebd:predeploy`) roda `ebd:promote-admins`, que **só promove contas já existentes** e é idempotente.
+
+Depois disso, crie as classes em **Gestão → Classes** e adicione os professores.
+
+### Storage
+
+Os materiais enviados (PDFs, áudios) ficam no **volume** do serviço `app`, montado em `/app/storage/app`, e continuam existindo entre deploys. Limitações conhecidas:
+
+- Com volume, o serviço roda com **uma réplica**, e cada redeploy tem alguns segundos de indisponibilidade.
+- O backup do volume é o do Railway; vale ativar os backups agendados no painel do volume.
+- Para escalar ou usar CDN, o código já suporta disco `s3`: crie um Railway Bucket (ou S3/R2), instale `league/flysystem-aws-s3-v3` e defina `EBD_MATERIALS_DISK=s3` com as credenciais `AWS_*`.
+
+### Logs e healthcheck
+
+- **Logs:** aplicação (`LOG_CHANNEL=stderr`), PHP e Caddy escrevem no stdout/stderr e aparecem em _Deployments → Logs_. Falhas de build, de migration (pre-deploy) e de startup aparecem ali.
+- **Healthcheck:** `GET /up`, nativo do Laravel. Neste projeto ele também executa `select 1` no PostgreSQL: se o banco não responder, devolve 500 sem detalhes e o Railway não promove o deploy.
+
+### Segurança em produção
+
+- `APP_DEBUG=false`: erros aparecem como página genérica, com detalhes só no log.
+- O Laravel confia no proxy do Railway (`trustProxies`), então reconhece HTTPS e o host público. Em produção, todas as URLs são geradas em `https`.
+- Cookies de sessão são `secure` e `SameSite=Lax`. O CSRF é o padrão do Laravel.
+- `.env` não existe na imagem (as variáveis vêm do Railway), e o Caddy do Railpack esconde `.env*` e `.git`. O cabeçalho `X-Powered-By` é removido.
+- Uploads ficam fora de `public/`; os arquivos só saem pelo controller, depois de checar a permissão da lição.
+
+### Deploys futuros
+
+Basta fazer push na `main`. O Railway builda, roda as migrations no pre-deploy, espera o `/up` responder e então troca a versão. Para acompanhar, use o painel do projeto (_Deployments_) ou a CLI (`railway logs`).
+
+### Pendências manuais
+
+- **E-mail:** configure um provedor SMTP (Resend, Postmark, Brevo, etc.) com `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`. Até lá, a recuperação de senha não chega à caixa de entrada.
+- **Domínio próprio:** quando houver, adicione em _Settings → Networking_. O `APP_URL` acompanha automaticamente se continuar usando `${{RAILWAY_PUBLIC_DOMAIN}}`; com domínio customizado, defina a URL explicitamente.
+
 ## API e mobile no futuro
 
 A regra de negócio não depende do Inertia: Actions, Policies, Form Requests, Queries e API Resources são reaproveitáveis. Para expor uma API REST (app Flutter/React Native):
