@@ -130,7 +130,7 @@ export default function AdminLessonsIndex({
                                     className="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50"
                                 >
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate font-medium">
+                                        <p className="line-clamp-2 font-medium">
                                             {lesson.title}
                                         </p>
                                         <p className="truncate text-sm text-muted-foreground">

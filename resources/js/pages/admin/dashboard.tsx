@@ -125,7 +125,7 @@ export default function AdminDashboard({
                                             </p>
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate font-medium">
+                                            <p className="line-clamp-2 font-medium">
                                                 {lesson.title}
                                             </p>
                                             <p className="truncate text-sm text-muted-foreground">
@@ -137,10 +137,17 @@ export default function AdminDashboard({
                                                     .join(' · ')}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                {lesson.materials_count ?? 0}{' '}
-                                                materiais ·{' '}
-                                                {lesson.questions_count ?? 0}{' '}
-                                                perguntas
+                                                {plural(
+                                                    lesson.materials_count ?? 0,
+                                                    'material',
+                                                    'materiais',
+                                                )}
+                                                {' · '}
+                                                {plural(
+                                                    lesson.questions_count ?? 0,
+                                                    'pergunta',
+                                                    'perguntas',
+                                                )}
                                             </p>
                                         </div>
                                         <StatusBadge
@@ -181,4 +188,8 @@ export default function AdminDashboard({
             </Page>
         </>
     );
+}
+
+function plural(count: number, one: string, many: string): string {
+    return `${count} ${count === 1 ? one : many}`;
 }
