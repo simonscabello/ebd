@@ -4,7 +4,6 @@ import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
@@ -12,11 +11,6 @@ export default defineConfig({
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             refresh: true,
-            fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
-                }),
-            ],
         }),
         inertia(),
         react(),
@@ -29,6 +23,13 @@ export default defineConfig({
         }),
     ]),
     server: {
+        // No Docker o Vite escuta em 0.0.0.0 e o navegador acessa via localhost.
+        host: process.env.VITE_HOST,
+        port: 5173,
+        strictPort: true,
+        hmr: process.env.VITE_HMR_HOST
+            ? { host: process.env.VITE_HMR_HOST }
+            : undefined,
         watch: {
             ignored: [
                 '**/.agents/**',

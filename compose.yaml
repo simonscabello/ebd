@@ -1,0 +1,93 @@
+name: ebd
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    args:
+      UID: ${DOCKER_UID:-1000}
+      GID: ${DOCKER_GID:-1000}
+  image: ebd-app:dev
+  volumes:
+    - .:/var/www/html
+  environment: &app-env
+    # Sobrescreve apenas o que muda dentro da rede do Docker; o restante vem do .env.
+    DB_HOST: postgres
+    DB_PORT: 5432
+    REDIS_HOST: redis
+    MAIL_HOST: mailpit
+    MAIL_PORT: 1025
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  app:
+    <<: *app
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  vite:
+    <<: *app
+    command: ["npm", "run", "dev"]
+    environment:
+      <<: *app-env
+      VITE_HOST: 0.0.0.0
+      VITE_HMR_HOST: localhost
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+
+  worker:
+    <<: *app
+    # queue:listen recarrega o código a cada job (ideal em dev). Em produção use queue:work.
+    command: ["php", "artisan", "queue:listen", "--tries=3", "--timeout=90"]
+
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-ebd}
+      POSTGRES_USER: ${DB_USERNAME:-ebd}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    volumes:
+      # A partir do PostgreSQL 18 o volume deve apontar para /var/lib/postgresql.
+      - pgdata:/var/lib/postgresql
+      - ./docker/postgres/init-testing-db.sql:/docker-entrypoint-initdb.d/10-testing-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${FORWARD_MAILPIT_UI_PORT:-8025}:8025"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
