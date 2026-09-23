@@ -6,6 +6,7 @@ import {
     LogIn,
     LogOut,
     PenLine,
+    Smartphone,
     UserRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -20,7 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
-import { home, library, login, logout, myWeek } from '@/routes';
+import { home, install, library, login, logout, myWeek } from '@/routes';
 import { dashboard } from '@/routes/admin';
 import { edit as editProfile } from '@/routes/profile';
 
@@ -156,6 +157,11 @@ function UserMenu() {
                 <DropdownMenuItem asChild>
                     <Link href={editProfile()} className="w-full">
                         <UserRound /> Minha conta
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href={install()} className="w-full">
+                        <Smartphone /> Instalar o app
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

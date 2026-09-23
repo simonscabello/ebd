@@ -51,6 +51,9 @@ Route::post('entrar', [AccessLinkController::class, 'store'])
     ->middleware('throttle:access-link')
     ->name('access-link.store');
 
+// Tutorial para instalar o app (PWA) no Android e no iPhone.
+Route::inertia('instalar', 'install')->name('install');
+
 Route::get('biblioteca', LibraryController::class)
     ->middleware('throttle:library')
     ->name('library');

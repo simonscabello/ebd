@@ -12,6 +12,7 @@ import {
     ListChecks,
     Undo2,
 } from 'lucide-react';
+import { InstallAppBanner } from '@/components/install-app-banner';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
 import { EmptyState, Page, Section } from '@/components/page';
 import type { Streak } from '@/components/progress/streak-flame';
@@ -83,6 +84,7 @@ export default function MyWeek({ classrooms, classroom, week }: Props) {
         <>
             <Head title="Minha semana" />
             <Page>
+                <InstallAppBanner />
                 <header className="mb-6">
                     <p className="text-sm font-medium text-primary">
                         {classroom ? `Classe ${classroom.name}` : 'EBD'}

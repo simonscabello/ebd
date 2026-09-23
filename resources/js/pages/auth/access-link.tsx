@@ -1,7 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { KeyRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { home } from '@/routes';
 import { store } from '@/routes/access-link';
@@ -11,19 +14,39 @@ type Props = {
     currentUser: string | null;
 };
 
+const TOKEN = /^[A-Za-z0-9]{48}$/;
+
+/**
+ * Extrai o token de um link colado (…/entrar#TOKEN) ou do próprio token.
+ */
+function tokenFrom(text: string): string | null {
+    const value = text.trim();
+    const candidate = value.includes('#')
+        ? (value.split('#').pop() ?? '')
+        : value;
+
+    return TOKEN.test(candidate) ? candidate : null;
+}
+
 /**
  * Entrada pelo link pessoal (/entrar#token). O token fica no fragmento da
  * URL, que nunca vai ao servidor no GET: ele é lido aqui, apagado da barra
  * de endereços e enviado por POST.
+ *
+ * Sem token no endereço (ex.: app instalado no iPhone, que não compartilha o
+ * login com o Safari), a pessoa pode colar o link recebido no WhatsApp.
  */
 export default function AccessLink({ currentUser }: Props) {
     const [token, setToken] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [pasteMode, setPasteMode] = useState(false);
+    const [pasted, setPasted] = useState('');
     const sent = useRef(false);
 
     const submit = (value: string) => {
         setProcessing(true);
+        setError(null);
         router.post(
             store.url(),
             { token: value },
@@ -49,10 +72,8 @@ export default function AccessLink({ currentUser }: Props) {
             window.location.pathname + window.location.search,
         );
 
-        if (!/^[A-Za-z0-9]{48}$/.test(value)) {
-            setError(
-                'Link incompleto. Abra de novo a mensagem do seu professor ou peça um novo link.',
-            );
+        if (!TOKEN.test(value)) {
+            setPasteMode(true);
 
             return;
         }
@@ -66,6 +87,61 @@ export default function AccessLink({ currentUser }: Props) {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    if (pasteMode) {
+        return (
+            <>
+                <Head title="Entrar com meu link" />
+                <form
+                    className="flex flex-col gap-4"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        const value = tokenFrom(pasted);
+
+                        if (!value) {
+                            setError(
+                                'Este não parece ser o link da EBD. Copie a mensagem do professor de novo e cole aqui.',
+                            );
+
+                            return;
+                        }
+
+                        submit(value);
+                    }}
+                >
+                    <div className="flex flex-col items-center gap-2 text-center">
+                        <span className="flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                            <KeyRound className="size-6" />
+                        </span>
+                        <p className="text-balance text-muted-foreground">
+                            No WhatsApp, toque e segure no link que o professor
+                            enviou, escolha <strong>Copiar</strong> e cole aqui.
+                        </p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="access-link">Seu link pessoal</Label>
+                        <Input
+                            id="access-link"
+                            value={pasted}
+                            onChange={(event) => setPasted(event.target.value)}
+                            placeholder="https://…/entrar#…"
+                            autoComplete="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                            required
+                        />
+                        <InputError message={error ?? undefined} />
+                    </div>
+                    <Button type="submit" disabled={processing}>
+                        {processing && <Spinner />} Entrar
+                    </Button>
+                    <Button asChild variant="ghost">
+                        <Link href={home()}>Voltar ao início</Link>
+                    </Button>
+                </form>
+            </>
+        );
+    }
 
     return (
         <>

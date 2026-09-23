@@ -13,6 +13,7 @@ import {
     Sparkles,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { InstallAppBanner } from '@/components/install-app-banner';
 import { ShareButton } from '@/components/lesson/share-button';
 import { EmptyState, Page } from '@/components/page';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,7 @@ export default function Home({
             <Head title="Início" />
 
             <Page>
+                <InstallAppBanner />
                 <header className="mb-6">
                     <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
                         {greeting}
