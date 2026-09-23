@@ -2,9 +2,9 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-        {{-- Inline script to detect system dark mode preference and apply it immediately --}}
+        {{-- Aplica o tema escuro antes da renderização para evitar "piscar" --}}
         <script>
             (function() {
                 const appearance = '{{ $appearance ?? "system" }}';
@@ -19,25 +19,31 @@
             })();
         </script>
 
-        {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>
             html {
-                background-color: oklch(1 0 0);
+                background-color: oklch(0.982 0.006 85);
             }
 
             html.dark {
-                background-color: oklch(0.145 0 0);
+                background-color: oklch(0.18 0.008 70);
             }
         </style>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
+        {{-- PWA --}}
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#2f5f53">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="EBD">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title>{{ config('app.name', 'EBD') }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

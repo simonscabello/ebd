@@ -1,14 +1,12 @@
 export type User = {
     id: number;
     name: string;
+    first_name: string;
     email: string;
-    avatar?: string;
-    email_verified_at: string | null;
-    created_at: string;
-    updated_at: string;
-    [key: string]: unknown;
+    is_admin: boolean;
+    can_access_admin: boolean;
 };
 
 export type Auth = {
-    user: User;
+    user: User | null;
 };

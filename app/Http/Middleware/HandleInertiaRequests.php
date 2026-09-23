@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Laravel\Fortify\Features;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -27,7 +29,8 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Define the props that are shared by default.
+     * Props compartilhadas com todas as páginas. Exponha apenas o necessário:
+     * tudo aqui vai para o HTML de qualquer página, inclusive as públicas.
      *
      * @see https://inertiajs.com/shared-data
      *
@@ -35,13 +38,28 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        /** @var User|null $user */
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
-            'auth' => [
-                'user' => $request->user(),
+            'church' => [
+                'name' => config('ebd.church_name'),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'auth' => [
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'first_name' => strtok($user->name, ' '),
+                    'email' => $user->email,
+                    'is_admin' => $user->isAdmin(),
+                    'can_access_admin' => $user->canAccessAdmin(),
+                ] : null,
+            ],
+            'features' => [
+                'registration' => Features::enabled(Features::registration()),
+            ],
         ];
     }
 }

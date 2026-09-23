@@ -52,6 +52,10 @@ class LessonResource extends JsonResource
             'date_label' => $date ? ChurchCalendar::formatLong($date) : null,
             'date_short' => $date ? ChurchCalendar::formatShort($date) : null,
             'days_until' => $date ? ChurchCalendar::daysUntil($date) : null,
+            'date_parts' => $date ? [
+                'day' => $date->format('j'),
+                'month' => $date->locale('pt_BR')->translatedFormat('M'),
+            ] : null,
             'bible_reference' => $this->bible_reference,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),

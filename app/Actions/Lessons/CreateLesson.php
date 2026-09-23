@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 class CreateLesson
 {
     /** Campos tratados explicitamente pela action (não entram via mass assignment). */
-    public const NON_FILLABLE = ['series_id', 'slug', 'author_ids'];
+    public const NON_FILLABLE = ['classroom_id', 'series_id', 'slug', 'author_ids'];
 
     public function __construct(
         private readonly GenerateLessonSlug $generateSlug,

@@ -1,0 +1,46 @@
+{
+    "name": "EBD — Escola Bíblica Dominical",
+    "short_name": "EBD",
+    "description": "Próxima aula, preparação da semana e biblioteca de estudos da Escola Bíblica Dominical.",
+    "lang": "pt-BR",
+    "start_url": "/?origem=app",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#faf7f2",
+    "theme_color": "#2f5f53",
+    "categories": ["education", "books"],
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Biblioteca",
+            "url": "/biblioteca",
+            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+        }
+    ]
+}
