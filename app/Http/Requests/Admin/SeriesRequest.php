@@ -28,7 +28,7 @@ class SeriesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'classroom_id' => [$this->route('series') ? 'prohibited' : 'required', 'integer', 'exists:classrooms,id'],
+            'classroom_id' => $this->route('series') ? ['prohibited'] : ['required', 'integer', 'exists:classrooms,id'],
             'title' => ['required', 'string', 'max:160'],
             'description' => ['nullable', 'string', 'max:5000'],
             'starts_on' => ['nullable', 'date'],

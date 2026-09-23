@@ -22,23 +22,24 @@ class CreateLesson
     ) {}
 
     /**
-     * @param  array{title: string, series_id?: int|null, slug?: string|null, author_ids?: list<int>|null}&array<string, mixed>  $data
+     * @param  array<string, mixed>  $data  dados validados por LessonRequest
      */
     public function handle(User $creator, Classroom $classroom, array $data): Lesson
     {
         $seriesId = $this->ensureSeries->handle($classroom, $data['series_id'] ?? null);
+        $authorIds = is_array($data['author_ids'] ?? null) ? $data['author_ids'] : [$creator->id];
 
-        return DB::transaction(function () use ($creator, $classroom, $data, $seriesId) {
+        return DB::transaction(function () use ($creator, $classroom, $data, $seriesId, $authorIds) {
             $lesson = new Lesson(Arr::except($data, self::NON_FILLABLE));
             $lesson->classroom_id = $classroom->id;
             $lesson->series_id = $seriesId;
             $lesson->created_by = $creator->id;
-            $lesson->slug = filled($data['slug'] ?? null)
+            $lesson->slug = is_string($data['slug'] ?? null) && $data['slug'] !== ''
                 ? $data['slug']
-                : $this->generateSlug->handle($data['title'], $classroom);
+                : $this->generateSlug->handle($lesson->title, $classroom);
             $lesson->save();
 
-            $lesson->authors()->sync($data['author_ids'] ?? [$creator->id]);
+            $lesson->authors()->sync($authorIds);
 
             return $lesson;
         });

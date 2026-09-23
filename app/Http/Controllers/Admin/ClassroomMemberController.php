@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ClassroomMemberRequest;
 use App\Http\Resources\ClassroomResource;
 use App\Models\Classroom;
+use App\Models\ClassroomMember;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,13 +22,19 @@ class ClassroomMemberController extends Controller
     {
         Gate::authorize('manageMembers', $classroom);
 
-        $members = $classroom->members()->orderBy('name')->get()->map(fn (User $user) => [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->pivot->role->value,
-            'role_label' => $user->pivot->role->label(),
-        ]);
+        $members = ClassroomMember::query()
+            ->whereBelongsTo($classroom)
+            ->with('user')
+            ->get()
+            ->sortBy(fn (ClassroomMember $member) => $member->user->name)
+            ->values()
+            ->map(fn (ClassroomMember $member) => [
+                'id' => $member->user->id,
+                'name' => $member->user->name,
+                'email' => $member->user->email,
+                'role' => $member->role->value,
+                'role_label' => $member->role->label(),
+            ]);
 
         return Inertia::render('admin/classrooms/members', [
             'classroom' => ClassroomResource::make($classroom),

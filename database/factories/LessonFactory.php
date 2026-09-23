@@ -17,7 +17,7 @@ class LessonFactory extends Factory
 {
     public function definition(): array
     {
-        $title = Str::title(fake()->words(4, true));
+        $title = Str::title(rtrim(fake()->sentence(4), '.'));
 
         return [
             'classroom_id' => Classroom::factory(),
@@ -28,7 +28,7 @@ class LessonFactory extends Factory
             'scheduled_for' => now()->next('Sunday')->toDateString(),
             'bible_reference' => 'Lucas 5:1-11',
             'bible_text' => null,
-            'content' => "## Introdução\n\n".fake()->paragraphs(2, true),
+            'content' => "## Introdução\n\n".fake()->paragraph()."\n\n".fake()->paragraph(),
             'teacher_notes' => null,
             'status' => LessonStatus::Draft,
             'visibility' => LessonVisibility::Public,

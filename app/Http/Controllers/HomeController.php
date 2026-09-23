@@ -30,7 +30,9 @@ class HomeController extends Controller
         $nextLesson = $classroom ? $lessons->next($classroom, $user) : null;
         $recent = $classroom ? $lessons->recent($classroom, $user) : collect();
 
-        $currentSeries = $nextLesson?->series ?? $recent->first()?->series;
+        // Série em estudo: a da próxima aula ou, se ela for avulsa, a da aula mais recente.
+        $currentSeries = $nextLesson?->series;
+        $currentSeries ??= $recent->first()?->series;
 
         return Inertia::render('home', [
             'greeting' => ChurchCalendar::greeting(),

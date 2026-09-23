@@ -37,9 +37,9 @@ class Markdown
 
         preg_match_all('/^#{2,3}\s+(.+?)\s*#*\s*$/m', $markdown, $matches);
 
-        return array_values(array_map(
+        return array_map(
             fn (string $heading) => trim(strip_tags(Str::inlineMarkdown($heading, ['html_input' => 'strip']))),
             $matches[1],
-        ));
+        );
     }
 }

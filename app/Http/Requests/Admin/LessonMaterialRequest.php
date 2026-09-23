@@ -62,6 +62,9 @@ class LessonMaterialRequest extends FormRequest
     /**
      * Áudio aceita arquivo OU link, mas precisa de um dos dois.
      */
+    /**
+     * @return list<callable(Validator): void>
+     */
     public function after(): array
     {
         return [
@@ -96,7 +99,11 @@ class LessonMaterialRequest extends FormRequest
     {
         $material = $this->existingMaterial();
 
-        return $material?->type ?? MaterialType::tryFrom((string) $this->input('type'));
+        if ($material !== null) {
+            return $material->type;
+        }
+
+        return MaterialType::tryFrom((string) $this->input('type'));
     }
 
     private function existingMaterial(): ?LessonMaterial

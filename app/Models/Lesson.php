@@ -147,7 +147,7 @@ class Lesson extends Model
     #[Scope]
     protected function visible(Builder $query): void
     {
-        $query->whereIn('status', LessonStatus::visibleCases());
+        $query->whereIn($query->qualifyColumn('status'), LessonStatus::visibleCases());
     }
 
     /**
@@ -166,10 +166,10 @@ class Lesson extends Model
         }
 
         $query->where(function (Builder $query) use ($user) {
-            $query->where('visibility', LessonVisibility::Public);
+            $query->where($query->qualifyColumn('visibility'), LessonVisibility::Public);
 
             if ($user !== null && $user->memberClassroomIds() !== []) {
-                $query->orWhereIn('classroom_id', $user->memberClassroomIds());
+                $query->orWhereIn($query->qualifyColumn('classroom_id'), $user->memberClassroomIds());
             }
         });
     }
@@ -180,8 +180,8 @@ class Lesson extends Model
     #[Scope]
     protected function upcoming(Builder $query, CarbonInterface $today): void
     {
-        $query->where('status', LessonStatus::Published)
-            ->whereDate('scheduled_for', '>=', $today->toDateString())
-            ->orderBy('scheduled_for');
+        $query->where($query->qualifyColumn('status'), LessonStatus::Published)
+            ->whereDate($query->qualifyColumn('scheduled_for'), '>=', $today->toDateString())
+            ->orderBy($query->qualifyColumn('scheduled_for'));
     }
 }

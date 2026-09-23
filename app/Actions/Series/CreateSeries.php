@@ -10,13 +10,13 @@ use Illuminate\Support\Str;
 class CreateSeries
 {
     /**
-     * @param  array{title: string, description?: string|null, starts_on?: string|null, ends_on?: string|null}  $data
+     * @param  array<string, mixed>  $data  dados validados (title, description, starts_on, ends_on)
      */
     public function handle(Classroom $classroom, array $data): Series
     {
         $series = new Series(Arr::only($data, ['title', 'description', 'starts_on', 'ends_on']));
         $series->classroom_id = $classroom->id;
-        $series->slug = $this->uniqueSlug($classroom, $data['title']);
+        $series->slug = $this->uniqueSlug($classroom, $series->title);
         $series->save();
 
         return $series;

@@ -14,7 +14,7 @@ class UpdateLessonMaterial
      * O tipo do material não muda depois de criado; para trocar o tipo,
      * remove-se o material e cria-se outro.
      *
-     * @param  array{title: string, description?: string|null, url?: string|null, is_primary?: bool}  $data
+     * @param  array<string, mixed>  $data  dados validados por LessonMaterialRequest
      */
     public function handle(LessonMaterial $material, array $data, ?UploadedFile $file = null): LessonMaterial
     {

@@ -30,10 +30,12 @@ class LessonRequest extends FormRequest
     public function rules(): array
     {
         $lesson = $this->route('lesson');
+        $lesson = $lesson instanceof Lesson ? $lesson : null;
         $classroom = $this->classroom();
 
         return [
-            'classroom_id' => [$lesson ? 'prohibited' : 'required', 'integer', 'exists:classrooms,id'],
+            // A classe é definida na criação e não muda depois.
+            'classroom_id' => $lesson ? ['prohibited'] : ['required', 'integer', 'exists:classrooms,id'],
             'series_id' => ['nullable', 'integer', Rule::exists('series', 'id')->where('classroom_id', $classroom?->id)],
             'title' => ['required', 'string', 'max:180'],
             'slug' => [

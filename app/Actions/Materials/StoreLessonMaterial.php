@@ -18,11 +18,11 @@ use Illuminate\Support\Str;
 class StoreLessonMaterial
 {
     /**
-     * @param  array{type: string, title: string, description?: string|null, url?: string|null, is_primary?: bool}  $data
+     * @param  array<string, mixed>  $data  dados validados por LessonMaterialRequest
      */
     public function handle(Lesson $lesson, array $data, ?UploadedFile $file = null): LessonMaterial
     {
-        $type = MaterialType::from($data['type']);
+        $type = $data['type'] instanceof MaterialType ? $data['type'] : MaterialType::from((string) $data['type']);
 
         $material = new LessonMaterial([
             'type' => $type,

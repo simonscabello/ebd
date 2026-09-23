@@ -114,13 +114,13 @@ class LibrarySearch
      */
     public function availableYears(?User $user): array
     {
-        return Lesson::query()
+        return array_values(Lesson::query()
             ->visibleTo($user)
             ->whereNotNull('scheduled_for')
             ->select(DB::raw('DISTINCT EXTRACT(YEAR FROM scheduled_for)::int AS year'))
             ->orderByDesc('year')
             ->pluck('year')
             ->map(fn ($year) => (int) $year)
-            ->all();
+            ->all());
     }
 }

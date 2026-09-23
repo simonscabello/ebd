@@ -11,9 +11,9 @@ use Illuminate\Validation\ValidationException;
  */
 class EnsureSeriesBelongsToClassroom
 {
-    public function handle(Classroom $classroom, int|string|null $seriesId): ?int
+    public function handle(Classroom $classroom, mixed $seriesId): ?int
     {
-        if (blank($seriesId)) {
+        if (! is_numeric($seriesId)) {
             return null;
         }
 

@@ -59,15 +59,21 @@ class ChurchCalendar
 
     public static function formatLong(\DateTimeInterface $date): string
     {
-        return CarbonImmutable::parse($date->format('Y-m-d'))
-            ->locale('pt_BR')
-            ->translatedFormat('l, j \d\e F \d\e Y');
+        return self::localized($date)->translatedFormat('l, j \d\e F \d\e Y');
     }
 
     public static function formatShort(\DateTimeInterface $date): string
     {
-        return CarbonImmutable::parse($date->format('Y-m-d'))
-            ->locale('pt_BR')
-            ->translatedFormat('j \d\e M \d\e Y');
+        return self::localized($date)->translatedFormat('j \d\e M \d\e Y');
+    }
+
+    public static function monthShort(\DateTimeInterface $date): string
+    {
+        return self::localized($date)->translatedFormat('M');
+    }
+
+    private static function localized(\DateTimeInterface $date): CarbonImmutable
+    {
+        return CarbonImmutable::parse($date->format('Y-m-d'))->settings(['locale' => 'pt_BR']);
     }
 }

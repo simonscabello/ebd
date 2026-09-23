@@ -36,7 +36,9 @@ class LessonResource extends JsonResource
     }
 
     /**
-     * @return array<string, mixed>
+     * Chaves inteiras vêm dos blocos mergeWhen, achatados pelo JsonResource.
+     *
+     * @return array<int|string, mixed>
      */
     public function toArray(Request $request): array
     {
@@ -54,7 +56,7 @@ class LessonResource extends JsonResource
             'days_until' => $date ? ChurchCalendar::daysUntil($date) : null,
             'date_parts' => $date ? [
                 'day' => $date->format('j'),
-                'month' => $date->locale('pt_BR')->translatedFormat('M'),
+                'month' => ChurchCalendar::monthShort($date),
             ] : null,
             'bible_reference' => $this->bible_reference,
             'status' => $this->status->value,

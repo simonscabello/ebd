@@ -9,12 +9,12 @@ use Illuminate\Support\Str;
 class CreateClassroom
 {
     /**
-     * @param  array{name: string, description?: string|null, is_active?: bool, position?: int}  $data
+     * @param  array<string, mixed>  $data  dados validados (name, description, is_active, position)
      */
     public function handle(array $data): Classroom
     {
         $classroom = new Classroom(Arr::only($data, ['name', 'description', 'is_active', 'position']));
-        $classroom->slug = $this->uniqueSlug($data['name']);
+        $classroom->slug = $this->uniqueSlug((string) $classroom->name);
         $classroom->save();
 
         return $classroom;

@@ -35,6 +35,15 @@ class User extends Authenticatable
     protected ?array $classroomRoles = null;
 
     /**
+     * Espelha o default do banco para instâncias recém-criadas (ex.: após o cadastro).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_admin' => false,
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -59,7 +68,7 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->is_admin;
+        return (bool) $this->is_admin;
     }
 
     public function roleIn(Classroom|int $classroom): ?ClassroomRole
