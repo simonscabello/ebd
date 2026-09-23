@@ -35,6 +35,7 @@ class LessonAccessTest extends TestCase
 
         $this->get('/licoes/a-santidade-de-deus')
             ->assertOk()
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
             ->assertInertia(fn (Assert $page) => $page
                 ->component('lessons/show')
                 ->where('lesson.id', $lesson->id)

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ClassroomRole;
+use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -64,6 +65,14 @@ class User extends Authenticatable
             ->using(ClassroomMember::class)
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * @param  string  $token
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     public function isAdmin(): bool

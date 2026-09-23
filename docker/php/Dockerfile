@@ -10,7 +10,7 @@ ARG GID=1000
 
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
 
-RUN install-php-extensions pdo_pgsql pgsql intl zip bcmath pcntl redis opcache \
+RUN install-php-extensions pdo_pgsql pgsql intl zip bcmath pcntl redis \
     && apk add --no-cache bash git unzip nodejs npm \
     && addgroup -g "${GID}" app \
     && adduser -D -u "${UID}" -G app -h /home/app app

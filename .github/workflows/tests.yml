@@ -1,4 +1,4 @@
-name: tests
+name: ci
 
 on:
   push:
@@ -9,9 +9,35 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: ebd_testing
+          POSTGRES_USER: ebd
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ebd -d ebd_testing"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: ebd
+      DB_PASSWORD: secret
 
     steps:
       - name: Checkout code
@@ -22,7 +48,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
+          extensions: pdo_pgsql, pgsql, intl, zip, bcmath
           tools: composer:v2
           coverage: none
 
@@ -30,9 +57,36 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+          cache: npm
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Run CI Checks
-        run: composer ci:check
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: PHP format (Pint)
+        run: composer lint:check
+
+      - name: PHP static analysis (Larastan)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      - name: Generate Wayfinder routes
+        run: php artisan wayfinder:generate --with-form
+
+      - name: Front-end lint and format
+        run: npm run check
+
+      - name: TypeScript
+        run: npm run types:check
+
+      - name: Front-end build
+        run: npm run build
+
+      - name: Backend tests
+        run: php artisan test
