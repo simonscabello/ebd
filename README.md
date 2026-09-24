@@ -255,7 +255,7 @@ Limites de upload: PDF/arquivos 30 MB, áudio 60 MB (`EBD_MAX_UPLOAD_KB`, `EBD_M
 
 ## Deploy no Railway
 
-Produção: **https://app-production-4c4c.up.railway.app** (healthcheck em `/up`).
+Produção: **https://ebd.up.railway.app** (healthcheck em `/up`).
 
 Produção roda no [Railway](https://railway.com), no projeto **EBD** (região `us-east4`), seguindo o mesmo modelo dos outros projetos Laravel da conta: build automático pelo **Railpack**, sem Dockerfile de produção. O `compose.yaml` e o `docker/php/Dockerfile` continuam sendo **só para desenvolvimento local**.
 
