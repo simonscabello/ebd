@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
+use Psr\Log\LoggerInterface;
 
 /**
  * Envio real via Web Push (VAPID), com as requisições em paralelo. Inscrições
@@ -18,6 +19,7 @@ final class WebPushSender implements PushSender
         private readonly string $subject,
         private readonly string $publicKey,
         private readonly string $privateKey,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function send(Collection $subscriptions, PushMessage $message): int
@@ -26,9 +28,13 @@ final class WebPushSender implements PushSender
             return 0;
         }
 
+        // Com um logger, a biblioteca registra os avisos de ambiente (ex.: falta
+        // de GMP/BCMath) em vez de disparar um notice, que o Laravel converteria
+        // em exceção e abortaria o envio inteiro.
         $webPush = new WebPush(
             ['VAPID' => ['subject' => $this->subject, 'publicKey' => $this->publicKey, 'privateKey' => $this->privateKey]],
             ['TTL' => 12 * 3600, 'urgency' => 'normal'],
+            logger: $this->logger,
         );
         $webPush->setReuseVAPIDHeaders(true);
 

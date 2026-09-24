@@ -1,5 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
+    BellOff,
+    BellRing,
     ChartLine,
     KeyRound,
     Link2,
@@ -28,6 +30,7 @@ import {
     show as studentPage,
     store as storeStudent,
 } from '@/routes/admin/classrooms/students';
+import { cn } from '@/lib/utils';
 import type { Classroom } from '@/types';
 
 type Member = {
@@ -38,6 +41,8 @@ type Member = {
     role: 'teacher' | 'student';
     role_label: string;
     is_managed: boolean;
+    /** Aparelhos com lembretes push ativos. */
+    reminder_devices: number;
     access_link: {
         created_at: string;
         use_count: number;
@@ -181,6 +186,30 @@ export default function ClassroomMembers({
                                                 ` · último acesso ${ago(member.access_link.last_used_at)}`}
                                         </p>
                                     )}
+                                <p
+                                    className={cn(
+                                        'mt-0.5 flex items-center gap-1 text-xs',
+                                        member.reminder_devices > 0
+                                            ? 'text-success-foreground'
+                                            : 'text-muted-foreground',
+                                    )}
+                                >
+                                    {member.reminder_devices > 0 ? (
+                                        <>
+                                            <BellRing className="size-3.5" />
+                                            Lembretes ativos em{' '}
+                                            {member.reminder_devices}{' '}
+                                            {member.reminder_devices === 1
+                                                ? 'aparelho'
+                                                : 'aparelhos'}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <BellOff className="size-3.5" />
+                                            Sem lembretes ativos
+                                        </>
+                                    )}
+                                </p>
                             </div>
                             <div className="flex flex-wrap gap-1">
                                 {member.role === 'student' &&

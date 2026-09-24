@@ -24,7 +24,7 @@ class ClassroomMemberController extends Controller
 
         $members = ClassroomMember::query()
             ->whereBelongsTo($classroom)
-            ->with(['user.accessLinks' => fn ($q) => $q->active()])
+            ->with(['user' => fn ($q) => $q->withCount('pushSubscriptions'), 'user.accessLinks' => fn ($q) => $q->active()])
             ->get()
             ->sortBy(fn (ClassroomMember $member) => $member->user->name)
             ->values()
@@ -36,6 +36,7 @@ class ClassroomMemberController extends Controller
                 'role' => $member->role->value,
                 'role_label' => $member->role->label(),
                 'is_managed' => $member->user->isManaged(),
+                'reminder_devices' => (int) $member->user->getAttribute('push_subscriptions_count'),
                 'access_link' => ($link = $member->user->accessLinks->first()) ? [
                     'created_at' => $link->created_at->toIso8601String(),
                     'use_count' => $link->use_count,

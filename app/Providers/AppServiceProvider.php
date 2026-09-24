@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Psr\Log\LoggerInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -34,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
             $private = (string) config('ebd.push.private_key');
 
             return $public !== '' && $private !== ''
-                ? new WebPushSender((string) config('ebd.push.subject'), $public, $private)
+                ? new WebPushSender((string) config('ebd.push.subject'), $public, $private, $this->app->make(LoggerInterface::class))
                 : new NullPushSender;
         });
     }

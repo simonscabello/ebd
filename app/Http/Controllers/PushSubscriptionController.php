@@ -56,12 +56,17 @@ class PushSubscriptionController extends Controller
             return back();
         }
 
-        $sent = $sender->send($devices, new PushMessage(
-            title: 'Os lembretes estão funcionando!',
-            body: "Oi, {$user->name}. É assim que a leitura do dia vai chegar.",
-            url: route('my-week'),
-            tag: 'test',
-        ));
+        try {
+            $sent = $sender->send($devices, new PushMessage(
+                title: 'Os lembretes estão funcionando!',
+                body: "Oi, {$user->name}. É assim que a leitura do dia vai chegar.",
+                url: route('my-week'),
+                tag: 'test',
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+            $sent = 0;
+        }
 
         $this->toast($sent > 0
             ? "Notificação de teste enviada para {$sent} aparelho(s)."

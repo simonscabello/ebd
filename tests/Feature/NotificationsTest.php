@@ -12,9 +12,12 @@ use App\Models\LessonReading;
 use App\Models\PushSubscription;
 use App\Models\ReadingCheckin;
 use App\Models\User;
+use App\Support\Push\PushMessage;
 use App\Support\Push\PushSender;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
+use Inertia\Support\SessionKey;
 use Tests\Support\FakePushSender;
 use Tests\TestCase;
 
@@ -184,6 +187,41 @@ class NotificationsTest extends TestCase
         $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'draft']);
         $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published']);
         $this->assertSame(8, $this->push->count());
+    }
+
+    public function test_a_push_failure_never_blocks_publishing_and_is_told_to_the_teacher(): void
+    {
+        $this->app->instance(PushSender::class, new class implements PushSender
+        {
+            public function send(Collection $subscriptions, PushMessage $message): int
+            {
+                throw new \RuntimeException('serviço de push fora do ar');
+            }
+        });
+        $lesson = Lesson::factory()->for($this->classroom)->create();
+
+        $this->actingAs($this->teacher)
+            ->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published'])
+            ->assertRedirect()
+            ->assertSessionHas(SessionKey::FLASH_DATA, fn (array $flash) => str_contains($flash['toast']['message'], 'aviso no celular falhou'));
+
+        $this->assertTrue($lesson->refresh()->status->isVisible());
+    }
+
+    public function test_the_publish_toast_tells_how_many_devices_were_notified(): void
+    {
+        $lesson = Lesson::factory()->for($this->classroom)->create();
+
+        $this->actingAs($this->teacher)
+            ->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published'])
+            ->assertSessionHas(SessionKey::FLASH_DATA, fn (array $flash) => str_contains($flash['toast']['message'], '4 aparelho(s)'));
+
+        PushSubscription::query()->delete();
+        $other = Lesson::factory()->for($this->classroom)->create();
+
+        $this->actingAs($this->teacher)
+            ->post("/admin/licoes/{$other->id}/status", ['status' => 'published'])
+            ->assertSessionHas(SessionKey::FLASH_DATA, fn (array $flash) => str_contains($flash['toast']['message'], 'Ninguém da classe ativou'));
     }
 
     public function test_reminders_are_scheduled_in_the_church_timezone(): void

@@ -27,7 +27,11 @@ class LessonStatusController extends Controller
         $change->handle($lesson, $target);
 
         $this->toast(match ($target) {
-            LessonStatus::Published => 'Lição publicada. O link já pode ser compartilhado.',
+            LessonStatus::Published => match (true) {
+                $change->notificationFailed => 'Lição publicada, mas o aviso no celular falhou. O erro ficou registrado.',
+                $change->notifiedDevices > 0 => "Lição publicada. Aviso enviado para {$change->notifiedDevices} aparelho(s) da classe.",
+                default => 'Lição publicada. Ninguém da classe ativou os lembretes ainda.',
+            },
             LessonStatus::Draft => 'Lição voltou para rascunho.',
         });
 

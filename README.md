@@ -255,6 +255,7 @@ Horários no fuso da igreja (`EBD_TIMEZONE`), definidos em `routes/console.php`.
 - A pessoa ativa em **Perfil → Notificações** ou no convite que aparece no Início e em "Minha semana". Vale por aparelho; no iPhone só funciona com o app instalado na tela inicial. O botão **Testar** manda uma notificação só para os aparelhos da própria pessoa.
 - Chaves VAPID: `php artisan ebd:vapid-keys` gera o par; `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` vão no `.env` (ou no Railway). Sem chaves, as inscrições são aceitas mas nada é enviado. Trocar as chaves invalida as inscrições existentes.
 - Inscrições expiradas (o serviço de push responde 404/410) são apagadas no envio seguinte.
+- A assinatura VAPID usa BCMath (`ext-bcmath` no `composer.json`, que o Railpack instala). Sem ela a biblioteca só avisa no log e usa a implementação lenta.
 - O service worker (`public/sw.js`) mostra a notificação e, ao tocar, abre a página indicada. Ao mudar o `sw.js`, aumente a `VERSION`.
 
 ## Estratégia de storage
