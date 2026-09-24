@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import { useEffect } from 'react';
 // Registra o JS dos componentes do Flowbite (drawer, dropdown, tooltip...).
 import 'flowbite';
 import { ConfirmProvider } from '@/components/confirm-dialog';
@@ -6,12 +7,20 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import { registerServiceWorker } from '@/lib/pwa';
+import { dismissSplash } from '@/lib/splash';
 import AdminLayout from '@/layouts/admin-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'EBD';
+
+/** Tira a tela de abertura depois que a primeira página é pintada. */
+function SplashDismisser() {
+    useEffect(dismissSplash, []);
+
+    return null;
+}
 
 void createInertiaApp({
     title: (title) => (title ? `${title} · ${appName}` : appName),
@@ -35,6 +44,7 @@ void createInertiaApp({
             <TooltipProvider delayDuration={0}>
                 <ConfirmProvider>{app}</ConfirmProvider>
                 <Toaster position="top-center" />
+                <SplashDismisser />
             </TooltipProvider>
         );
     },

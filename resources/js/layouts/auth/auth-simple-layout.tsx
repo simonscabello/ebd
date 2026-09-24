@@ -19,7 +19,7 @@ export default function AuthSimpleLayout({
                             href={home()}
                             className="flex flex-col items-center gap-2 font-medium"
                         >
-                            <AppLogoMark className="size-12 rounded-2xl [&_svg]:size-6" />
+                            <AppLogoMark className="size-12" />
                             <span className="text-sm text-muted-foreground">
                                 EBD · {church.name}
                             </span>

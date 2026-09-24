@@ -175,6 +175,10 @@ Ficou de fora de propósito: sincronizar a tela do professor com os alunos em te
 
 `public/manifest.webmanifest`, ícones (incluindo maskable) e `public/sw.js`, registrado só no build de produção.
 
+O ícone (marcador de página com a cruz vazada) é vetorial: `public/icons/icon.svg` é a arte de fundo inteiro (o sistema arredonda), `public/favicon.svg` é um recorte mais justo com cantos arredondados. Os PNGs (`icon-192/512`, `maskable-512`, `apple-touch-icon`, `favicon.ico` 16/32/48) são exportados desses SVGs; o marcador já cabe no círculo de 80% do maskable. `badge-96.png` é a silhueta branca que o Android mostra na barra de status das notificações. O logo dentro do app e a tela de abertura usam o próprio `icon.svg`. Ao trocar os ícones, suba a `VERSION` do `sw.js`: ele guarda `/icons/*` em cache.
+
+Tela de abertura (`resources/views/partials/splash.blade.php` + `resources/js/lib/splash.ts`): cobre a página enquanto o JavaScript carrega, com um versículo curto sorteado de `App\Support\SplashVerse` (só as referências ficam no código; o texto vem da Bíblia importada, e sem ela aparece uma mensagem). Na primeira abertura da sessão fica ~2s para dar tempo de ler (tocar dispensa); nas recargas seguintes só aparece se o carregamento passar de 400ms.
+
 O service worker faz cache apenas de assets versionados (`/build/*`) e ícones. Páginas HTML **não** são guardadas: sempre vêm da rede e, sem conexão, aparece `offline.html`. Isso evita mostrar conteúdo desatualizado ou dados de uma sessão logada. Leitura offline de lições fica para uma etapa futura.
 
 ## Docker

@@ -8,11 +8,13 @@
  * - Push: mostra a notificação enviada pelo servidor e, ao tocar, abre a
  *   página indicada (reaproveitando uma janela do app, se houver).
  */
-const VERSION = 'ebd-v2';
+const VERSION = 'ebd-v3';
 const STATIC_CACHE = `${VERSION}-static`;
 const PRECACHE = [
     '/offline.html',
+    '/icons/icon.svg',
     '/icons/icon-192.png',
+    '/icons/badge-96.png',
     '/manifest.webmanifest',
 ];
 
@@ -94,7 +96,7 @@ self.addEventListener('push', (event) => {
     const options = {
         body: data.body || '',
         icon: '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
+        badge: '/icons/badge-96.png',
         tag: data.tag || undefined,
         renotify: Boolean(data.tag),
         data: { url: data.url || '/' },
