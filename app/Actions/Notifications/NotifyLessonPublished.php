@@ -5,7 +5,6 @@ namespace App\Actions\Notifications;
 use App\Models\Lesson;
 use App\Support\Push\PushMessage;
 use App\Support\Push\PushSender;
-use Illuminate\Support\Str;
 
 /**
  * Lição publicada: avisa todos os membros da classe. Quem publicou também
@@ -27,9 +26,8 @@ final class NotifyLessonPublished
             return 0;
         }
 
-        $body = $lesson->summary
-            ? Str::limit(trim($lesson->summary), 110)
-            : ($lesson->bible_reference ? "Texto base: {$lesson->bible_reference}" : 'Já está disponível para estudo.');
+        $body = PushMessage::excerpt($lesson->summary)
+            ?? ($lesson->bible_reference ? "Texto base: {$lesson->bible_reference}" : 'Já está disponível para estudo.');
 
         return $this->sender->send($recipients->flatMap->pushSubscriptions->values(), new PushMessage(
             title: 'Nova lição: '.$lesson->displayTitle(),

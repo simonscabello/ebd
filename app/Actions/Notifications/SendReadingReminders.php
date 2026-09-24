@@ -15,7 +15,6 @@ use App\Support\Push\PushMessage;
 use App\Support\Push\PushSender;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 /**
  * Lembrete da leitura do dia, por classe (9h e 20h no fuso da igreja).
@@ -141,12 +140,9 @@ final class SendReadingReminders
             );
         }
 
-        $body = $reading['notes'];
-
-        if (! $body) {
-            $verse = Bible::passage($reading['reference'])['verses'][0]['text'] ?? null;
-            $body = $verse ? Str::limit($verse, 110) : 'Abra o app e marque quando ler.';
-        }
+        $body = PushMessage::excerpt($reading['notes'])
+            ?? PushMessage::excerpt(Bible::passage($reading['reference'])['verses'][0]['text'] ?? null)
+            ?? 'Abra o app e marque quando ler.';
 
         return new PushMessage(
             title: "Leitura de hoje: {$reading['reference']}",
