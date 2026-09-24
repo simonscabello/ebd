@@ -1,6 +1,7 @@
 import { router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { CircleAlert, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { BiblePreview } from '@/components/admin/bible-preview';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
@@ -65,6 +66,17 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
                                         {reading.notes && (
                                             <p className="text-sm text-muted-foreground">
                                                 {reading.notes}
+                                            </p>
+                                        )}
+                                        {reading.passage ? (
+                                            <p className="mt-1 line-clamp-1 font-serif text-sm text-muted-foreground">
+                                                {reading.passage.verses[0].text}
+                                            </p>
+                                        ) : (
+                                            <p className="mt-1 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+                                                <CircleAlert className="size-3.5" />
+                                                Sem texto: referência não
+                                                reconhecida.
                                             </p>
                                         )}
                                     </div>
@@ -210,6 +222,7 @@ function ReadingEditor({
                     />
                 </Field>
             </div>
+            <BiblePreview reference={form.data.reference} />
             <Field
                 label="Orientação (opcional)"
                 htmlFor={`notes-${reading?.id ?? 'new'}`}

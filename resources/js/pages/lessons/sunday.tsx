@@ -162,6 +162,7 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                 {lesson.bible_reference && (
                     <BiblePassage
                         reference={lesson.bible_reference}
+                        passage={lesson.bible_passage}
                         size="large"
                     />
                 )}

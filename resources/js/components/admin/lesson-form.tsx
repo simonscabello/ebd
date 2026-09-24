@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { Globe, Lock, Save } from 'lucide-react';
+import { BiblePreview } from '@/components/admin/bible-preview';
 import { Field } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -231,6 +232,7 @@ export function LessonForm({
                     />
                 </Field>
             </div>
+            <BiblePreview reference={data.bible_reference} />
 
             <Field
                 label="Versículo-chave"

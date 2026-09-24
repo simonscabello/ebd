@@ -225,6 +225,20 @@ tests/Feature, tests/Unit
 6. **Página** em `resources/js/pages/...`, usando as rotas geradas pelo Wayfinder (`@/routes/...`).
 7. **Teste** de feature cobrindo a regra e a permissão.
 
+## Texto bíblico
+
+As referências (texto base da lição e leituras da semana) aparecem com o texto completo quando o trecho é reconhecido e o texto bíblico está no banco (`bible_verses`). Sem importação, ou com uma referência que o app não entende, a tela mostra só a referência, como antes.
+
+O texto **não fica no repositório**: a Nova Almeida Atualizada é da Sociedade Bíblica do Brasil. O JSON (`pt_naa.json`, formato com 66 livros → capítulos → versículos, já ignorado pelo Git) fica só no computador de quem importa:
+
+```bash
+php artisan bible:import pt_naa.json
+```
+
+O comando mostra o banco de destino e pede confirmação; `--force` pula a pergunta, `--fresh` apaga o que existia antes. É idempotente (reimportar atualiza sem duplicar). O `db:seed` de desenvolvimento importa sozinho se o arquivo estiver na raiz do projeto.
+
+Formatos aceitos nas referências: `Lucas 5:12-16`, `Lc 5.12-16`, `Sl 23`, `Gn 1.1-2.3`, `Mt 5.3-12; 6.9-13`, `Jo 3.16,18`, `1 Coríntios 13`, `Rm 8.28-30; Jo 14.1-6`. Ao digitar uma leitura no admin, uma prévia confirma como a referência foi entendida. A versão e o crédito exibidos vêm de `EBD_BIBLE_VERSION` e `EBD_BIBLE_CREDIT` (`config/ebd.php`).
+
 ## Estratégia de storage
 
 Uploads usam a abstração de filesystem do Laravel com o disco definido em `EBD_MATERIALS_DISK`. Os arquivos ficam **fora da pasta pública**, com nome aleatório, e são entregues por `/materiais/{id}/arquivo` só depois de checar a permissão da lição. Em disco local o Laravel faz o stream; em disco `s3` (AWS S3, Cloudflare R2, MinIO) a aplicação redireciona para uma URL temporária assinada.
@@ -319,6 +333,16 @@ O banco de produção começa vazio. Para ter o primeiro admin:
 3. Faça um redeploy. O pre-deploy (`ebd:predeploy`) roda `ebd:promote-admins`, que **só promove contas já existentes** e é idempotente.
 
 Depois disso, crie as classes em **Gestão → Classes** e adicione os professores.
+
+### Texto bíblico em produção
+
+O JSON nunca sobe para o Railway: a importação roda **do seu computador**, apontando para o Postgres de produção. O banco não tem endpoint público; abra um **TCP proxy** temporário no serviço `Postgres` (_Settings → Networking → TCP Proxy_) e rode, com a URL pública que o Railway mostra em `DATABASE_PUBLIC_URL`:
+
+```bash
+DB_URL='postgresql://postgres:SENHA@HOST.proxy.rlwy.net:PORTA/railway' php artisan bible:import pt_naa.json
+```
+
+Confira o destino que o comando mostra antes de confirmar. Depois, **remova o TCP proxy** para o banco voltar a ficar só na rede privada. A tabela precisa existir: a migration roda no pre-deploy do deploy que a introduziu.
 
 ### Storage
 

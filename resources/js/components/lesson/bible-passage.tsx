@@ -1,11 +1,15 @@
 import { BookOpen } from 'lucide-react';
+import { PassageText } from '@/components/lesson/passage-text';
 import { cn } from '@/lib/utils';
+import type { BiblePassage as Passage } from '@/types';
 
 export function BiblePassage({
     reference,
+    passage,
     size = 'default',
 }: {
     reference: string;
+    passage?: Passage | null;
     size?: 'default' | 'large';
 }) {
     return (
@@ -21,6 +25,7 @@ export function BiblePassage({
             >
                 {reference}
             </p>
+            <PassageText passage={passage} size={size} />
         </div>
     );
 }

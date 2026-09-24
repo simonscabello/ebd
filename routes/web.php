@@ -65,6 +65,7 @@ Route::middleware(['auth', 'can:access-admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', Admin\DashboardController::class)->name('dashboard');
+        Route::get('biblia/previa', Admin\BiblePreviewController::class)->name('bible.preview');
 
         Route::resource('classes', Admin\ClassroomController::class)
             ->parameters(['classes' => 'classroom'])

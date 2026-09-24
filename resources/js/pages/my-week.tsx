@@ -11,6 +11,7 @@ import {
 import { InstallAppBanner } from '@/components/install-app-banner';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
 import { LessonHero } from '@/components/lesson/lesson-hero';
+import { PassageText } from '@/components/lesson/passage-text';
 import { ReadToggle } from '@/components/lesson/reading-plan';
 import { EmptyState, Page, Section } from '@/components/page';
 import type { Streak } from '@/components/progress/streak-flame';
@@ -324,6 +325,11 @@ function DayReading({
                                     {reading.notes}
                                 </p>
                             )}
+                            <PassageText
+                                passage={reading.passage}
+                                defaultOpen={day.is_today && !day.done}
+                                className="mt-1.5"
+                            />
                         </div>
                     ))
                 ) : (

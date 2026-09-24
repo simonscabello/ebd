@@ -42,6 +42,16 @@ return [
         'inactive_days' => (int) env('EBD_RISK_INACTIVE_DAYS', 10),
     ],
 
+    /*
+    | Texto bíblico exibido junto das referências (texto base e leituras da
+    | semana). Uma única versão, importada com `php artisan bible:import`.
+    | O texto não fica no repositório: é da Sociedade Bíblica do Brasil.
+    */
+    'bible' => [
+        'version' => env('EBD_BIBLE_VERSION', 'NAA'),
+        'credit' => env('EBD_BIBLE_CREDIT', 'Nova Almeida Atualizada © Sociedade Bíblica do Brasil'),
+    ],
+
     'materials' => [
         // Disco do config/filesystems.php. Troque para "s3" (S3, R2, MinIO) em produção.
         'disk' => env('EBD_MATERIALS_DISK', 'local'),

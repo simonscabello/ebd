@@ -53,6 +53,20 @@ export type LessonMaterial = {
     } | null;
 };
 
+export type BibleVerse = { chapter: number; verse: number; text: string };
+
+/**
+ * Texto de uma referência, quando ela foi reconhecida e o texto bíblico está
+ * importado. Nulo = mostrar só a referência, como sempre.
+ */
+export type BiblePassage = {
+    /** Forma canônica, ex.: "Lucas 5.12-16". */
+    label: string;
+    version: string;
+    credit: string;
+    verses: BibleVerse[];
+};
+
 export type LessonReading = {
     id: number;
     weekday: number | null;
@@ -60,6 +74,7 @@ export type LessonReading = {
     weekday_short: string | null;
     is_today: boolean;
     reference: string;
+    passage: BiblePassage | null;
     notes: string | null;
     position: number;
 };
@@ -145,6 +160,8 @@ export type Lesson = {
     teacher_blocks?: LessonBlock[];
     meetings?: ClassMeeting[];
     materials_count?: number;
+    /** Só na página da lição e no Modo Domingo. */
+    bible_passage?: BiblePassage | null;
     content_html?: string | null;
     topics?: string[];
     headline?: string | null;

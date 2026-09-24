@@ -186,7 +186,10 @@ export default function LessonShow({
 
                 {lesson.bible_reference && (
                     <div className="mt-6">
-                        <BiblePassage reference={lesson.bible_reference} />
+                        <BiblePassage
+                            reference={lesson.bible_reference}
+                            passage={lesson.bible_passage}
+                        />
                     </div>
                 )}
 

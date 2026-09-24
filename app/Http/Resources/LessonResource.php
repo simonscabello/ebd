@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Lesson;
+use App\Support\Bible\Bible;
 use App\Support\ChurchCalendar;
 use App\Support\Markdown;
 use Illuminate\Http\Request;
@@ -80,6 +81,7 @@ class LessonResource extends JsonResource
             'meetings' => ClassMeetingResource::collection($this->whenLoaded('meetings')),
             'materials_count' => $this->whenCounted('materials'),
             $this->mergeWhen($this->withContent, fn () => [
+                'bible_passage' => Bible::passage($this->bible_reference),
                 'content_html' => Markdown::toHtml($this->content),
                 'topics' => Markdown::headings($this->content),
             ]),

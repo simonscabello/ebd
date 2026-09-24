@@ -45,6 +45,7 @@ users ──< classroom_user >── classrooms ──< series ──< lessons �
 | `lesson_blocks`    | Blocos além do estudo principal: `kind` (roteiro, se houver tempo, nota de precisão, notas, contexto, teologia, curiosidade, aplicação, conceito), `audience` (`teacher`/`student`), Markdown e `drip_weekday`.                                                       |
 | `lesson_materials` | Uma tabela para todos os tipos (`pdf`, `file`, `link`, `video`, `audio`, `reference`). `audience` separa material só do professor (ex.: manual completo do NotebookLM).                                                                                               |
 | `lesson_readings`  | Leituras da semana; `weekday` ISO (1 = segunda … 7 = domingo) ou nulo.                                                                                                                                                                                                |
+| `bible_verses`     | Texto bíblico (uma versão, NAA), um versículo por linha com `book` (1–66, `App\Enums\BibleBook`), `chapter`, `verse`. Preenchida por `bible:import`, nunca por migration ou seed versionado: o texto tem direitos autorais e fica fora do Git.                             |
 | `access_links`     | Links pessoais de acesso. Só o hash sha256 do token; no máximo um ativo por pessoa (índice único parcial); contador de uso.                                                                                                                                           |
 | `reading_checkins` | Leitura marcada: uma por pessoa, lição e dia do plano (`weekday`), marcável a qualquer momento. `read_on` guarda quando a pessoa marcou (fuso da igreja).                                                                                                             |
 | `lesson_notes`     | Anotação pessoal. **Privada**: não existe rota nem prop que a entregue a outra pessoa.                                                                                                                                                                                |
@@ -54,6 +55,12 @@ users ──< classroom_user >── classrooms ──< series ──< lessons �
 Integridade no banco, não só na aplicação: FKs com `restrict`/`cascade` conforme o caso, `CHECK` para todos os enums, `CHECK` que proíbe liberar em "Minha semana" um bloco do professor e que exige arquivo ou URL nos materiais (exceto referências).
 
 **JSON/JSONB não foi usado**: tudo que existe hoje é claramente relacional.
+
+### Referências bíblicas
+
+A referência continua sendo texto livre (`lessons.bible_reference`, `lesson_readings.reference`): é o que o professor escreve e o que a tela mostra. O texto do trecho é resolvido **na leitura**, por `App\Support\Bible\Reference::parse()` (entende "Lc 5.12-16", "Sl 23", "Gn 1.1-2.3", "Mt 5.3-12; 6.9-13", "Jo 3.16,18", livros numerados e nomes sem acento) e `Bible::passage()`, que consulta `bible_verses` por trecho, na ordem escrita. Referência não reconhecida ou texto não importado devolvem `null`, e os Resources entregam `passage: null`: nada quebra, só não aparece o texto. Não há cache: é uma consulta por trecho em índice único, mais barata do que invalidar cache a cada reimportação.
+
+Não guardamos o texto na lição de propósito: trocar a versão bíblica (reimportar) atualiza todas as lições de uma vez, e a referência escrita nunca diverge do texto exibido.
 
 **Soft delete só em `lessons`**: lições são o acervo de longo prazo. Ao excluir, os domingos planejados ficam livres e os encontros já realizados continuam como histórico.
 

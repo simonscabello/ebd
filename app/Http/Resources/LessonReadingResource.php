@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\LessonReading;
+use App\Support\Bible\Bible;
 use App\Support\ChurchCalendar;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -24,6 +25,7 @@ class LessonReadingResource extends JsonResource
             'weekday_short' => $this->weekday?->shortLabel(),
             'is_today' => $this->weekday?->value === ChurchCalendar::today()->dayOfWeekIso,
             'reference' => $this->reference,
+            'passage' => Bible::passage($this->reference),
             'notes' => $this->notes,
             'position' => $this->position,
         ];

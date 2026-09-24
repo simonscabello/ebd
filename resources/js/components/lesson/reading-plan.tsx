@@ -1,4 +1,5 @@
 import { Check, CircleCheck } from 'lucide-react';
+import { PassageText } from '@/components/lesson/passage-text';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import type { LessonReading } from '@/types';
@@ -75,6 +76,11 @@ export function ReadingPlan({
                                     {reading.notes}
                                 </p>
                             )}
+                            <PassageText
+                                passage={reading.passage}
+                                defaultOpen={reading.is_today && !done}
+                                className="mt-1.5"
+                            />
                         </div>
                         {tracking && weekday !== null && (
                             <ReadToggle
