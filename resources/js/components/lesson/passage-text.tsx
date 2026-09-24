@@ -4,12 +4,55 @@ import { cn } from '@/lib/utils';
 import type { BiblePassage } from '@/types';
 
 /**
- * O texto de uma passagem, como numa Bíblia: um parágrafo corrido por
- * capítulo, com o número do versículo em sobrescrito e o crédito da versão.
- *
- * Trechos longos começam fechados ("Ler o texto"), para a referência continuar
- * sendo o que se vê primeiro. Sem passagem (referência não reconhecida ou
- * texto ainda não importado) não renderiza nada.
+ * Os versículos de uma passagem, como numa Bíblia: um parágrafo corrido por
+ * capítulo, número do versículo em sobrescrito e o crédito da versão no fim.
+ */
+export function PassageVerses({
+    passage,
+    size = 'default',
+    className,
+}: {
+    passage: BiblePassage;
+    size?: 'default' | 'large' | 'reader';
+    className?: string;
+}) {
+    const chapters = groupByChapter(passage);
+    const multiChapter = chapters.length > 1;
+
+    return (
+        <div className={cn('space-y-3', className)}>
+            {chapters.map(({ chapter, verses }) => (
+                <p
+                    key={chapter}
+                    className={cn(
+                        'font-serif leading-relaxed text-pretty',
+                        size === 'large' && 'text-[1.1em] md:text-[1.2em]',
+                        size === 'reader' && 'text-[1.2rem] leading-[1.75]',
+                        size === 'default' && 'text-[1.05rem]',
+                    )}
+                >
+                    {verses.map((verse, index) => (
+                        <span key={verse.verse}>
+                            {index > 0 && ' '}
+                            <sup className="mr-0.5 text-[0.65em] font-semibold text-primary select-none">
+                                {multiChapter && index === 0
+                                    ? `${chapter}.${verse.verse}`
+                                    : verse.verse}
+                            </sup>
+                            {verse.text}
+                        </span>
+                    ))}
+                </p>
+            ))}
+            <p className="text-xs text-muted-foreground">{passage.credit}</p>
+        </div>
+    );
+}
+
+/**
+ * Passagem que abre e fecha no lugar ("Ler o texto"). Trechos longos começam
+ * fechados, para a referência continuar sendo o que se vê primeiro. Sem
+ * passagem (referência não reconhecida ou texto não importado) não renderiza.
  */
 export function PassageText({
     passage,
@@ -32,10 +75,6 @@ export function PassageText({
         return null;
     }
 
-    const count = passage.verses.length;
-    const chapters = groupByChapter(passage);
-    const multiChapter = chapters.length > 1;
-
     return (
         <div className={cn('mt-3', className)}>
             <button
@@ -53,40 +92,25 @@ export function PassageText({
                 />
                 {open
                     ? 'Ocultar o texto'
-                    : `Ler o texto · ${count} ${count === 1 ? 'versículo' : 'versículos'}`}
+                    : `Ler o texto · ${verseCount(passage)}`}
             </button>
             {open && (
-                <div id={id} className="mt-2 space-y-3">
-                    {chapters.map(({ chapter, verses }) => (
-                        <p
-                            key={chapter}
-                            className={cn(
-                                'font-serif leading-relaxed text-pretty',
-                                size === 'large'
-                                    ? 'text-[1.1em] md:text-[1.2em]'
-                                    : 'text-[1.05rem]',
-                            )}
-                        >
-                            {verses.map((verse, index) => (
-                                <span key={verse.verse}>
-                                    {index > 0 && ' '}
-                                    <sup className="mr-0.5 text-[0.65em] font-semibold text-primary select-none">
-                                        {multiChapter && index === 0
-                                            ? `${chapter}.${verse.verse}`
-                                            : verse.verse}
-                                    </sup>
-                                    {verse.text}
-                                </span>
-                            ))}
-                        </p>
-                    ))}
-                    <p className="text-xs text-muted-foreground">
-                        {passage.credit}
-                    </p>
+                <div id={id}>
+                    <PassageVerses
+                        passage={passage}
+                        size={size}
+                        className="mt-2"
+                    />
                 </div>
             )}
         </div>
     );
+}
+
+export function verseCount(passage: BiblePassage): string {
+    const count = passage.verses.length;
+
+    return `${count} ${count === 1 ? 'versículo' : 'versículos'}`;
 }
 
 function groupByChapter(passage: BiblePassage) {

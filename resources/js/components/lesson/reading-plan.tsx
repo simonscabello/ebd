@@ -1,5 +1,9 @@
 import { Check, CircleCheck } from 'lucide-react';
-import { PassageText } from '@/components/lesson/passage-text';
+import { useState } from 'react';
+import {
+    ReadingSheet,
+    ReadTextButton,
+} from '@/components/lesson/reading-sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import type { LessonReading } from '@/types';
@@ -24,76 +28,106 @@ export function ReadingPlan({
     readings: LessonReading[];
     tracking?: ReadingTracking;
 }) {
-    return (
-        <ol className="space-y-2.5">
-            {readings.map((reading) => {
-                const weekday = reading.weekday;
-                const done =
-                    !!tracking &&
-                    weekday !== null &&
-                    tracking.checkedWeekdays.includes(weekday);
-                const pending =
-                    !!tracking &&
-                    weekday !== null &&
-                    (tracking.pendingWeekdays ?? []).includes(weekday);
+    const [openId, setOpenId] = useState<number | null>(null);
+    const active = readings.find((r) => r.id === openId) ?? null;
+    const activeDone =
+        !!tracking &&
+        active?.weekday != null &&
+        tracking.checkedWeekdays.includes(active.weekday);
 
-                return (
-                    <li
-                        key={reading.id}
-                        className={cn(
-                            'grid grid-cols-[3rem_1fr] items-center gap-x-3.5 gap-y-3 rounded-2xl border bg-card p-3.5 transition-colors sm:grid-cols-[3rem_1fr_auto]',
-                            reading.is_today &&
-                                !done &&
-                                'border-primary/50 bg-accent/60 ring-1 ring-primary/20',
-                            done && 'border-success/40 bg-success-soft',
-                        )}
-                    >
-                        <span
+    return (
+        <>
+            <ReadingSheet
+                reading={active}
+                open={active !== null}
+                onOpenChange={(open) => !open && setOpenId(null)}
+                footer={
+                    tracking && active && active.weekday !== null ? (
+                        <ReadToggle
+                            done={activeDone}
+                            pending={(tracking.pendingWeekdays ?? []).includes(
+                                active.weekday,
+                            )}
+                            highlight
+                            onClick={() =>
+                                tracking.onToggle(active, activeDone)
+                            }
+                            className="w-full justify-center"
+                        />
+                    ) : undefined
+                }
+            />
+            <ol className="space-y-2.5">
+                {readings.map((reading) => {
+                    const weekday = reading.weekday;
+                    const done =
+                        !!tracking &&
+                        weekday !== null &&
+                        tracking.checkedWeekdays.includes(weekday);
+                    const pending =
+                        !!tracking &&
+                        weekday !== null &&
+                        (tracking.pendingWeekdays ?? []).includes(weekday);
+
+                    return (
+                        <li
+                            key={reading.id}
                             className={cn(
-                                'flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground uppercase',
+                                'grid grid-cols-[3rem_1fr] items-center gap-x-3.5 gap-y-3 rounded-2xl border bg-card p-3.5 transition-colors sm:grid-cols-[3rem_1fr_auto]',
                                 reading.is_today &&
-                                    'bg-primary text-primary-foreground',
-                                done && 'bg-success text-white',
+                                    !done &&
+                                    'border-primary/50 bg-accent/60 ring-1 ring-primary/20',
+                                done && 'border-success/40 bg-success-soft',
                             )}
                         >
-                            {done ? (
-                                <Check className="size-5" />
-                            ) : (
-                                (reading.weekday_short ?? '•')
-                            )}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs font-medium text-muted-foreground">
-                                {reading.is_today
-                                    ? 'Leitura de hoje'
-                                    : (reading.weekday_label ?? 'Leitura')}
-                            </p>
-                            <p className="font-serif text-lg font-semibold">
-                                {reading.reference}
-                            </p>
-                            {reading.notes && (
-                                <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-                                    {reading.notes}
+                            <span
+                                className={cn(
+                                    'flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground uppercase',
+                                    reading.is_today &&
+                                        'bg-primary text-primary-foreground',
+                                    done && 'bg-success text-white',
+                                )}
+                            >
+                                {done ? (
+                                    <Check className="size-5" />
+                                ) : (
+                                    (reading.weekday_short ?? '•')
+                                )}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                    {reading.is_today
+                                        ? 'Leitura de hoje'
+                                        : (reading.weekday_label ?? 'Leitura')}
                                 </p>
+                                <p className="font-serif text-lg font-semibold">
+                                    {reading.reference}
+                                </p>
+                                {reading.notes && (
+                                    <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
+                                        {reading.notes}
+                                    </p>
+                                )}
+                                <ReadTextButton
+                                    reading={reading}
+                                    onClick={() => setOpenId(reading.id)}
+                                />
+                            </div>
+                            {tracking && weekday !== null && (
+                                <ReadToggle
+                                    done={done}
+                                    pending={pending}
+                                    highlight={reading.is_today}
+                                    onClick={() =>
+                                        tracking.onToggle(reading, done)
+                                    }
+                                />
                             )}
-                            <PassageText
-                                passage={reading.passage}
-                                defaultOpen={reading.is_today && !done}
-                                className="mt-1.5"
-                            />
-                        </div>
-                        {tracking && weekday !== null && (
-                            <ReadToggle
-                                done={done}
-                                pending={pending}
-                                highlight={reading.is_today}
-                                onClick={() => tracking.onToggle(reading, done)}
-                            />
-                        )}
-                    </li>
-                );
-            })}
-        </ol>
+                        </li>
+                    );
+                })}
+            </ol>
+        </>
     );
 }
 
@@ -105,11 +139,13 @@ export function ReadToggle({
     pending = false,
     highlight = false,
     onClick,
+    className,
 }: {
     done: boolean;
     pending?: boolean;
     highlight?: boolean;
     onClick: () => void;
+    className?: string;
 }) {
     return (
         <button
@@ -125,6 +161,7 @@ export function ReadToggle({
                     : highlight
                       ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
                       : 'bg-card text-foreground hover:bg-muted',
+                className,
             )}
         >
             {pending ? <Spinner /> : <CircleCheck className="size-4" />}

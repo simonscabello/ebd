@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     CalendarDays,
     Check,
@@ -12,8 +13,11 @@ import { InstallAppBanner } from '@/components/install-app-banner';
 import { RemindersBanner } from '@/components/reminders-banner';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
 import { LessonHero } from '@/components/lesson/lesson-hero';
-import { PassageText } from '@/components/lesson/passage-text';
 import { ReadToggle } from '@/components/lesson/reading-plan';
+import {
+    ReadingSheet,
+    ReadTextButton,
+} from '@/components/lesson/reading-sheet';
 import { EmptyState, Page, Section } from '@/components/page';
 import type { Streak } from '@/components/progress/streak-flame';
 import { StreakFlame } from '@/components/progress/streak-flame';
@@ -183,8 +187,32 @@ function WeekContent({
     const toggle = (day: Day) =>
         checkin.toggle(day.weekday, day.done, day.readings[0]?.id ?? null);
 
+    const [reading, setReading] = useState<{
+        day: Day;
+        reading: LessonReading;
+    } | null>(null);
+    const openDay = reading
+        ? (days.find((d) => d.weekday === reading.day.weekday) ?? reading.day)
+        : null;
+
     return (
         <div className="space-y-8">
+            <ReadingSheet
+                reading={reading?.reading ?? null}
+                open={reading !== null}
+                onOpenChange={(open) => !open && setReading(null)}
+                footer={
+                    openDay ? (
+                        <ReadToggle
+                            done={openDay.done}
+                            pending={checkin.isPending(openDay.weekday)}
+                            highlight
+                            onClick={() => toggle(openDay)}
+                            className="w-full justify-center"
+                        />
+                    ) : undefined
+                }
+            />
             <LessonHero
                 lesson={lesson}
                 eyebrow={
@@ -217,6 +245,9 @@ function WeekContent({
                             fallback={lesson.bible_reference}
                             pending={checkin.isPending(day.weekday)}
                             onToggle={() => toggle(day)}
+                            onRead={(item) =>
+                                setReading({ day, reading: item })
+                            }
                         />
                     ))}
                 </ul>
@@ -293,11 +324,13 @@ function DayReading({
     fallback,
     pending,
     onToggle,
+    onRead,
 }: {
     day: Day;
     fallback: string | null;
     pending: boolean;
     onToggle: () => void;
+    onRead: (reading: LessonReading) => void;
 }) {
     return (
         <li
@@ -333,10 +366,9 @@ function DayReading({
                                     {reading.notes}
                                 </p>
                             )}
-                            <PassageText
-                                passage={reading.passage}
-                                defaultOpen={day.is_today && !day.done}
-                                className="mt-1.5"
+                            <ReadTextButton
+                                reading={reading}
+                                onClick={() => onRead(reading)}
                             />
                         </div>
                     ))
