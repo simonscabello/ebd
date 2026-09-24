@@ -5,8 +5,10 @@
  * - Navegação (páginas): sempre pela rede; sem conexão, mostra /offline.html.
  *   Páginas HTML não são guardadas em cache para não exibir conteúdo
  *   desatualizado nem dados de uma sessão autenticada.
+ * - Push: mostra a notificação enviada pelo servidor e, ao tocar, abre a
+ *   página indicada (reaproveitando uma janela do app, se houver).
  */
-const VERSION = 'ebd-v1';
+const VERSION = 'ebd-v2';
 const STATIC_CACHE = `${VERSION}-static`;
 const PRECACHE = [
     '/offline.html',
@@ -78,4 +80,57 @@ self.addEventListener('fetch', (event) => {
             ),
         );
     }
+});
+
+self.addEventListener('push', (event) => {
+    let data = {};
+
+    try {
+        data = event.data ? event.data.json() : {};
+    } catch {
+        data = { body: event.data ? event.data.text() : '' };
+    }
+
+    const options = {
+        body: data.body || '',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: data.tag || undefined,
+        renotify: Boolean(data.tag),
+        data: { url: data.url || '/' },
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title || 'EBD', options),
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const url = new URL(
+        (event.notification.data && event.notification.data.url) || '/',
+        self.location.origin,
+    ).href;
+
+    event.waitUntil(
+        self.clients
+            .matchAll({ type: 'window', includeUncontrolled: true })
+            .then((clients) => {
+                const open = clients.find(
+                    (client) =>
+                        new URL(client.url).origin === self.location.origin,
+                );
+
+                if (open) {
+                    return (
+                        'navigate' in open
+                            ? open.navigate(url)
+                            : Promise.resolve(open)
+                    ).then((client) => (client || open).focus());
+                }
+
+                return self.clients.openWindow(url);
+            }),
+    );
 });

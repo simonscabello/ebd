@@ -9,6 +9,7 @@ use App\Http\Resources\LessonReadingResource;
 use App\Models\Classroom;
 use App\Models\LessonBlock;
 use App\Models\User;
+use App\Support\Bible\Bible;
 use App\Support\ChurchCalendar;
 use App\Support\StudyStreak;
 use Carbon\CarbonImmutable;
@@ -114,6 +115,7 @@ class StudyWeekQuery
                 'title' => $lesson->title,
                 'bible_reference' => $lesson->bible_reference,
                 'key_verse' => $lesson->key_verse,
+                'key_verse_passage' => Bible::passage($lesson->key_verse),
                 'general_readings' => LessonReadingResource::collection(
                     $lesson->readings->filter(fn ($r) => $r->weekday === null)->values()
                 )->resolve($request),

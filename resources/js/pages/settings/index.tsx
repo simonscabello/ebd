@@ -11,6 +11,7 @@ import {
 import AppearanceToggleTab from '@/components/appearance-tabs';
 import DeleteUser from '@/components/delete-user';
 import { AvatarPicker } from '@/components/settings/avatar-picker';
+import { RemindersSettings } from '@/components/settings/reminders-row';
 import {
     SettingsCard,
     SettingsGroup,
@@ -142,6 +143,8 @@ export default function Account({ classrooms }: Props) {
                         />
                     </SettingsCard>
                 </SettingsGroup>
+
+                <RemindersSettings />
 
                 <SettingsGroup
                     title="Aparência"

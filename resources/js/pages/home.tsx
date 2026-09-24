@@ -8,11 +8,12 @@ import {
     Hourglass,
     Layers,
     Presentation,
-    Sparkles,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { InstallAppBanner } from '@/components/install-app-banner';
 import { LessonHero } from '@/components/lesson/lesson-hero';
+import { TodayReadingCard } from '@/components/lesson/today-reading-card';
+import { RemindersBanner } from '@/components/reminders-banner';
 import { EmptyState, Page } from '@/components/page';
 import { cn } from '@/lib/utils';
 import { home, library, login, myWeek } from '@/routes';
@@ -27,6 +28,7 @@ type Props = {
     isMember: boolean;
     isStudent: boolean;
     nextLesson: Lesson | null;
+    todayReadingDone: boolean;
     meeting: ClassMeeting | null;
     meetingIndex: number;
     meetingTotal: number;
@@ -43,6 +45,7 @@ export default function Home({
     isMember,
     isStudent,
     nextLesson,
+    todayReadingDone,
     meeting,
     meetingIndex,
     meetingTotal,
@@ -60,6 +63,7 @@ export default function Home({
 
             <Page>
                 <InstallAppBanner />
+                {isMember && <RemindersBanner />}
                 <header className="mb-6">
                     <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
                         {greeting}
@@ -146,6 +150,7 @@ export default function Home({
                 {nextLesson ? (
                     <NextLesson
                         lesson={nextLesson}
+                        todayReadingDone={todayReadingDone}
                         meeting={meeting}
                         position={
                             meetingTotal > 1
@@ -261,10 +266,12 @@ function NextLesson({
     lesson,
     meeting,
     position,
+    todayReadingDone,
 }: {
     lesson: Lesson;
     meeting: ClassMeeting | null;
     position: string | null;
+    todayReadingDone: boolean;
 }) {
     const readings = lesson.readings ?? [];
     const materials = lesson.materials ?? [];
@@ -289,27 +296,11 @@ function NextLesson({
             />
 
             {todayReading && (
-                <Link
+                <TodayReadingCard
+                    reading={todayReading}
+                    done={todayReadingDone}
                     href={`${lessonUrl}#leituras`}
-                    className="mt-4 flex items-center gap-4 rounded-2xl border border-highlight bg-highlight/50 p-4 transition-colors hover:bg-highlight/70"
-                >
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-highlight text-highlight-foreground">
-                        <Sparkles className="size-5" />
-                    </span>
-                    <span className="min-w-0">
-                        <span className="block text-sm font-medium text-highlight-foreground">
-                            Leitura de hoje
-                        </span>
-                        <span className="block font-serif text-lg font-semibold">
-                            {todayReading.reference}
-                        </span>
-                        {todayReading.notes && (
-                            <span className="block text-sm text-muted-foreground">
-                                {todayReading.notes}
-                            </span>
-                        )}
-                    </span>
-                </Link>
+                />
             )}
 
             <h2 className="mt-10 mb-3 text-lg font-semibold tracking-tight">

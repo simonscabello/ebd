@@ -45,11 +45,12 @@ users ──< classroom_user >── classrooms ──< series ──< lessons �
 | `lesson_blocks`    | Blocos além do estudo principal: `kind` (roteiro, se houver tempo, nota de precisão, notas, contexto, teologia, curiosidade, aplicação, conceito), `audience` (`teacher`/`student`), Markdown e `drip_weekday`.                                                       |
 | `lesson_materials` | Uma tabela para todos os tipos (`pdf`, `file`, `link`, `video`, `audio`, `reference`). `audience` separa material só do professor (ex.: manual completo do NotebookLM).                                                                                               |
 | `lesson_readings`  | Leituras da semana; `weekday` ISO (1 = segunda … 7 = domingo) ou nulo.                                                                                                                                                                                                |
-| `bible_verses`     | Texto bíblico (uma versão, NAA), um versículo por linha com `book` (1–66, `App\Enums\BibleBook`), `chapter`, `verse`. Preenchida por `bible:import`, nunca por migration ou seed versionado: o texto tem direitos autorais e fica fora do Git.                             |
+| `bible_verses`     | Texto bíblico (uma versão, NAA), um versículo por linha com `book` (1–66, `App\Enums\BibleBook`), `chapter`, `verse`. Preenchida por `bible:import`, nunca por migration ou seed versionado: o texto tem direitos autorais e fica fora do Git.                        |
 | `access_links`     | Links pessoais de acesso. Só o hash sha256 do token; no máximo um ativo por pessoa (índice único parcial); contador de uso.                                                                                                                                           |
 | `reading_checkins` | Leitura marcada: uma por pessoa, lição e dia do plano (`weekday`), marcável a qualquer momento. `read_on` guarda quando a pessoa marcou (fuso da igreja).                                                                                                             |
 | `lesson_notes`     | Anotação pessoal. **Privada**: não existe rota nem prop que a entregue a outra pessoa.                                                                                                                                                                                |
 | `user_badges`      | Selos pessoais; os "por trimestre" guardam `series_id`. Único por pessoa, selo e série.                                                                                                                                                                               |
+| `push_subscriptions` | Aparelhos inscritos nos lembretes (Web Push): `endpoint` único, chaves `p256dh`/`auth` do navegador. Um aparelho pertence a quem entrou por último nele.                                                                                                                  |
 | `attendances`      | Presença = existir a linha. Falta só conta em encontro com chamada feita e para quem já estava na classe.                                                                                                                                                             |
 
 Integridade no banco, não só na aplicação: FKs com `restrict`/`cascade` conforme o caso, `CHECK` para todos os enums, `CHECK` que proíbe liberar em "Minha semana" um bloco do professor e que exige arquivo ou URL nos materiais (exceto referências).
@@ -193,3 +194,13 @@ A aplicação roda com `php artisan serve` (com `PHP_CLI_SERVER_WORKERS`). É ad
 - Não há importação automática dos PDFs do NotebookLM para blocos: o conteúdo é colado em Markdown (os PDFs podem ser anexados como material, marcando "só professor" quando for o caso).
 - Aluno removido da classe mantém seus registros, mas sai das listas e dos denominadores.
 - Colisões de data na migração antiga (duas lições da mesma classe no mesmo dia) ficaram só com uma no encontro; a outra aparece sem data e é ajustada pela agenda.
+
+## Notificações push
+
+Web Push do PWA, sem serviço de terceiros: o servidor assina cada envio com as chaves VAPID e fala direto com o serviço de push do navegador (Google, Apple, Mozilla). Biblioteca `minishlink/web-push`.
+
+- **Regra sempre por classe.** Quem decide os destinatários são as Actions em `app/Actions/Notifications`: `SendReadingReminders` (9h e 20h), `SendLessonReminder` (sábado, se há encontro amanhã) e `NotifyLessonPublished` (listener de `LessonPublished`). Todas partem de `Classroom::active()` e dos membros com aparelho inscrito.
+- **Mesma lógica das telas.** A "leitura de hoje" do lembrete é a de "Minha semana" (`CurrentLessonQuery` + plano de leitura; sem plano, reler o texto base de segunda a sábado). Rascunhos nunca geram lembrete, mesmo que o primeiro destinatário seja professor.
+- **Envio** por trás da interface `PushSender`: `WebPushSender` em produção, `NullPushSender` sem chaves e `FakePushSender` nos testes. Um `flush` por classe manda as requisições em paralelo; 404/410 apaga a inscrição.
+- **Agendamento** em `routes/console.php`, no fuso da igreja, com `onOneServer` e `withoutOverlapping`. Em produção roda no serviço `scheduler` (`schedule:work`); o `app` não agenda nada.
+- **Falha nunca bloqueia.** O listener da publicação captura qualquer exceção e só reporta: publicar a lição não depende do push.

@@ -146,6 +146,8 @@ export type Lesson = {
     date_parts: { day: string; month: string } | null;
     bible_reference: string | null;
     key_verse: string | null;
+    /** Texto do versículo-chave, quando a referência é reconhecida. */
+    key_verse_passage: BiblePassage | null;
     goal: string | null;
     status: LessonStatus;
     status_label: string;

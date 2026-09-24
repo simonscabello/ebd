@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Support\Push\NullPushSender;
+use App\Support\Push\PushSender;
+use App\Support\Push\WebPushSender;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +29,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(PushSender::class, function (): PushSender {
+            $public = (string) config('ebd.push.public_key');
+            $private = (string) config('ebd.push.private_key');
+
+            return $public !== '' && $private !== ''
+                ? new WebPushSender((string) config('ebd.push.subject'), $public, $private)
+                : new NullPushSender;
+        });
     }
 
     /**

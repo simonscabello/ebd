@@ -55,7 +55,7 @@ class LessonRequest extends FormRequest
             // A data vem da agenda (encontros). Na criação, pode-se já escolher o domingo.
             'meeting_on' => $lesson ? ['prohibited'] : ['nullable', 'date'],
             'bible_reference' => ['nullable', 'string', 'max:120'],
-            'key_verse' => ['nullable', 'string', 'max:2000'],
+            'key_verse' => ['nullable', 'string', 'max:160'],
             'goal' => ['nullable', 'string', 'max:2000'],
             'content' => ['nullable', 'string', 'max:100000'],
             'visibility' => ['required', Rule::enum(LessonVisibility::class)],

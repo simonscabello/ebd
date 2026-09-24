@@ -12,6 +12,7 @@ use App\Queries\CurrentLessonQuery;
 use App\Support\ChurchCalendar;
 use App\Support\ClassroomSelector;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -54,6 +55,11 @@ class HomeController extends Controller
             'isMember' => $classroom && $user?->isMemberOf($classroom),
             'isStudent' => $classroom && $user && $user->isMemberOf($classroom) && ! $user->isTeacherOf($classroom),
             'nextLesson' => $lesson ? LessonResource::make($lesson) : null,
+            'todayReadingDone' => $lesson && $user && $user->isMemberOf($classroom) && DB::table('reading_checkins')
+                ->where('user_id', $user->id)
+                ->where('lesson_id', $lesson->id)
+                ->where('weekday', ChurchCalendar::today()->dayOfWeekIso)
+                ->exists(),
             'meeting' => $current?->meeting && ! $current->isFallback ? ClassMeetingResource::make($current->meeting) : null,
             'meetingIndex' => $current->meetingIndex ?? 0,
             'meetingTotal' => $current->meetingTotal ?? 0,

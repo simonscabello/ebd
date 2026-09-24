@@ -52,6 +52,17 @@ return [
         'credit' => env('EBD_BIBLE_CREDIT', 'Nova Almeida Atualizada © Sociedade Bíblica do Brasil'),
     ],
 
+    /*
+    | Notificações push do PWA (Web Push). As chaves VAPID identificam este
+    | servidor junto aos serviços de push; gere com `php artisan ebd:vapid-keys`.
+    | Sem chaves, nada é enviado (as inscrições continuam sendo aceitas).
+    */
+    'push' => [
+        'subject' => env('VAPID_SUBJECT', env('APP_URL', 'https://ebd.up.railway.app')),
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+    ],
+
     'materials' => [
         // Disco do config/filesystems.php. Troque para "s3" (S3, R2, MinIO) em produção.
         'disk' => env('EBD_MATERIALS_DISK', 'local'),

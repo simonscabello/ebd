@@ -9,6 +9,7 @@ use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\MaterialFileController;
 use App\Http\Controllers\MyProgressController;
 use App\Http\Controllers\MyWeekController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReadingCheckinController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +36,10 @@ Route::middleware(['auth', 'throttle:engagement'])->group(function () {
     Route::post('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'store'])->name('lessons.checkins.store');
     Route::delete('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'destroy'])->name('lessons.checkins.destroy');
     Route::put('licoes/{lesson:slug}/anotacao', [LessonNoteController::class, 'update'])->name('lessons.note.update');
+
+    // Lembretes push: o aparelho se inscreve/desinscreve.
+    Route::post('notificacoes/inscricao', [PushSubscriptionController::class, 'store'])->name('push.store');
+    Route::delete('notificacoes/inscricao', [PushSubscriptionController::class, 'destroy'])->name('push.destroy');
 });
 
 Route::get('materiais/{material}/arquivo', MaterialFileController::class)

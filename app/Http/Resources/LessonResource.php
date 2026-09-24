@@ -65,6 +65,7 @@ class LessonResource extends JsonResource
             ] : null,
             'bible_reference' => $this->bible_reference,
             'key_verse' => $this->key_verse,
+            'key_verse_passage' => Bible::passage($this->key_verse),
             'goal' => $this->goal,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),

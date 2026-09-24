@@ -253,7 +253,7 @@ MD,
             'summary' => 'Na cura do cego de nascença, Jesus desmonta a lógica do "quem pecou?" e se revela como a luz do mundo.',
             'scheduled_for' => $this->sunday(2)->toDateString(),
             'bible_reference' => 'Jo 9.1-41',
-            'key_verse' => '"É necessário que façamos as obras daquele que me enviou enquanto é dia; a noite vem, quando ninguém pode trabalhar. Enquanto estou no mundo, sou a luz do mundo." (Jo 9.4-5)',
+            'key_verse' => 'Jo 9.4-5',
             'goal' => 'Analisar de que maneiras Jesus Cristo demonstrou ser a luz do mundo no episódio da cura do cego de nascença.',
             'content' => <<<'MD'
 Quando alguém se vê subitamente acometido por uma doença, não é raro pensar: *por que o Senhor permitiu isso? Será castigo?* Foi assim que os discípulos perguntaram: *"Mestre, quem pecou para que este homem nascesse cego?"* (Jo 9.2).

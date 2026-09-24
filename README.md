@@ -239,6 +239,24 @@ O comando mostra o banco de destino e pede confirmação; `--force` pula a pergu
 
 Formatos aceitos nas referências: `Lucas 5:12-16`, `Lc 5.12-16`, `Sl 23`, `Gn 1.1-2.3`, `Mt 5.3-12; 6.9-13`, `Jo 3.16,18`, `1 Coríntios 13`, `Rm 8.28-30; Jo 14.1-6`. Ao digitar uma leitura no admin, uma prévia confirma como a referência foi entendida. A versão e o crédito exibidos vêm de `EBD_BIBLE_VERSION` e `EBD_BIBLE_CREDIT` (`config/ebd.php`).
 
+## Notificações push
+
+Lembretes no celular pelo PWA (Web Push), sempre **por classe**:
+
+| Quando                          | Quem recebe                                  | Conteúdo                                                        |
+| ------------------------------- | -------------------------------------------- | --------------------------------------------------------------- |
+| Todo dia às 9h                  | membros com aparelho inscrito                | leitura de hoje da lição da semana (ou "releia o texto base")   |
+| Todo dia às 20h                 | idem, só quem ainda não marcou a leitura     | "Ainda dá tempo"                                                |
+| Sábado às 8h                    | membros da classe com encontro no domingo    | "Amanhã tem EBD!" com a lição                                   |
+| Ao publicar uma lição           | membros da classe, menos quem publicou       | "Nova lição: …"                                                 |
+
+Horários no fuso da igreja (`EBD_TIMEZONE`), definidos em `routes/console.php`. Os comandos `ebd:remind-readings {morning|evening}` e `ebd:remind-lesson` podem ser rodados à mão para testar.
+
+- A pessoa ativa em **Perfil → Notificações** ou no convite que aparece no Início e em "Minha semana". Vale por aparelho; no iPhone só funciona com o app instalado na tela inicial.
+- Chaves VAPID: `php artisan ebd:vapid-keys` gera o par; `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` vão no `.env` (ou no Railway). Sem chaves, as inscrições são aceitas mas nada é enviado. Trocar as chaves invalida as inscrições existentes.
+- Inscrições expiradas (o serviço de push responde 404/410) são apagadas no envio seguinte.
+- O service worker (`public/sw.js`) mostra a notificação e, ao tocar, abre a página indicada. Ao mudar o `sw.js`, aumente a `VERSION`.
+
 ## Estratégia de storage
 
 Uploads usam a abstração de filesystem do Laravel com o disco definido em `EBD_MATERIALS_DISK`. Os arquivos ficam **fora da pasta pública**, com nome aleatório, e são entregues por `/materiais/{id}/arquivo` só depois de checar a permissão da lição. Em disco local o Laravel faz o stream; em disco `s3` (AWS S3, Cloudflare R2, MinIO) a aplicação redireciona para uma URL temporária assinada.
@@ -273,7 +291,7 @@ GitHub (main) ──push──▶ Railway build (Railpack) ──▶ serviço "a
 | `app`      | Laravel servido pelo **FrankenPHP** (Caddy + PHP 8.4), escutando na porta `$PORT` do Railway. Domínio público `*.up.railway.app` com HTTPS do próprio Railway. |
 | `Postgres` | PostgreSQL gerenciado do Railway, com volume próprio. Acessado pela rede privada.                                                                              |
 
-Não há Redis, worker nem scheduler, porque o sistema ainda não precisa deles: cache e sessões ficam no PostgreSQL, a fila é `sync` e não existem tarefas agendadas. Se um dia houver jobs pesados, crie um serviço `worker` com o mesmo repositório e o start command `php artisan queue:work --tries=3 --backoff=10 --timeout=90`, e troque para `QUEUE_CONNECTION=database`.
+Não há Redis nem worker: cache e sessões ficam no PostgreSQL e a fila é `sync` (os pushes de uma classe saem em paralelo, em poucos segundos). Existe um serviço **`scheduler`** com o mesmo repositório e o start command `php artisan schedule:work`, que dispara os lembretes push (ver [Notificações push](#notificações-push)). Ele usa as mesmas variáveis do `app` por referência (`${{app.APP_KEY}}`, `${{Postgres.DATABASE_URL}}`…), sem domínio público nem healthcheck. Se um dia houver jobs pesados, crie um serviço `worker` com o start command `php artisan queue:work --tries=3 --backoff=10 --timeout=90` e troque para `QUEUE_CONNECTION=database`.
 
 ### Como o Railpack builda e inicia
 
@@ -314,6 +332,7 @@ Não há Redis, worker nem scheduler, porque o sistema ainda não precisa deles:
 | `EBD_CHURCH_NAME`, `EBD_TIMEZONE`, `EBD_REGISTRATION_ENABLED`   | ver `.env.example`                           |                                                                                                    |
 | `EBD_ACCESS_LINK_*`, `EBD_RISK_*`                               | opcionais, ver `.env.example`                | padrões funcionam; `SESSION_DRIVER` precisa ser `database` para "Bloquear acesso" derrubar sessões |
 | `EBD_ADMIN_EMAILS`                                              | e-mails separados por vírgula                | contas promovidas a admin no pre-deploy                                                            |
+| `VAPID_SUBJECT` / `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`      | `php artisan ebd:vapid-keys`                 | notificações push; a privada é secreta, só no Railway                                              |
 | `RAILPACK_SKIP_MIGRATIONS`                                      | `true`                                       | as migrations rodam no pre-deploy, não no start                                                    |
 
 ### Migrations

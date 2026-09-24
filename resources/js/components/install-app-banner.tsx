@@ -24,6 +24,13 @@ function dismissedRecently(): boolean {
     }
 }
 
+/** O aviso de instalar apareceria agora (celular, fora do app, não dispensado). */
+export function installBannerWouldShow(): boolean {
+    return (
+        detectPlatform() !== 'other' && !isStandalone() && !dismissedRecently()
+    );
+}
+
 /**
  * Aviso discreto para instalar o app no celular. Some quando o app já está
  * instalado ou quando a pessoa dispensa (volta depois de 30 dias).

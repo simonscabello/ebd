@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\ClassMeeting;
 use App\Models\Lesson;
+use App\Support\Bible\Bible;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -35,7 +36,7 @@ class WeeklyMessage
 
         if ($lesson->key_verse) {
             $lines[] = '';
-            $lines[] = '🔑 '.trim($lesson->key_verse);
+            $lines[] = '🔑 '.$this->keyVerse($lesson);
         }
 
         $readings = $lesson->readings->filter(fn ($r) => $r->weekday !== null);
@@ -57,6 +58,23 @@ class WeeklyMessage
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Versículo-chave com o texto, quando a referência é reconhecida:
+     * "Porque Deus amou o mundo…" (João 3.16).
+     */
+    private function keyVerse(Lesson $lesson): string
+    {
+        $passage = Bible::passage($lesson->key_verse);
+
+        if ($passage === null) {
+            return trim((string) $lesson->key_verse);
+        }
+
+        $text = implode(' ', array_column($passage['verses'], 'text'));
+
+        return "\"{$text}\" ({$passage['label']})";
     }
 
     /**

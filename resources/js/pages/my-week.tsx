@@ -9,6 +9,7 @@ import {
     ListChecks,
 } from 'lucide-react';
 import { InstallAppBanner } from '@/components/install-app-banner';
+import { RemindersBanner } from '@/components/reminders-banner';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
 import { LessonHero } from '@/components/lesson/lesson-hero';
 import { PassageText } from '@/components/lesson/passage-text';
@@ -22,7 +23,12 @@ import { Button } from '@/components/ui/button';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn } from '@/lib/utils';
 import { myProgress, myWeek } from '@/routes';
-import type { Classroom, LessonBlock, LessonReading } from '@/types';
+import type {
+    BiblePassage,
+    Classroom,
+    LessonBlock,
+    LessonReading,
+} from '@/types';
 
 type Day = WeekDay & {
     label: string;
@@ -51,6 +57,7 @@ type Week = {
         title: string;
         bible_reference: string | null;
         key_verse: string | null;
+        key_verse_passage: BiblePassage | null;
         general_readings: LessonReading[];
     } | null;
     days?: Day[];
@@ -80,6 +87,7 @@ export default function MyWeek({ classrooms, classroom, week }: Props) {
             <Head title="Minha semana" />
             <Page>
                 <InstallAppBanner />
+                {classroom && <RemindersBanner />}
                 <header className="mb-6">
                     <p className="text-sm font-medium text-primary">
                         {classroom ? `Classe ${classroom.name}` : 'EBD'}

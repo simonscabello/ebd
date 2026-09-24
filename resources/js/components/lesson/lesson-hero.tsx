@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { ArrowRight, BookOpen, KeyRound } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { KeyVerseText } from '@/components/lesson/key-verse';
+import type { BiblePassage } from '@/types';
 
 type HeroLesson = {
     url: string;
@@ -8,6 +10,7 @@ type HeroLesson = {
     title: string;
     bible_reference: string | null;
     key_verse: string | null;
+    key_verse_passage?: BiblePassage | null;
 };
 
 /**
@@ -44,7 +47,11 @@ export function LessonHero({
             {lesson.key_verse && (
                 <p className="mt-3 flex gap-2 font-serif text-pretty italic opacity-95">
                     <KeyRound className="mt-1 size-4 shrink-0" />
-                    {lesson.key_verse}
+                    <KeyVerseText
+                        reference={lesson.key_verse}
+                        passage={lesson.key_verse_passage}
+                        citeClassName="opacity-80"
+                    />
                 </p>
             )}
             <p className="mt-4 inline-flex items-center gap-1 text-sm font-semibold">

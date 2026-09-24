@@ -1,4 +1,5 @@
 import { KeyRound, Target } from 'lucide-react';
+import { KeyVerseText } from '@/components/lesson/key-verse';
 import type { Lesson } from '@/types';
 
 /**
@@ -8,7 +9,7 @@ export function RevistaHeader({
     lesson,
     size = 'default',
 }: {
-    lesson: Pick<Lesson, 'key_verse' | 'goal'>;
+    lesson: Pick<Lesson, 'key_verse' | 'key_verse_passage' | 'goal'>;
     size?: 'default' | 'large';
 }) {
     if (!lesson.key_verse && !lesson.goal) {
@@ -29,7 +30,11 @@ export function RevistaHeader({
                         <p
                             className={`font-serif leading-relaxed text-pretty italic ${text}`}
                         >
-                            {lesson.key_verse}
+                            <KeyVerseText
+                                reference={lesson.key_verse}
+                                passage={lesson.key_verse_passage}
+                                citeClassName="text-muted-foreground"
+                            />
                         </p>
                     </div>
                 </div>

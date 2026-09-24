@@ -238,17 +238,19 @@ export function LessonForm({
                 label="Versículo-chave"
                 htmlFor="key_verse"
                 error={errors.key_verse}
+                hint="Só a referência: o texto do versículo aparece sozinho."
             >
-                <Textarea
+                <Input
                     id="key_verse"
                     value={data.key_verse}
                     onChange={(event) =>
                         setData('key_verse', event.target.value)
                     }
-                    rows={2}
-                    placeholder="“É necessário que façamos as obras daquele que me enviou…” (Jo 9.4-5)"
+                    placeholder="Ex.: Jo 9.4-5"
+                    maxLength={160}
                 />
             </Field>
+            <BiblePreview reference={data.key_verse} />
 
             <Field label="Alvo da lição" htmlFor="goal" error={errors.goal}>
                 <Textarea

@@ -67,6 +67,10 @@ class HandleInertiaRequests extends Middleware
             'features' => [
                 'registration' => Features::enabled(Features::registration()),
             ],
+            // Chave pública VAPID: o navegador precisa dela para se inscrever nos lembretes.
+            'push' => [
+                'public_key' => config('ebd.push.public_key') ?: null,
+            ],
         ];
     }
 }

@@ -13,6 +13,7 @@ declare module '@inertiajs/core' {
             church: { name: string };
             auth: Auth;
             features: { registration: boolean };
+            push: { public_key: string | null };
             [key: string]: unknown;
         };
     }
