@@ -13,11 +13,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
  * @property string $name
  * @property string|null $email
+ * @property string|null $avatar_path
  * @property string|null $phone
  * @property string|null $password
  * @property bool $is_admin
@@ -46,6 +48,16 @@ class User extends Authenticatable
     protected $attributes = [
         'is_admin' => false,
     ];
+
+    protected static function booted(): void
+    {
+        // A foto sai do disco junto com a conta.
+        static::deleted(function (User $user) {
+            if ($user->avatar_path !== null) {
+                Storage::disk('public')->delete($user->avatar_path);
+            }
+        });
+    }
 
     /**
      * @return array<string, string>
@@ -92,6 +104,11 @@ class User extends Authenticatable
     public function badges(): HasMany
     {
         return $this->hasMany(UserBadge::class);
+    }
+
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path !== null ? Storage::disk('public')->url($this->avatar_path) : null;
     }
 
     /**

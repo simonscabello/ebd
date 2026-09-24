@@ -53,6 +53,7 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'first_name' => strtok($user->name, ' '),
                     'email' => $user->email,
+                    'avatar_url' => $user->avatarUrl(),
                     'has_password' => ! $user->isManaged(),
                     'is_admin' => $user->isAdmin(),
                     'can_access_admin' => $user->canAccessAdmin(),

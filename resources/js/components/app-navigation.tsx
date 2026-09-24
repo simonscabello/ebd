@@ -21,9 +21,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
-import { home, install, library, login, logout, myWeek } from '@/routes';
+import {
+    account,
+    home,
+    install,
+    library,
+    login,
+    logout,
+    myWeek,
+} from '@/routes';
 import { dashboard } from '@/routes/admin';
-import { edit as editProfile } from '@/routes/profile';
+import { UserAvatar } from '@/components/user-avatar';
 
 type Item = { title: string; href: string; icon: LucideIcon; match?: string };
 
@@ -55,8 +63,8 @@ function useNavItems(): Item[] {
     items.push(
         auth.user
             ? {
-                  title: 'Conta',
-                  href: editProfile.url(),
+                  title: 'Perfil',
+                  href: account.url(),
                   icon: UserRound,
                   match: '/conta',
               }
@@ -97,7 +105,7 @@ export function TopBar() {
                     aria-label="Principal"
                 >
                     {items
-                        .filter((item) => item.title !== 'Conta')
+                        .filter((item) => item.title !== 'Perfil')
                         .map((item) => (
                             <Link
                                 key={item.title}
@@ -131,20 +139,13 @@ function UserMenu() {
         return null;
     }
 
-    const initials = auth.user.name
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('');
-
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
-                className="ml-1 flex size-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="ml-1 rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 aria-label="Menu da conta"
             >
-                {initials}
+                <UserAvatar name={auth.user.name} src={auth.user.avatar_url} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="font-normal">
@@ -155,8 +156,8 @@ function UserMenu() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                    <Link href={editProfile()} className="w-full">
-                        <UserRound /> Minha conta
+                    <Link href={account()} className="w-full">
+                        <UserRound /> Perfil
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

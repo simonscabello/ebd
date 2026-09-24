@@ -1,12 +1,12 @@
 import { Form, Head, usePage } from '@inertiajs/react';
 import { useRef } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import { SubpageHeader } from '@/components/settings/settings-list';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { edit } from '@/routes/security';
+import { account } from '@/routes';
 
 // oxfmt-ignore
 type Props = {
@@ -22,15 +22,13 @@ export default function Security(props: Props) {
         <>
             <Head title="Segurança" />
 
-            <h1 className="sr-only">Segurança</h1>
+            <SubpageHeader
+                backHref={account.url()}
+                title={hasPassword ? 'Alterar senha' : 'Criar senha'}
+                description="Use uma senha longa e difícil de adivinhar"
+            />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Alterar senha"
-                    description="Use uma senha longa e difícil de adivinhar"
-                />
-
                 <Form
                     {...SecurityController.update.form()}
                     options={{
@@ -132,12 +130,3 @@ export default function Security(props: Props) {
         </>
     );
 }
-
-Security.layout = {
-    breadcrumbs: [
-        {
-            title: 'Segurança',
-            href: edit(),
-        },
-    ],
-};
