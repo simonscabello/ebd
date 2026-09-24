@@ -87,7 +87,7 @@ class ImportBible extends Command
                             'book' => $number,
                             'chapter' => $chapterIndex + 1,
                             'verse' => $verseIndex + 1,
-                            'text' => trim($text),
+                            'text' => self::clean($text),
                         ];
 
                         if (count($rows) === self::CHUNK) {
@@ -120,6 +120,15 @@ class ImportBible extends Command
         BibleVerse::query()->upsert($rows, ['book', 'chapter', 'verse'], ['text']);
         $bar->advance(count($rows));
         $rows = [];
+    }
+
+    /**
+     * Tira o espaço antes da pontuação que a NAA deixa depois das palavras em
+     * versalete na edição impressa ("o Senhor , porém" → "o Senhor, porém").
+     */
+    private static function clean(string $text): string
+    {
+        return (string) preg_replace('/\s+([,;:.!?])/u', '$1', trim($text));
     }
 
     /**

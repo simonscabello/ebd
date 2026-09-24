@@ -123,6 +123,26 @@ class BibleTest extends TestCase
         unlink($path);
     }
 
+    public function test_import_command_removes_the_space_before_punctuation(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'bible');
+        FakeBible::json($path);
+
+        // Palavras em versalete na edição impressa deixam "Senhor ," no arquivo.
+        $books = json_decode((string) file_get_contents($path), true);
+        $books[0]['chapters'][0][0] = '  O Senhor , porém, disse: — Eu Sou o Que Sou . Que é isso ? ';
+        file_put_contents($path, json_encode($books, JSON_UNESCAPED_UNICODE));
+
+        $this->artisan('bible:import', ['path' => $path, '--force' => true])->assertSuccessful();
+
+        $this->assertSame(
+            'O Senhor, porém, disse: — Eu Sou o Que Sou. Que é isso?',
+            Bible::passage('Gn 1.1')['verses'][0]['text'] ?? null,
+        );
+
+        unlink($path);
+    }
+
     public function test_import_command_refuses_files_out_of_order_and_asks_before_writing(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'bible');
