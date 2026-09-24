@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Classroom;
 use App\Models\PushSubscription;
 use App\Models\User;
+use App\Support\Push\PushSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\FakePushSender;
 use Tests\TestCase;
 
 class PushSubscriptionTest extends TestCase
@@ -62,6 +64,27 @@ class PushSubscriptionTest extends TestCase
 
         $this->actingAs($user)->post('/notificacoes/inscricao', ['endpoint' => 'não é url'])
             ->assertSessionHasErrors(['endpoint', 'keys.p256dh', 'keys.auth']);
+    }
+
+    public function test_a_person_can_send_a_test_notification_to_their_own_devices(): void
+    {
+        $push = new FakePushSender;
+        $this->app->instance(PushSender::class, $push);
+        $classroom = Classroom::factory()->create();
+        $me = User::factory()->studentOf($classroom)->create(['name' => 'Ana']);
+        $other = User::factory()->studentOf($classroom)->create();
+        PushSubscription::factory()->for($me)->count(2)->create();
+        PushSubscription::factory()->for($other)->create();
+
+        $this->actingAs($me)->post('/notificacoes/teste')->assertRedirect();
+
+        $this->assertSame(2, $push->count());
+        $this->assertCount(0, $push->sentTo($other));
+        $this->assertSame('Os lembretes estão funcionando!', $push->sentTo($me)->first()->title);
+
+        $nobody = User::factory()->create();
+        $this->actingAs($nobody)->post('/notificacoes/teste')->assertRedirect();
+        $this->assertSame(2, $push->count());
     }
 
     public function test_the_public_key_is_shared_with_the_pages(): void

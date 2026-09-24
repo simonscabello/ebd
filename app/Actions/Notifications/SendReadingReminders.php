@@ -88,11 +88,10 @@ final class SendReadingReminders
      *
      * @return Collection<int, User>
      */
-    public static function subscribedMembers(Classroom $classroom, ?int $except = null): Collection
+    public static function subscribedMembers(Classroom $classroom): Collection
     {
         return $classroom->members()
             ->whereHas('pushSubscriptions')
-            ->when($except, fn ($q, $id) => $q->where('users.id', '!=', $id))
             ->with('pushSubscriptions')
             ->get();
     }

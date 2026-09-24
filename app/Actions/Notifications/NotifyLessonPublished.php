@@ -8,7 +8,8 @@ use App\Support\Push\PushSender;
 use Illuminate\Support\Str;
 
 /**
- * Lição publicada: avisa os membros da classe (menos quem publicou).
+ * Lição publicada: avisa todos os membros da classe. Quem publicou também
+ * recebe: é a confirmação de que o aviso saiu como os alunos veem.
  */
 final class NotifyLessonPublished
 {
@@ -17,10 +18,10 @@ final class NotifyLessonPublished
     /**
      * @return int aparelhos avisados
      */
-    public function handle(Lesson $lesson, ?int $exceptUserId = null): int
+    public function handle(Lesson $lesson): int
     {
         $lesson->loadMissing('classroom');
-        $recipients = SendReadingReminders::subscribedMembers($lesson->classroom, $exceptUserId);
+        $recipients = SendReadingReminders::subscribedMembers($lesson->classroom);
 
         if ($recipients->isEmpty()) {
             return 0;

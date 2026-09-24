@@ -30,6 +30,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="EBD_MATERIALS_DISK" value="local"/>
         <env name="EBD_REGISTRATION_ENABLED" value="true"/>
+        <env name="EBD_TIMEZONE" value="America/Sao_Paulo"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

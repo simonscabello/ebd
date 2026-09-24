@@ -1,5 +1,6 @@
-import { Link } from '@inertiajs/react';
-import { BellOff, BellRing } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import { BellOff, BellRing, Send } from 'lucide-react';
+import { useState } from 'react';
 import {
     SettingsCard,
     SettingsGroup,
@@ -9,12 +10,23 @@ import { Spinner } from '@/components/ui/spinner';
 import { usePushReminders } from '@/hooks/use-push-reminders';
 import { detectPlatform, isStandalone } from '@/lib/pwa';
 import { install } from '@/routes';
+import { test as testPush } from '@/routes/push';
 
 /**
  * Lembretes no Perfil: estado neste aparelho e o botão de ativar/desativar.
  */
 export function RemindersSettings() {
     const { status, busy, enable, disable } = usePushReminders();
+    const [testing, setTesting] = useState(false);
+
+    const sendTest = () => {
+        router.post(testPush.url(), undefined, {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => setTesting(true),
+            onFinish: () => setTesting(false),
+        });
+    };
 
     const description = (() => {
         switch (status) {
@@ -75,6 +87,27 @@ export function RemindersSettings() {
                         </Button>
                     )}
                 </div>
+                {status === 'on' && (
+                    <button
+                        type="button"
+                        onClick={sendTest}
+                        disabled={testing}
+                        className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-muted/50 disabled:opacity-60"
+                    >
+                        <span className="shrink-0 text-muted-foreground [&_svg]:size-5">
+                            {testing ? <Spinner /> : <Send />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="block font-medium">
+                                Enviar uma notificação de teste
+                            </span>
+                            <span className="block text-sm text-muted-foreground">
+                                Só para os seus aparelhos. Deve chegar em
+                                segundos.
+                            </span>
+                        </span>
+                    </button>
+                )}
             </SettingsCard>
         </SettingsGroup>
     );

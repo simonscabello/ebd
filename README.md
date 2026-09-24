@@ -51,7 +51,7 @@ O `.env.example` já vem pronto para o Docker. Os pontos que você talvez queira
 | Variável                                                              | Para quê                                                                                               |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `EBD_CHURCH_NAME`                                                     | Nome da igreja exibido na interface                                                                    |
-| `EBD_TIMEZONE`                                                        | Fuso usado para "hoje", próxima aula e leitura do dia (padrão `Europe/Madrid`)                         |
+| `EBD_TIMEZONE`                                                        | Fuso usado para "hoje", próxima aula e leitura do dia (padrão `America/Sao_Paulo`)                     |
 | `EBD_REGISTRATION_ENABLED`                                            | Liga/desliga o auto-cadastro                                                                           |
 | `EBD_MATERIALS_DISK`                                                  | Disco dos arquivos enviados (`local` em dev; `s3` para S3/R2)                                          |
 | `EBD_ACCESS_LINK_REMEMBER_DAYS`                                       | Dias que o aparelho do aluno fica conectado após usar o link pessoal (padrão 400)                      |
@@ -243,16 +243,16 @@ Formatos aceitos nas referências: `Lucas 5:12-16`, `Lc 5.12-16`, `Sl 23`, `Gn 1
 
 Lembretes no celular pelo PWA (Web Push), sempre **por classe**:
 
-| Quando                          | Quem recebe                                  | Conteúdo                                                        |
-| ------------------------------- | -------------------------------------------- | --------------------------------------------------------------- |
-| Todo dia às 9h                  | membros com aparelho inscrito                | leitura de hoje da lição da semana (ou "releia o texto base")   |
-| Todo dia às 20h                 | idem, só quem ainda não marcou a leitura     | "Ainda dá tempo"                                                |
-| Sábado às 8h                    | membros da classe com encontro no domingo    | "Amanhã tem EBD!" com a lição                                   |
-| Ao publicar uma lição           | membros da classe, menos quem publicou       | "Nova lição: …"                                                 |
+| Quando                | Quem recebe                               | Conteúdo                                                      |
+| --------------------- | ----------------------------------------- | ------------------------------------------------------------- |
+| Todo dia às 9h        | membros com aparelho inscrito             | leitura de hoje da lição da semana (ou "releia o texto base") |
+| Todo dia às 20h       | idem, só quem ainda não marcou a leitura  | "Ainda dá tempo"                                              |
+| Sábado às 8h          | membros da classe com encontro no domingo | "Amanhã tem EBD!" com a lição                                 |
+| Ao publicar uma lição | todos os membros da classe                | "Nova lição: …"                                               |
 
 Horários no fuso da igreja (`EBD_TIMEZONE`), definidos em `routes/console.php`. Os comandos `ebd:remind-readings {morning|evening}` e `ebd:remind-lesson` podem ser rodados à mão para testar.
 
-- A pessoa ativa em **Perfil → Notificações** ou no convite que aparece no Início e em "Minha semana". Vale por aparelho; no iPhone só funciona com o app instalado na tela inicial.
+- A pessoa ativa em **Perfil → Notificações** ou no convite que aparece no Início e em "Minha semana". Vale por aparelho; no iPhone só funciona com o app instalado na tela inicial. O botão **Testar** manda uma notificação só para os aparelhos da própria pessoa.
 - Chaves VAPID: `php artisan ebd:vapid-keys` gera o par; `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` vão no `.env` (ou no Railway). Sem chaves, as inscrições são aceitas mas nada é enviado. Trocar as chaves invalida as inscrições existentes.
 - Inscrições expiradas (o serviço de push responde 404/410) são apagadas no envio seguinte.
 - O service worker (`public/sw.js`) mostra a notificação e, ao tocar, abre a página indicada. Ao mudar o `sw.js`, aumente a `VERSION`.

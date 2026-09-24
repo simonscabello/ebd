@@ -163,7 +163,7 @@ class NotificationsTest extends TestCase
         $this->assertSame(0, $this->push->count());
     }
 
-    public function test_publishing_a_lesson_notifies_the_classroom_except_who_published(): void
+    public function test_publishing_a_lesson_notifies_everyone_in_the_classroom(): void
     {
         $lesson = Lesson::factory()->for($this->classroom)->create(['title' => 'Nova', 'number' => 4, 'summary' => 'Resumo da lição nova.']);
         User::factory()->studentOf(Classroom::factory()->create())->create(); // outra classe, sem aparelho
@@ -172,26 +172,29 @@ class NotificationsTest extends TestCase
             ->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published'])
             ->assertRedirect();
 
-        $this->assertSame(3, $this->push->count());
-        $this->assertCount(0, $this->push->sentTo($this->teacher));
+        // Ana tem dois aparelhos; o professor que publicou também recebe.
+        $this->assertSame(4, $this->push->count());
+        $this->assertCount(1, $this->push->sentTo($this->teacher));
         $message = $this->push->sentTo($this->ana)->first();
         $this->assertSame('Nova lição: Lição 4 — Nova', $message->title);
         $this->assertSame('Resumo da lição nova.', $message->body);
         $this->assertSame(route('lessons.show', $lesson->slug), $message->url);
 
-        // Despublicar e publicar de novo não avisa outra vez? Avisa: é uma nova publicação.
+        // Despublicar e publicar de novo avisa outra vez: é uma nova publicação.
         $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'draft']);
         $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published']);
-        $this->assertSame(6, $this->push->count());
+        $this->assertSame(8, $this->push->count());
     }
 
     public function test_reminders_are_scheduled_in_the_church_timezone(): void
     {
+        // O agendamento é montado quando o console é carregado (antes do setUp
+        // trocar a config), com o fuso do phpunit.xml.
         $events = collect(app(Schedule::class)->events())
             ->mapWithKeys(fn ($event) => [trim(str_replace(['artisan', "'", '"'], '', substr($event->command ?? '', strpos($event->command ?? '', 'artisan')))) => [$event->expression, $event->timezone]]);
 
-        $this->assertSame(['0 9 * * *', 'Europe/Madrid'], $events['ebd:remind-readings morning']);
-        $this->assertSame(['0 20 * * *', 'Europe/Madrid'], $events['ebd:remind-readings evening']);
-        $this->assertSame(['0 8 * * 6', 'Europe/Madrid'], $events['ebd:remind-lesson']);
+        $this->assertSame(['0 9 * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings morning']);
+        $this->assertSame(['0 20 * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings evening']);
+        $this->assertSame(['0 8 * * 6', 'America/Sao_Paulo'], $events['ebd:remind-lesson']);
     }
 }

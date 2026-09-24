@@ -40,6 +40,7 @@ Route::middleware(['auth', 'throttle:engagement'])->group(function () {
     // Lembretes push: o aparelho se inscreve/desinscreve.
     Route::post('notificacoes/inscricao', [PushSubscriptionController::class, 'store'])->name('push.store');
     Route::delete('notificacoes/inscricao', [PushSubscriptionController::class, 'destroy'])->name('push.destroy');
+    Route::post('notificacoes/teste', [PushSubscriptionController::class, 'test'])->name('push.test');
 });
 
 Route::get('materiais/{material}/arquivo', MaterialFileController::class)

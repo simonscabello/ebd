@@ -4,8 +4,6 @@ namespace App\Listeners;
 
 use App\Actions\Notifications\NotifyLessonPublished;
 use App\Events\LessonPublished;
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Um problema no envio das notificações nunca pode impedir a publicação.
@@ -16,10 +14,8 @@ class NotifyClassroomOfLessonPublished
 
     public function handle(LessonPublished $event): void
     {
-        $actor = Auth::user();
-
         try {
-            $this->notify->handle($event->lesson, $actor instanceof User ? $actor->id : null);
+            $this->notify->handle($event->lesson);
         } catch (\Throwable $e) {
             report($e);
         }
