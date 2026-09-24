@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
+import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
 import { BlockIcon } from '@/components/lesson/block-icon';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ type BlockForm = {
  * curiosidades, conceitos... Cada um é do professor ou dos alunos.
  */
 export function BlocksManager({ lessonId, blocks, kinds, weekdays }: Props) {
+    const confirm = useConfirm();
     const [editing, setEditing] = useState<number | null>(null);
     const ids = blocks.map((b) => b.id);
 
@@ -107,9 +109,15 @@ export function BlocksManager({ lessonId, blocks, kinds, weekdays }: Props) {
                                         variant="ghost"
                                         size="icon"
                                         aria-label="Remover bloco"
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (
-                                                confirm('Remover este bloco?')
+                                                await confirm({
+                                                    title: 'Remover este bloco?',
+                                                    description:
+                                                        block.display_title,
+                                                    confirmLabel: 'Remover',
+                                                    destructive: true,
+                                                })
                                             ) {
                                                 router.delete(
                                                     destroy.url({

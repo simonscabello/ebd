@@ -1,6 +1,8 @@
 import { Head } from '@inertiajs/react';
 import { Printer } from 'lucide-react';
-import { Page } from '@/components/page';
+import { Breadcrumbs, Page } from '@/components/page';
+import { dashboard } from '@/routes/admin';
+import { insights } from '@/routes/admin/classrooms';
 import { Button } from '@/components/ui/button';
 import type { Classroom } from '@/types';
 
@@ -57,6 +59,17 @@ export default function SeriesReport({
                 width="wide"
                 className="print:max-w-none print:px-0 print:pt-0"
             >
+                <Breadcrumbs
+                    className="print:hidden"
+                    items={[
+                        { title: 'Gestão', href: dashboard.url() },
+                        {
+                            title: classroom.name,
+                            href: insights.url(classroom.slug),
+                        },
+                        { title: 'Relatório' },
+                    ]}
+                />
                 <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <p className="text-sm font-medium text-primary">

@@ -11,10 +11,12 @@ import {
     Wand2,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useConfirm } from '@/components/confirm-dialog';
 import { CopyWhatsAppButtons } from '@/components/copy-whatsapp-button';
 import { Field } from '@/components/form-field';
 import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -28,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { dashboard } from '@/routes/admin';
 import { plan, store } from '@/routes/admin/classrooms/meetings';
 import { edit as editLesson } from '@/routes/admin/lessons';
 import {
@@ -83,7 +86,11 @@ export default function ClassroomAgenda({
 
             <Page width="wide">
                 <PageHeader
-                    eyebrow={`Classe ${classroom.name}`}
+                    breadcrumbs={[
+                        { title: 'Gestão', href: dashboard.url() },
+                        { title: classroom.name },
+                        { title: 'Agenda' },
+                    ]}
                     title="Agenda"
                     description="Os domingos da classe e a lição de cada um. Uma lição pode ocupar mais de um domingo."
                     actions={
@@ -166,7 +173,9 @@ function MeetingRow({
     lessons: LessonOption[];
     today: string;
 }) {
+    const confirm = useConfirm();
     const [notesOpen, setNotesOpen] = useState(false);
+    const [cancelOpen, setCancelOpen] = useState(false);
     const past = meeting.held_on <= today;
     const cancelled = meeting.status === 'cancelled';
     const day = new Date(`${meeting.held_on}T00:00:00Z`);
@@ -184,27 +193,17 @@ function MeetingRow({
             { preserveScroll: true },
         );
 
-    const markCancelled = () => {
-        const reason = window.prompt(
-            'Por que não teve/terá EBD? (opcional, ex.: Culto de Missões)',
-            '',
-        );
-
-        if (reason === null) {
-            return;
+    const remove = async () => {
+        if (
+            await confirm({
+                title: 'Remover este domingo da agenda?',
+                description: meeting.date_label,
+                confirmLabel: 'Remover',
+                destructive: true,
+            })
+        ) {
+            router.delete(destroy.url(meeting.id), { preserveScroll: true });
         }
-
-        const shift =
-            meeting.lesson_id !== null &&
-            confirm(
-                'Empurrar esta lição (e as seguintes) para o próximo domingo?',
-            );
-
-        router.post(
-            cancel.url(meeting.id),
-            { reason, shift },
-            { preserveScroll: true },
-        );
     };
 
     return (
@@ -352,7 +351,7 @@ function MeetingRow({
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={markCancelled}
+                            onClick={() => setCancelOpen(true)}
                         >
                             <CalendarOff /> Sem EBD
                         </Button>
@@ -369,15 +368,7 @@ function MeetingRow({
                             size="sm"
                             variant="ghost"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => {
-                                if (
-                                    confirm('Remover este domingo da agenda?')
-                                ) {
-                                    router.delete(destroy.url(meeting.id), {
-                                        preserveScroll: true,
-                                    });
-                                }
-                            }}
+                            onClick={remove}
                             aria-label="Remover domingo"
                         >
                             <Trash2 />
@@ -385,7 +376,101 @@ function MeetingRow({
                     )}
                 </div>
             </div>
+
+            <CancelMeetingDialog
+                meeting={meeting}
+                open={cancelOpen}
+                onOpenChange={setCancelOpen}
+            />
         </li>
+    );
+}
+
+/**
+ * "Sem EBD": motivo (opcional) e, se houver lição marcada, a opção de
+ * empurrar a lição e as seguintes para o próximo domingo.
+ */
+function CancelMeetingDialog({
+    meeting,
+    open,
+    onOpenChange,
+}: {
+    meeting: ClassMeeting;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const form = useForm({ reason: '', shift: meeting.lesson_id !== null });
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        form.post(cancel.url(meeting.id), {
+                            preserveScroll: true,
+                            onSuccess: () => onOpenChange(false),
+                        });
+                    }}
+                    className="space-y-4"
+                >
+                    <DialogHeader>
+                        <DialogTitle>Domingo sem EBD</DialogTitle>
+                        <DialogDescription className="first-letter:uppercase">
+                            {meeting.date_label}. O aviso aparece para a classe
+                            no Início.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Field
+                        label="Motivo (opcional)"
+                        htmlFor={`cancel-reason-${meeting.id}`}
+                        error={form.errors.reason}
+                    >
+                        <Input
+                            id={`cancel-reason-${meeting.id}`}
+                            value={form.data.reason}
+                            onChange={(event) =>
+                                form.setData('reason', event.target.value)
+                            }
+                            placeholder="Ex.: Culto de Missões"
+                            maxLength={120}
+                            autoFocus
+                        />
+                    </Field>
+                    {meeting.lesson_id !== null && (
+                        <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-3.5 text-sm">
+                            <Checkbox
+                                checked={form.data.shift}
+                                onCheckedChange={(value) =>
+                                    form.setData('shift', value === true)
+                                }
+                                className="mt-0.5"
+                            />
+                            <span>
+                                Empurrar esta lição (e as seguintes) para o
+                                próximo domingo
+                                <span className="block text-muted-foreground">
+                                    Desmarque se a lição simplesmente não será
+                                    dada.
+                                </span>
+                            </span>
+                        </label>
+                    )}
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => onOpenChange(false)}
+                        >
+                            Voltar
+                        </Button>
+                        <Button type="submit" disabled={form.processing}>
+                            <CalendarOff /> Marcar sem EBD
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
 

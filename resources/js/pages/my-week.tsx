@@ -1,10 +1,9 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
     CalendarDays,
     Check,
     CheckCircle2,
     Circle,
-    CircleCheck,
     Hourglass,
     Lightbulb,
     ListChecks,
@@ -12,18 +11,16 @@ import {
 import { InstallAppBanner } from '@/components/install-app-banner';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
 import { LessonHero } from '@/components/lesson/lesson-hero';
+import { ReadToggle } from '@/components/lesson/reading-plan';
 import { EmptyState, Page, Section } from '@/components/page';
 import type { Streak } from '@/components/progress/streak-flame';
 import { StreakFlame } from '@/components/progress/streak-flame';
 import type { WeekDay } from '@/components/progress/week-bar';
 import { WeekBar } from '@/components/progress/week-bar';
 import { Button } from '@/components/ui/button';
+import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn } from '@/lib/utils';
 import { myProgress, myWeek } from '@/routes';
-import {
-    destroy as undoCheckin,
-    store as storeCheckin,
-} from '@/routes/lessons/checkins';
 import type { Classroom, LessonBlock, LessonReading } from '@/types';
 
 type Day = WeekDay & {
@@ -105,11 +102,16 @@ export default function MyWeek({ classrooms, classroom, week }: Props) {
                             <Link
                                 key={item.id}
                                 href={myWeek({ query: { classe: item.slug } })}
+                                aria-current={
+                                    item.id === classroom.id
+                                        ? 'true'
+                                        : undefined
+                                }
                                 className={cn(
-                                    'shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium',
+                                    'inline-flex min-h-9 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                     item.id === classroom.id
                                         ? 'border-primary bg-primary text-primary-foreground'
-                                        : 'bg-card text-muted-foreground',
+                                        : 'bg-card text-muted-foreground hover:text-foreground',
                                 )}
                             >
                                 {item.name}
@@ -156,7 +158,7 @@ function WeekContent({
     lesson: NonNullable<Week['lesson']>;
 }) {
     const days = week.days ?? [];
-    const visit = { preserveScroll: true, preserveState: true };
+    const checkin = useReadingCheckin(lesson.slug);
     const otherUnlocked = (week.unlockedBlocks ?? []).filter(
         (b) => !(week.todayBlocks ?? []).some((t) => t.id === b.id),
     );
@@ -170,19 +172,7 @@ function WeekContent({
             : days.filter((d) => d.weekday <= 6);
 
     const toggle = (day: Day) =>
-        day.done
-            ? router.delete(undoCheckin.url(lesson.slug), {
-                  data: { weekday: day.weekday },
-                  ...visit,
-              })
-            : router.post(
-                  storeCheckin.url(lesson.slug),
-                  {
-                      weekday: day.weekday,
-                      reading_id: day.readings[0]?.id ?? null,
-                  },
-                  visit,
-              );
+        checkin.toggle(day.weekday, day.done, day.readings[0]?.id ?? null);
 
     return (
         <div className="space-y-8">
@@ -216,6 +206,7 @@ function WeekContent({
                             key={day.date}
                             day={day}
                             fallback={lesson.bible_reference}
+                            pending={checkin.isPending(day.weekday)}
                             onToggle={() => toggle(day)}
                         />
                     ))}
@@ -252,7 +243,7 @@ function WeekContent({
                                     className="flex items-center gap-3 px-4 py-3"
                                 >
                                     {item.done ? (
-                                        <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+                                        <CheckCircle2 className="size-5 shrink-0 text-success" />
                                     ) : (
                                         <Circle className="size-5 shrink-0 text-muted-foreground" />
                                     )}
@@ -291,28 +282,29 @@ function WeekContent({
 function DayReading({
     day,
     fallback,
+    pending,
     onToggle,
 }: {
     day: Day;
     fallback: string | null;
+    pending: boolean;
     onToggle: () => void;
 }) {
     return (
         <li
             className={cn(
-                'grid grid-cols-[3rem_1fr] items-center gap-x-3.5 gap-y-3 rounded-2xl border bg-card p-3.5 sm:grid-cols-[3rem_1fr_auto]',
+                'grid grid-cols-[3rem_1fr] items-center gap-x-3.5 gap-y-3 rounded-2xl border bg-card p-3.5 transition-colors sm:grid-cols-[3rem_1fr_auto]',
                 day.is_today &&
                     !day.done &&
                     'border-primary/50 bg-accent/60 ring-1 ring-primary/20',
-                day.done &&
-                    'border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40',
+                day.done && 'border-success/40 bg-success-soft',
             )}
         >
             <span
                 className={cn(
                     'flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground uppercase',
                     day.is_today && 'bg-primary text-primary-foreground',
-                    day.done && 'bg-emerald-600 text-white dark:bg-emerald-700',
+                    day.done && 'bg-success text-white',
                 )}
             >
                 {day.done ? <Check className="size-5" /> : day.short}
@@ -342,22 +334,12 @@ function DayReading({
                     </p>
                 )}
             </div>
-            <button
-                type="button"
+            <ReadToggle
+                done={day.done}
+                pending={pending}
+                highlight={day.is_today}
                 onClick={onToggle}
-                aria-pressed={day.done}
-                className={cn(
-                    'col-start-2 flex min-h-11 items-center gap-1.5 justify-self-start rounded-xl border px-3 text-sm font-medium sm:col-start-auto',
-                    day.done
-                        ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400'
-                        : day.is_today
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'bg-card hover:bg-muted',
-                )}
-            >
-                <CircleCheck className="size-4" />
-                {day.done ? 'Lido' : 'Marcar como lido'}
-            </button>
+            />
         </li>
     );
 }

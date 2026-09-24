@@ -62,7 +62,7 @@ export default function DeleteUser() {
                                 }
                             >
                                 <Label htmlFor="password" className="sr-only">
-                                    Password
+                                    Senha
                                 </Label>
 
                                 <PasswordInput

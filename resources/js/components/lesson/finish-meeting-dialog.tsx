@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { CheckCircle2, ChevronsRight, Flag } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -19,9 +20,12 @@ import { finish } from '@/routes/admin/meetings';
 export function FinishMeetingDialog({
     meetingId,
     initialNotes,
+    children,
 }: {
     meetingId: number;
     initialNotes: string | null;
+    /** Botão que abre o diálogo (padrão: "Encerrar aula" largo). */
+    children?: ReactNode;
 }) {
     const [open, setOpen] = useState(false);
     const [notes, setNotes] = useState(initialNotes ?? '');
@@ -43,9 +47,11 @@ export function FinishMeetingDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="lg" className="w-full">
-                    <Flag /> Encerrar aula
-                </Button>
+                {children ?? (
+                    <Button variant="outline" size="lg" className="w-full">
+                        <Flag /> Encerrar aula
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -66,10 +72,15 @@ export function FinishMeetingDialog({
                     placeholder="Ex.: paramos no tópico II.2; retomar a pergunta 3."
                 />
                 <div className="grid gap-2 sm:grid-cols-2">
-                    <Button disabled={processing} onClick={() => submit(false)}>
+                    <Button
+                        size="lg"
+                        disabled={processing}
+                        onClick={() => submit(false)}
+                    >
                         <CheckCircle2 /> Lição concluída
                     </Button>
                     <Button
+                        size="lg"
                         variant="outline"
                         disabled={processing}
                         onClick={() => submit(true)}

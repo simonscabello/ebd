@@ -19,9 +19,16 @@ import type { MaterialTypeOption } from '@/components/admin/materials-manager';
 import { MaterialsManager } from '@/components/admin/materials-manager';
 import { ReadingsManager } from '@/components/admin/readings-manager';
 import { StatusBadge } from '@/components/admin/status-badge';
-import { Page, Section } from '@/components/page';
+import { useConfirm } from '@/components/confirm-dialog';
+import { Breadcrumbs, Page, Section } from '@/components/page';
+import { SectionNav } from '@/components/section-nav';
 import { Button } from '@/components/ui/button';
-import { destroy, status as changeStatus } from '@/routes/admin/lessons';
+import { dashboard } from '@/routes/admin';
+import {
+    destroy,
+    index as lessonsIndex,
+    status as changeStatus,
+} from '@/routes/admin/lessons';
 import { cn } from '@/lib/utils';
 import type {
     ClassMeeting,
@@ -98,10 +105,19 @@ export default function EditLesson({
     weekdays,
     blockKinds,
 }: Props) {
-    const transition = (target: LessonStatus) => {
+    const confirm = useConfirm();
+
+    const transition = async (target: LessonStatus) => {
         const config = transitionButtons[target];
 
-        if (config.confirm && !confirm(config.confirm)) {
+        if (
+            config.confirm &&
+            !(await confirm({
+                title: `${config.label} a lição?`,
+                description: config.confirm,
+                confirmLabel: config.label,
+            }))
+        ) {
             return;
         }
 
@@ -117,6 +133,13 @@ export default function EditLesson({
             <Head title={`Editar: ${lesson.title}`} />
 
             <Page>
+                <Breadcrumbs
+                    items={[
+                        { title: 'Gestão', href: dashboard.url() },
+                        { title: 'Lições', href: lessonsIndex.url() },
+                        { title: lesson.title },
+                    ]}
+                />
                 <header className="mb-6">
                     <p className="text-sm text-muted-foreground">
                         Classe {lesson.classroom.name}
@@ -163,33 +186,36 @@ export default function EditLesson({
                         </Button>
                     </div>
                     {lesson.status === 'draft' && (
-                        <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                        <p className="mt-3 rounded-xl bg-warning-soft p-3 text-sm text-warning-foreground">
                             Rascunho: só professores da classe conseguem ver.
                             Publique quando estiver pronta para os alunos.
                         </p>
                     )}
                 </header>
 
-                <nav
-                    className="-mx-4 mb-8 flex gap-2 overflow-x-auto px-4"
-                    aria-label="Seções"
-                >
-                    {[
-                        ['dados', 'Dados'],
-                        ['domingos', `Domingos (${lesson.meetings.length})`],
-                        ['blocos', `Aprofundamento (${lesson.blocks.length})`],
-                        ['leituras', `Leituras (${lesson.readings.length})`],
-                        ['materiais', `Materiais (${lesson.materials.length})`],
-                    ].map(([id, label]) => (
-                        <a
-                            key={id}
-                            href={`#${id}`}
-                            className="shrink-0 rounded-full bg-muted px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-                        >
-                            {label}
-                        </a>
-                    ))}
-                </nav>
+                <SectionNav
+                    label="Seções da edição"
+                    className="mb-8"
+                    sections={[
+                        { id: 'dados', label: 'Dados' },
+                        {
+                            id: 'domingos',
+                            label: `Domingos (${lesson.meetings.length})`,
+                        },
+                        {
+                            id: 'blocos',
+                            label: `Aprofundamento (${lesson.blocks.length})`,
+                        },
+                        {
+                            id: 'leituras',
+                            label: `Leituras (${lesson.readings.length})`,
+                        },
+                        {
+                            id: 'materiais',
+                            label: `Materiais (${lesson.materials.length})`,
+                        },
+                    ]}
+                />
 
                 <div className="space-y-14">
                     <Section
@@ -307,11 +333,15 @@ export default function EditLesson({
                         <Button
                             variant="ghost"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => {
+                            onClick={async () => {
                                 if (
-                                    confirm(
-                                        'Excluir esta lição? Ela sairá do site e da biblioteca.',
-                                    )
+                                    await confirm({
+                                        title: 'Excluir esta lição?',
+                                        description:
+                                            'Ela sai do site e da biblioteca, junto com materiais, leituras e blocos. Não dá para desfazer.',
+                                        confirmLabel: 'Excluir lição',
+                                        destructive: true,
+                                    })
                                 ) {
                                     router.delete(destroy.url(lesson.id));
                                 }

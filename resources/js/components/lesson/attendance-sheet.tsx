@@ -15,11 +15,14 @@ export function AttendanceSheet({
     roster,
     initialPresent,
     initialVisitors,
+    onChange,
 }: {
     meetingId: number;
     roster: Roster;
     initialPresent: number[];
     initialVisitors: number;
+    /** Avisa quantas pessoas estão marcadas (para o resumo fora do painel). */
+    onChange?: (present: number) => void;
 }) {
     const [present, setPresent] = useState<number[]>(initialPresent);
     const [visitors, setVisitors] = useState(initialVisitors);
@@ -27,6 +30,10 @@ export function AttendanceSheet({
         'idle',
     );
     const touched = useRef(false);
+
+    useEffect(() => {
+        onChange?.(present.length);
+    }, [present.length, onChange]);
 
     useEffect(() => {
         if (!touched.current) {
@@ -69,11 +76,15 @@ export function AttendanceSheet({
         <section>
             <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="flex items-center gap-2 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
-                    <Users className="size-4" /> Chamada · {present.length}/
+                    <Users className="size-4" /> Presentes · {present.length}/
                     {roster.length}
                 </h2>
                 <span
-                    className="text-[0.7em] text-muted-foreground"
+                    className={cn(
+                        'text-[0.75em] text-muted-foreground',
+                        status === 'error' && 'font-medium text-destructive',
+                        status === 'saved' && 'text-success-foreground',
+                    )}
                     aria-live="polite"
                 >
                     {status === 'saving' && 'Salvando…'}
@@ -97,16 +108,16 @@ export function AttendanceSheet({
                                     onClick={() => toggle(student.id)}
                                     aria-pressed={isPresent}
                                     className={cn(
-                                        'flex min-h-12 w-full items-center gap-3 rounded-xl border bg-card px-3 text-left text-[0.9em]',
+                                        'flex min-h-12 w-full items-center gap-3 rounded-xl border bg-card px-3 text-left text-[0.9em] transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                         isPresent &&
-                                            'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40',
+                                            'border-success bg-success-soft',
                                     )}
                                 >
                                     <span
                                         className={cn(
                                             'flex size-6 shrink-0 items-center justify-center rounded-full border',
                                             isPresent &&
-                                                'border-emerald-600 bg-emerald-600 text-white',
+                                                'border-success bg-success text-white',
                                         )}
                                     >
                                         {isPresent && (
@@ -125,7 +136,7 @@ export function AttendanceSheet({
                 <button
                     type="button"
                     onClick={() => changeVisitors(-1)}
-                    className="flex size-9 items-center justify-center rounded-lg border bg-card"
+                    className="flex size-10 items-center justify-center rounded-lg border bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     aria-label="Menos um visitante"
                 >
                     <Minus className="size-4" />
@@ -136,7 +147,7 @@ export function AttendanceSheet({
                 <button
                     type="button"
                     onClick={() => changeVisitors(1)}
-                    className="flex size-9 items-center justify-center rounded-lg border bg-card"
+                    className="flex size-10 items-center justify-center rounded-lg border bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     aria-label="Mais um visitante"
                 >
                     <Plus className="size-4" />

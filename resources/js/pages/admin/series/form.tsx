@@ -1,5 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { Save, Trash2 } from 'lucide-react';
+import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
 import { Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,13 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { destroy, store, update } from '@/routes/admin/series';
+import { dashboard } from '@/routes/admin';
+import {
+    destroy,
+    index as seriesIndex,
+    store,
+    update,
+} from '@/routes/admin/series';
 import type { Classroom, Series } from '@/types';
 
 type Props = {
@@ -21,6 +28,7 @@ export default function SeriesForm({
     classrooms,
     defaultClassroomId,
 }: Props) {
+    const confirm = useConfirm();
     const form = useForm({
         classroom_id: defaultClassroomId ?? classrooms[0]?.id ?? null,
         title: series?.title ?? '',
@@ -46,6 +54,11 @@ export default function SeriesForm({
             <Head title={series ? 'Editar série' : 'Nova série'} />
             <Page>
                 <PageHeader
+                    breadcrumbs={[
+                        { title: 'Gestão', href: dashboard.url() },
+                        { title: 'Séries', href: seriesIndex.url() },
+                        { title: series ? 'Editar' : 'Nova' },
+                    ]}
                     title={series ? 'Editar série' : 'Nova série'}
                     description={
                         series
@@ -146,11 +159,15 @@ export default function SeriesForm({
                                 type="button"
                                 variant="ghost"
                                 className="text-destructive hover:text-destructive"
-                                onClick={() => {
+                                onClick={async () => {
                                     if (
-                                        confirm(
-                                            'Excluir esta série? Só é possível quando ela não tem lições.',
-                                        )
+                                        await confirm({
+                                            title: 'Excluir esta série?',
+                                            description:
+                                                'Só é possível quando ela não tem lições.',
+                                            confirmLabel: 'Excluir',
+                                            destructive: true,
+                                        })
                                     ) {
                                         router.delete(destroy.url(series.id));
                                     }

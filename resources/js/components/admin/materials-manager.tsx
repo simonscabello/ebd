@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Lock, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
+import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
 import { MaterialIcon } from '@/components/lesson/material-card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ type MaterialForm = {
 };
 
 export function MaterialsManager({ lessonId, materials, types }: Props) {
+    const confirm = useConfirm();
     const [editing, setEditing] = useState<number | null>(null);
     const ids = materials.map((m) => m.id);
 
@@ -110,11 +112,15 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                         variant="ghost"
                                         size="icon"
                                         aria-label="Remover material"
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (
-                                                confirm(
-                                                    `Remover "${material.title}"? Arquivos enviados também serão apagados.`,
-                                                )
+                                                await confirm({
+                                                    title: `Remover "${material.title}"?`,
+                                                    description:
+                                                        'Arquivos enviados também serão apagados.',
+                                                    confirmLabel: 'Remover',
+                                                    destructive: true,
+                                                })
                                             ) {
                                                 router.delete(
                                                     destroy.url({

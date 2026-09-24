@@ -53,7 +53,7 @@ export default function Install() {
                 />
 
                 {installed && (
-                    <p className="mb-6 flex items-center gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+                    <p className="mb-6 flex items-center gap-2 rounded-2xl border border-success/50 bg-success-soft p-4 text-success-foreground">
                         <CheckCircle2 className="size-5 shrink-0" /> Você já
                         está usando o app. Tudo certo!
                     </p>
@@ -74,13 +74,30 @@ export default function Install() {
                             key={value}
                             type="button"
                             role="tab"
+                            id={`tab-${value}`}
                             aria-selected={tab === value}
+                            aria-controls={`panel-${value}`}
+                            tabIndex={tab === value ? 0 : -1}
                             onClick={() => setTab(value)}
+                            onKeyDown={(event) => {
+                                if (
+                                    event.key === 'ArrowLeft' ||
+                                    event.key === 'ArrowRight'
+                                ) {
+                                    event.preventDefault();
+                                    const next =
+                                        value === 'android' ? 'ios' : 'android';
+                                    setTab(next);
+                                    document
+                                        .getElementById(`tab-${next}`)
+                                        ?.focus();
+                                }
+                            }}
                             className={cn(
-                                'rounded-lg py-2 text-sm font-medium',
+                                'min-h-10 rounded-lg py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                 tab === value
                                     ? 'bg-background shadow-xs'
-                                    : 'text-muted-foreground',
+                                    : 'text-muted-foreground hover:text-foreground',
                             )}
                         >
                             {label}
@@ -89,7 +106,12 @@ export default function Install() {
                 </div>
 
                 {tab === 'android' ? (
-                    <div className="space-y-4">
+                    <div
+                        id="panel-android"
+                        role="tabpanel"
+                        aria-labelledby="tab-android"
+                        className="space-y-4"
+                    >
                         {nativePrompt && (
                             <Button
                                 size="lg"
@@ -125,7 +147,12 @@ export default function Install() {
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div
+                        id="panel-ios"
+                        role="tabpanel"
+                        aria-labelledby="tab-ios"
+                        className="space-y-4"
+                    >
                         <Steps>
                             <Step n={1} icon={<Smartphone />}>
                                 Abra este site no <strong>Safari</strong> (o

@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
+import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ type Props = {
 type ReadingForm = { weekday: number | ''; reference: string; notes: string };
 
 export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
+    const confirm = useConfirm();
     const [editing, setEditing] = useState<number | null>(null);
     const ids = readings.map((r) => r.id);
 
@@ -78,11 +80,13 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
                                         variant="ghost"
                                         size="icon"
                                         aria-label="Remover leitura"
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (
-                                                confirm(
-                                                    `Remover a leitura "${reading.reference}"?`,
-                                                )
+                                                await confirm({
+                                                    title: `Remover a leitura "${reading.reference}"?`,
+                                                    confirmLabel: 'Remover',
+                                                    destructive: true,
+                                                })
                                             ) {
                                                 router.delete(
                                                     destroy.url({

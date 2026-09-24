@@ -10,12 +10,15 @@ import {
 import { useState } from 'react';
 import type { IssuedLink } from '@/components/admin/access-link-dialog';
 import { AccessLinkDialog } from '@/components/admin/access-link-dialog';
+import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
 import { Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
+import { dashboard } from '@/routes/admin';
 import { insights } from '@/routes/admin/classrooms';
+import { index as agendaIndex } from '@/routes/admin/classrooms/meetings';
 import { destroy, store } from '@/routes/admin/classrooms/members';
 import {
     destroy as revokeLink,
@@ -66,6 +69,7 @@ export default function ClassroomMembers({
     canAssignTeachers,
     isAdmin,
 }: Props) {
+    const confirm = useConfirm();
     const [issued, setIssued] = useState<IssuedLink | null>(null);
     const byEmail = useForm({ email: '', role: 'student' });
     const managed = useForm({ name: '', phone: '' });
@@ -79,8 +83,15 @@ export default function ClassroomMembers({
         }
     };
 
-    const remove = (member: Member) => {
-        if (confirm(`Remover ${member.name} da classe ${classroom.name}?`)) {
+    const remove = async (member: Member) => {
+        if (
+            await confirm({
+                title: `Remover ${member.name} da classe?`,
+                description: `${member.name} deixa de fazer parte da classe ${classroom.name}. O histórico de presença é mantido.`,
+                confirmLabel: 'Remover',
+                destructive: true,
+            })
+        ) {
             router.delete(
                 destroy.url({ classroom: classroom.slug, user: member.id }),
                 { preserveScroll: true },
@@ -88,12 +99,14 @@ export default function ClassroomMembers({
         }
     };
 
-    const generate = (member: Member) => {
+    const generate = async (member: Member) => {
         if (
             member.access_link &&
-            !confirm(
-                `Gerar um novo link para ${member.name}? O link atual deixa de funcionar.`,
-            )
+            !(await confirm({
+                title: `Gerar um novo link para ${member.name}?`,
+                description: 'O link atual deixa de funcionar.',
+                confirmLabel: 'Gerar novo link',
+            }))
         ) {
             return;
         }
@@ -105,11 +118,15 @@ export default function ClassroomMembers({
         );
     };
 
-    const block = (member: Member) => {
+    const block = async (member: Member) => {
         if (
-            confirm(
-                `Bloquear o acesso de ${member.name}? Todos os aparelhos conectados saem da conta.`,
-            )
+            await confirm({
+                title: `Bloquear o acesso de ${member.name}?`,
+                description:
+                    'Todos os aparelhos conectados saem da conta. Para voltar, gere um novo link.',
+                confirmLabel: 'Bloquear',
+                destructive: true,
+            })
         ) {
             router.delete(
                 revokeLink.url({ classroom: classroom.slug, user: member.id }),
@@ -213,7 +230,14 @@ export default function ClassroomMembers({
             <Head title={`Membros · ${classroom.name}`} />
             <Page>
                 <PageHeader
-                    eyebrow={`Classe ${classroom.name}`}
+                    breadcrumbs={[
+                        { title: 'Gestão', href: dashboard.url() },
+                        {
+                            title: classroom.name,
+                            href: agendaIndex.url(classroom.slug),
+                        },
+                        { title: 'Membros' },
+                    ]}
                     title="Membros"
                     description="Alunos entram pelo link pessoal (sem senha) e passam a registrar leitura e presença."
                     actions={

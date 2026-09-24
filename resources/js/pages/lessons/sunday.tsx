@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Minus, Plus, X } from 'lucide-react';
+import { Flag, Minus, Plus, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Roster } from '@/components/lesson/attendance-sheet';
 import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
@@ -7,6 +7,8 @@ import { BiblePassage } from '@/components/lesson/bible-passage';
 import { FinishMeetingDialog } from '@/components/lesson/finish-meeting-dialog';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
 import { RevistaHeader } from '@/components/lesson/revista-header';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { show } from '@/routes/lessons';
 import type { ClassMeeting, Lesson } from '@/types';
@@ -44,6 +46,11 @@ function readScale(): number {
  */
 export default function SundayMode({ lesson, canManage, conduct }: Props) {
     const [scale, setScale] = useState(1);
+    const [attendanceOpen, setAttendanceOpen] = useState(false);
+    const [presentCount, setPresentCount] = useState(
+        conduct?.present.length ?? 0,
+    );
+    const conducting = !!conduct?.can_take_attendance;
 
     useEffect(() => {
         setScale(readScale());
@@ -80,7 +87,7 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                 <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
                     <Link
                         href={show(lesson.slug)}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
                         <X className="size-4" /> Sair
                     </Link>
@@ -95,7 +102,7 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                         <button
                             type="button"
                             onClick={() => changeScale(-1)}
-                            className="flex size-9 items-center justify-center rounded-lg border bg-card disabled:opacity-40"
+                            className="flex size-10 items-center justify-center rounded-lg border bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40"
                             disabled={scale === 0}
                             aria-label="Diminuir texto"
                         >
@@ -104,7 +111,7 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                         <button
                             type="button"
                             onClick={() => changeScale(1)}
-                            className="flex size-9 items-center justify-center rounded-lg border bg-card disabled:opacity-40"
+                            className="flex size-10 items-center justify-center rounded-lg border bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40"
                             disabled={scale === SCALES.length - 1}
                             aria-label="Aumentar texto"
                         >
@@ -116,7 +123,8 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
 
             <main
                 className={cn(
-                    'mx-auto max-w-3xl space-y-10 px-4 pt-8 pb-24 sm:px-6',
+                    'mx-auto max-w-3xl space-y-10 px-4 pt-8 sm:px-6',
+                    conducting ? 'pb-36' : 'pb-24',
                     SCALES[scale],
                 )}
             >
@@ -137,22 +145,6 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                         </p>
                     )}
                 </header>
-
-                {conduct?.can_take_attendance && (
-                    <>
-                        <AttendanceSheet
-                            key={conduct.meeting.id}
-                            meetingId={conduct.meeting.id}
-                            roster={conduct.roster}
-                            initialPresent={conduct.present}
-                            initialVisitors={conduct.meeting.visitors_count}
-                        />
-                        <FinishMeetingDialog
-                            meetingId={conduct.meeting.id}
-                            initialNotes={conduct.meeting.notes ?? null}
-                        />
-                    </>
-                )}
 
                 {canManage && roteiro.length > 0 && (
                     <section>
@@ -233,6 +225,56 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                     </details>
                 )}
             </main>
+
+            {conduct && conducting && (
+                <>
+                    {/* Barra do professor: chamada e encerramento sempre à mão. */}
+                    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-safe backdrop-blur">
+                        <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-2 sm:px-6">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="lg"
+                                className="flex-1"
+                                onClick={() => setAttendanceOpen(true)}
+                                aria-haspopup="dialog"
+                                aria-expanded={attendanceOpen}
+                            >
+                                <Users /> Chamada
+                                <span className="text-muted-foreground tabular-nums">
+                                    {presentCount}/{conduct.roster.length}
+                                </span>
+                            </Button>
+                            <FinishMeetingDialog
+                                meetingId={conduct.meeting.id}
+                                initialNotes={conduct.meeting.notes ?? null}
+                            >
+                                <Button size="lg" className="flex-1">
+                                    <Flag /> Encerrar aula
+                                </Button>
+                            </FinishMeetingDialog>
+                        </div>
+                    </div>
+
+                    <BottomSheet
+                        open={attendanceOpen}
+                        onOpenChange={setAttendanceOpen}
+                        title="Chamada"
+                        description="Toque no nome de quem está presente. Salva sozinha."
+                    >
+                        <div className="pb-4">
+                            <AttendanceSheet
+                                key={conduct.meeting.id}
+                                meetingId={conduct.meeting.id}
+                                roster={conduct.roster}
+                                initialPresent={conduct.present}
+                                initialVisitors={conduct.meeting.visitors_count}
+                                onChange={setPresentCount}
+                            />
+                        </div>
+                    </BottomSheet>
+                </>
+            )}
         </div>
     );
 }

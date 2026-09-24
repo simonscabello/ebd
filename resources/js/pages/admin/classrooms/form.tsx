@@ -7,7 +7,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { store, update } from '@/routes/admin/classrooms';
+import { dashboard } from '@/routes/admin';
+import {
+    index as classroomsIndex,
+    store,
+    update,
+} from '@/routes/admin/classrooms';
 import type { Classroom } from '@/types';
 
 export default function ClassroomForm({
@@ -28,6 +33,11 @@ export default function ClassroomForm({
             <Head title={classroom ? 'Editar classe' : 'Nova classe'} />
             <Page>
                 <PageHeader
+                    breadcrumbs={[
+                        { title: 'Gestão', href: dashboard.url() },
+                        { title: 'Classes', href: classroomsIndex.url() },
+                        { title: classroom ? classroom.name : 'Nova' },
+                    ]}
                     title={classroom ? 'Editar classe' : 'Nova classe'}
                 />
                 <form

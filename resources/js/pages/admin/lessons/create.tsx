@@ -1,6 +1,8 @@
 import { Head } from '@inertiajs/react';
 import { LessonForm } from '@/components/admin/lesson-form';
 import { Page, PageHeader } from '@/components/page';
+import { dashboard } from '@/routes/admin';
+import { index as lessonsIndex } from '@/routes/admin/lessons';
 import type { Classroom, Option, Series } from '@/types';
 
 type Props = {
@@ -25,6 +27,11 @@ export default function CreateLesson({
             <Head title="Nova lição" />
             <Page>
                 <PageHeader
+                    breadcrumbs={[
+                        { title: 'Gestão', href: dashboard.url() },
+                        { title: 'Lições', href: lessonsIndex.url() },
+                        { title: 'Nova' },
+                    ]}
                     title="Nova lição"
                     description="A lição começa como rascunho. Depois você adiciona leituras, blocos de aprofundamento e materiais e publica."
                 />

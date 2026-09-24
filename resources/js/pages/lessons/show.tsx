@@ -1,9 +1,10 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpenText,
     BookText,
     CalendarDays,
+    KeyRound,
     Layers,
     Library,
     Lightbulb,
@@ -27,15 +28,13 @@ import { PersonalNote } from '@/components/lesson/personal-note';
 import { RevistaHeader } from '@/components/lesson/revista-header';
 import { ShareButton } from '@/components/lesson/share-button';
 import { Page, Section } from '@/components/page';
+import { SectionNav } from '@/components/section-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { home, library } from '@/routes';
+import { useReadingCheckin } from '@/hooks/use-reading-checkin';
+import { home, library, login } from '@/routes';
 import { edit } from '@/routes/admin/lessons';
 import { sunday } from '@/routes/lessons';
-import {
-    destroy as undoCheckin,
-    store as storeCheckin,
-} from '@/routes/lessons/checkins';
 import type { Lesson } from '@/types';
 
 type Study = {
@@ -58,7 +57,8 @@ export default function LessonShow({
     shareText,
     study,
 }: Props) {
-    const visit = { preserveScroll: true, preserveState: true };
+    const { auth } = usePage().props;
+    const checkin = useReadingCheckin(lesson.slug);
 
     const materials = lesson.materials ?? [];
     const readings = lesson.readings ?? [];
@@ -126,7 +126,7 @@ export default function LessonShow({
             <Page>
                 <Link
                     href={home()}
-                    className="mb-5 -ml-1 inline-flex items-center gap-1 rounded-lg px-1 py-1 text-sm text-muted-foreground hover:text-foreground"
+                    className="mb-5 -ml-1 inline-flex min-h-9 items-center gap-1 rounded-lg px-1 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                     <ArrowLeft className="size-4" /> Início
                 </Link>
@@ -223,20 +223,12 @@ export default function LessonShow({
                 )}
 
                 {sections.length > 1 && (
-                    <nav
-                        className="sticky top-16 z-20 -mx-4 mt-8 flex gap-2 overflow-x-auto border-b border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur"
-                        aria-label="Seções da lição"
-                    >
-                        {sections.map((section) => (
-                            <a
-                                key={section.id}
-                                href={`#${section.id}`}
-                                className="shrink-0 rounded-full bg-muted px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-                            >
-                                {section.label}
-                            </a>
-                        ))}
-                    </nav>
+                    <SectionNav
+                        sections={sections}
+                        label="Seções da lição"
+                        progress
+                        className="mt-8"
+                    />
                 )}
 
                 <div className="mt-8 space-y-12">
@@ -254,36 +246,42 @@ export default function LessonShow({
                                         ? {
                                               checkedWeekdays:
                                                   study.checked_weekdays,
+                                              pendingWeekdays: readings
+                                                  .map((r) => r.weekday)
+                                                  .filter(
+                                                      (day): day is number =>
+                                                          day !== null &&
+                                                          checkin.isPending(
+                                                              day,
+                                                          ),
+                                                  ),
                                               onToggle: (reading, done) =>
-                                                  done
-                                                      ? router.delete(
-                                                            undoCheckin.url(
-                                                                lesson.slug,
-                                                            ),
-                                                            {
-                                                                data: {
-                                                                    weekday:
-                                                                        reading.weekday,
-                                                                },
-                                                                ...visit,
-                                                            },
-                                                        )
-                                                      : router.post(
-                                                            storeCheckin.url(
-                                                                lesson.slug,
-                                                            ),
-                                                            {
-                                                                weekday:
-                                                                    reading.weekday,
-                                                                reading_id:
-                                                                    reading.id,
-                                                            },
-                                                            visit,
-                                                        ),
+                                                  reading.weekday !== null &&
+                                                  checkin.toggle(
+                                                      reading.weekday,
+                                                      done,
+                                                      reading.id,
+                                                  ),
                                           }
                                         : undefined
                                 }
                             />
+                            {!study && !auth.user && (
+                                <p className="mt-4 flex items-center gap-3 rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">
+                                    <KeyRound className="size-4 shrink-0 text-primary" />
+                                    <span>
+                                        Membro da classe? Entre com o seu link
+                                        pessoal para marcar as leituras e fazer
+                                        anotações.{' '}
+                                        <Link
+                                            href={login()}
+                                            className="font-medium text-primary underline-offset-4 hover:underline"
+                                        >
+                                            Entrar
+                                        </Link>
+                                    </span>
+                                </p>
+                            )}
                         </Section>
                     )}
 

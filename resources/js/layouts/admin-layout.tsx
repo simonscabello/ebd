@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                                 href={item.href}
                                 aria-current={active ? 'page' : undefined}
                                 className={cn(
-                                    'shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
+                                    'inline-flex min-h-9 shrink-0 items-center rounded-full px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                     active &&
                                         'bg-primary text-primary-foreground hover:text-primary-foreground',
                                 )}

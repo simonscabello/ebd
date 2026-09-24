@@ -5,6 +5,8 @@ import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
+import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
 import { library } from '@/routes';
 import { show } from '@/routes/lessons';
 import type { Classroom, Lesson, Paginated, Series } from '@/types';
@@ -32,6 +34,7 @@ export default function LibraryIndex({
     years,
 }: Props) {
     const [query, setQuery] = useState(filters.q);
+    const [searching, setSearching] = useState(false);
     const firstRender = useRef(true);
 
     const visit = (changes: Partial<Filters>) => {
@@ -48,6 +51,8 @@ export default function LibraryIndex({
             preserveScroll: true,
             replace: true,
             only: ['results', 'filters', 'series'],
+            onStart: () => setSearching(true),
+            onFinish: () => setSearching(false),
         });
     };
 
@@ -107,7 +112,7 @@ export default function LibraryIndex({
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         <NativeSelect
                             aria-label="Classe"
                             value={filters.classe ?? ''}
@@ -120,7 +125,7 @@ export default function LibraryIndex({
                                 })
                             }
                         >
-                            <option value="">Todas as classes</option>
+                            <option value="">Classe: todas</option>
                             {classrooms.map((classroom) => (
                                 <option key={classroom.id} value={classroom.id}>
                                     {classroom.name}
@@ -129,6 +134,7 @@ export default function LibraryIndex({
                         </NativeSelect>
                         <NativeSelect
                             aria-label="Série"
+                            className="order-first col-span-2 sm:order-none sm:col-span-1"
                             value={filters.serie ?? ''}
                             onChange={(event) =>
                                 visit({
@@ -138,7 +144,7 @@ export default function LibraryIndex({
                                 })
                             }
                         >
-                            <option value="">Todas as séries</option>
+                            <option value="">Série: todas</option>
                             {series.map((item) => (
                                 <option key={item.id} value={item.id}>
                                     {item.title}
@@ -156,7 +162,7 @@ export default function LibraryIndex({
                                 })
                             }
                         >
-                            <option value="">Todos os anos</option>
+                            <option value="">Ano: todos</option>
                             {years.map((year) => (
                                 <option key={year} value={year}>
                                     {year}
@@ -167,10 +173,19 @@ export default function LibraryIndex({
                 </form>
 
                 <div className="mt-6 mb-3 flex items-center justify-between text-sm text-muted-foreground">
-                    <span aria-live="polite">
-                        {results.meta.total === 1
-                            ? '1 aula'
-                            : `${results.meta.total} aulas`}
+                    <span
+                        aria-live="polite"
+                        className="inline-flex items-center gap-1.5"
+                    >
+                        {searching ? (
+                            <>
+                                <Spinner className="size-3.5" /> Buscando…
+                            </>
+                        ) : results.meta.total === 1 ? (
+                            '1 aula'
+                        ) : (
+                            `${results.meta.total} aulas`
+                        )}
                     </span>
                     {hasFilters && (
                         <button
@@ -183,74 +198,82 @@ export default function LibraryIndex({
                                     { preserveScroll: true, replace: true },
                                 );
                             }}
-                            className="inline-flex items-center gap-1 font-medium text-primary"
+                            className="inline-flex min-h-9 items-center gap-1 rounded-md font-medium text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                         >
                             <X className="size-4" /> Limpar filtros
                         </button>
                     )}
                 </div>
 
-                {results.data.length === 0 ? (
-                    <EmptyState
-                        icon={<BookOpen />}
-                        title="Nenhuma aula encontrada"
-                    >
-                        Tente outras palavras ou remova algum filtro.
-                    </EmptyState>
-                ) : (
-                    <ul className="space-y-3">
-                        {results.data.map((lesson) => (
-                            <li key={lesson.id}>
-                                <Link
-                                    href={show(lesson.slug)}
-                                    className="block rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:border-primary/40 hover:bg-accent/20"
-                                >
-                                    <p className="text-sm text-muted-foreground">
-                                        {[
-                                            lesson.date_short,
-                                            lesson.classroom?.name,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                    </p>
-                                    <h2 className="mt-0.5 font-serif text-xl font-semibold tracking-tight text-balance">
-                                        {lesson.title}
-                                    </h2>
-                                    <p className="mt-1 text-sm">
-                                        {lesson.bible_reference && (
-                                            <span className="font-medium">
-                                                {lesson.bible_reference}
-                                            </span>
+                <div
+                    aria-busy={searching || undefined}
+                    className={cn(
+                        'transition-opacity',
+                        searching && 'opacity-60',
+                    )}
+                >
+                    {results.data.length === 0 ? (
+                        <EmptyState
+                            icon={<BookOpen />}
+                            title="Nenhuma aula encontrada"
+                        >
+                            Tente outras palavras ou remova algum filtro.
+                        </EmptyState>
+                    ) : (
+                        <ul className="space-y-3">
+                            {results.data.map((lesson) => (
+                                <li key={lesson.id}>
+                                    <Link
+                                        href={show(lesson.slug)}
+                                        className="block rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:border-primary/40 hover:bg-accent/20"
+                                    >
+                                        <p className="text-sm text-muted-foreground">
+                                            {[
+                                                lesson.date_short,
+                                                lesson.classroom?.name,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </p>
+                                        <h2 className="mt-0.5 font-serif text-xl font-semibold tracking-tight text-balance">
+                                            {lesson.title}
+                                        </h2>
+                                        <p className="mt-1 text-sm">
+                                            {lesson.bible_reference && (
+                                                <span className="font-medium">
+                                                    {lesson.bible_reference}
+                                                </span>
+                                            )}
+                                            {lesson.bible_reference &&
+                                                lesson.series &&
+                                                ' · '}
+                                            {lesson.series && (
+                                                <span className="text-muted-foreground">
+                                                    {lesson.series.title}
+                                                </span>
+                                            )}
+                                        </p>
+                                        {lesson.headline ? (
+                                            <p
+                                                className="mt-2 text-sm text-muted-foreground [&_mark]:rounded [&_mark]:bg-highlight [&_mark]:px-0.5 [&_mark]:text-highlight-foreground"
+                                                // Trecho escapado no servidor; só <mark> é inserido.
+                                                dangerouslySetInnerHTML={{
+                                                    __html: `…${lesson.headline}…`,
+                                                }}
+                                            />
+                                        ) : (
+                                            lesson.summary && (
+                                                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                                                    {lesson.summary}
+                                                </p>
+                                            )
                                         )}
-                                        {lesson.bible_reference &&
-                                            lesson.series &&
-                                            ' · '}
-                                        {lesson.series && (
-                                            <span className="text-muted-foreground">
-                                                {lesson.series.title}
-                                            </span>
-                                        )}
-                                    </p>
-                                    {lesson.headline ? (
-                                        <p
-                                            className="mt-2 text-sm text-muted-foreground [&_mark]:rounded [&_mark]:bg-highlight [&_mark]:px-0.5 [&_mark]:text-highlight-foreground"
-                                            // Trecho escapado no servidor; só <mark> é inserido.
-                                            dangerouslySetInnerHTML={{
-                                                __html: `…${lesson.headline}…`,
-                                            }}
-                                        />
-                                    ) : (
-                                        lesson.summary && (
-                                            <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                                                {lesson.summary}
-                                            </p>
-                                        )
-                                    )}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
 
                 {results.meta.last_page > 1 && (
                     <nav

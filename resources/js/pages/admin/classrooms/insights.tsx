@@ -10,6 +10,8 @@ import type { ReactNode } from 'react';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { dashboard } from '@/routes/admin';
+import { index as agendaIndex } from '@/routes/admin/classrooms/meetings';
 import { show as studentPage } from '@/routes/admin/classrooms/students';
 import { report } from '@/routes/admin/series';
 import type { Classroom, Series } from '@/types';
@@ -69,7 +71,14 @@ export default function ClassroomInsights({
             <Head title={`Evolução · ${classroom.name}`} />
             <Page width="wide">
                 <PageHeader
-                    eyebrow={`Classe ${classroom.name}`}
+                    breadcrumbs={[
+                        { title: 'Gestão', href: dashboard.url() },
+                        {
+                            title: classroom.name,
+                            href: agendaIndex.url(classroom.slug),
+                        },
+                        { title: 'Evolução' },
+                    ]}
                     title="Evolução da classe"
                     description="Presença nos domingos e estudo em casa. As anotações dos alunos são privadas e não aparecem aqui."
                 />
@@ -117,7 +126,7 @@ export default function ClassroomInsights({
                                 Ninguém por enquanto. 🙌
                             </p>
                         ) : (
-                            <ul className="divide-y rounded-2xl border border-amber-300/60 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30">
+                            <ul className="divide-y rounded-2xl border border-warning/50 bg-warning-soft/60">
                                 {atRisk.map((student) => (
                                     <li key={student.id}>
                                         <Link

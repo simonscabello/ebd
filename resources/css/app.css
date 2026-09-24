@@ -6,7 +6,21 @@
 
 @plugin '@tailwindcss/typography';
 
+/*
+ * Flowbite: só os estilos de tooltip/popover do plugin. Os estilos globais de
+ * formulário ficam desligados para não sobrescrever os inputs do app.
+ * O @source deixa o Tailwind enxergar as classes que o JS do Flowbite aplica
+ * (drawer, backdrop, dropdown...).
+ */
+@plugin 'flowbite/plugin' {
+    forms: false;
+    charts: false;
+    datatables: false;
+    wysiwyg: false;
+}
+
 @source '../views';
+@source '../../node_modules/flowbite';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -44,6 +58,87 @@
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
+    --color-success: var(--success);
+    --color-success-soft: var(--success-soft);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-foreground: var(--warning-foreground);
+}
+
+/*
+ * Ponte para os tokens semânticos do Flowbite v4 (bg-brand, text-heading,
+ * border-default, bg-neutral-primary...). Assim os componentes do Flowbite
+ * herdam a paleta "papel e tinta" e o tema escuro do app.
+ */
+@theme inline {
+    --color-brand: var(--primary);
+    --color-brand-strong: var(--primary);
+    --color-brand-medium: var(--accent);
+    --color-brand-soft: var(--accent);
+    --color-brand-softer: var(--accent);
+    --color-brand-subtle: var(--ring);
+    --color-brand-light: var(--primary);
+    --color-fg-brand: var(--primary);
+    --color-fg-brand-strong: var(--accent-foreground);
+    --color-fg-brand-subtle: var(--ring);
+
+    --color-body: var(--muted-foreground);
+    --color-body-subtle: var(--muted-foreground);
+    --color-heading: var(--foreground);
+
+    --color-neutral-primary: var(--card);
+    --color-neutral-primary-soft: var(--card);
+    --color-neutral-primary-medium: var(--muted);
+    --color-neutral-primary-strong: var(--secondary);
+    --color-neutral-secondary: var(--background);
+    --color-neutral-secondary-soft: var(--background);
+    --color-neutral-secondary-medium: var(--muted);
+    --color-neutral-secondary-strong: var(--secondary);
+    --color-neutral-secondary-strongest: var(--secondary);
+    --color-neutral-tertiary: var(--muted);
+    --color-neutral-tertiary-soft: var(--muted);
+    --color-neutral-tertiary-medium: var(--secondary);
+    --color-neutral-quaternary: var(--border);
+    --color-neutral-quaternary-medium: var(--input);
+    --color-gray: var(--input);
+
+    --color-default: var(--border);
+    --color-default-subtle: var(--border);
+    --color-default-medium: var(--input);
+    --color-default-strong: var(--input);
+    --color-light: var(--muted);
+    --color-light-subtle: var(--muted);
+    --color-light-medium: var(--secondary);
+    --color-buffer: var(--card);
+    --color-buffer-medium: var(--card);
+    --color-buffer-strong: var(--muted);
+    --color-disabled: var(--muted);
+    --color-fg-disabled: var(--muted-foreground);
+
+    --color-success-medium: var(--success-soft);
+    --color-success-strong: var(--success);
+    --color-success-subtle: var(--success);
+    --color-fg-success: var(--success-foreground);
+    --color-fg-success-strong: var(--success-foreground);
+    --color-danger: var(--destructive);
+    --color-danger-soft: var(--destructive-soft);
+    --color-danger-medium: var(--destructive-soft);
+    --color-danger-strong: var(--destructive);
+    --color-danger-subtle: var(--destructive);
+    --color-fg-danger: var(--destructive);
+    --color-fg-danger-strong: var(--destructive);
+    --color-warning-medium: var(--warning-soft);
+    --color-warning-strong: var(--warning);
+    --color-warning-subtle: var(--warning);
+    --color-fg-warning: var(--warning-foreground);
+    --color-fg-warning-subtle: var(--warning);
+
+    --color-dark: var(--foreground);
+    --color-dark-soft: var(--foreground);
+    --color-dark-strong: var(--foreground);
+    --color-dark-subtle: var(--foreground);
+    --color-dark-backdrop: var(--backdrop);
 }
 
 /*
@@ -72,6 +167,14 @@
     --border: oklch(0.905 0.012 80);
     --input: oklch(0.87 0.014 80);
     --ring: oklch(0.6 0.06 170);
+    --success: oklch(0.55 0.13 160);
+    --success-soft: oklch(0.96 0.03 160);
+    --success-foreground: oklch(0.38 0.1 160);
+    --warning: oklch(0.72 0.15 75);
+    --warning-soft: oklch(0.97 0.04 85);
+    --warning-foreground: oklch(0.42 0.1 60);
+    --destructive-soft: oklch(0.96 0.02 27);
+    --backdrop: oklch(0.18 0.008 70);
     --radius: 0.75rem;
 }
 
@@ -97,6 +200,14 @@
     --border: oklch(0.3 0.01 70);
     --input: oklch(0.35 0.012 70);
     --ring: oklch(0.6 0.06 170);
+    --success: oklch(0.7 0.13 160);
+    --success-soft: oklch(0.26 0.04 160);
+    --success-foreground: oklch(0.85 0.1 160);
+    --warning: oklch(0.78 0.14 80);
+    --warning-soft: oklch(0.3 0.05 80);
+    --warning-foreground: oklch(0.9 0.08 85);
+    --destructive-soft: oklch(0.28 0.05 27);
+    --backdrop: oklch(0.1 0.005 70);
 }
 
 @layer base {

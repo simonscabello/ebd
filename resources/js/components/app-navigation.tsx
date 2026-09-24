@@ -110,8 +110,11 @@ export function TopBar() {
                             <Link
                                 key={item.title}
                                 href={item.href}
+                                aria-current={
+                                    isActive(item) ? 'page' : undefined
+                                }
                                 className={cn(
-                                    'rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                                    'rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                     isActive(item) &&
                                         'bg-muted text-foreground',
                                 )}
@@ -202,7 +205,7 @@ export function BottomNav() {
                                 href={item.href}
                                 aria-current={active ? 'page' : undefined}
                                 className={cn(
-                                    'flex flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11px] font-medium text-muted-foreground',
+                                    'flex flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11px] font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                     active && 'text-primary',
                                 )}
                             >
