@@ -128,7 +128,7 @@ class AttendanceAndInsightsTest extends TestCase
             $this->actingAs($this->teacher)->put("/admin/encontros/{$meeting->id}/chamada", ['present' => [$ana->id]]);
         }
 
-        DB::table('reading_checkins')->insert(['user_id' => $ana->id, 'lesson_id' => $lesson->id, 'read_on' => '2026-09-25', 'created_at' => now()]);
+        DB::table('reading_checkins')->insert(['user_id' => $ana->id, 'lesson_id' => $lesson->id, 'weekday' => 5, 'read_on' => '2026-09-25', 'created_at' => now()]);
 
         $this->actingAs($this->teacher)->get('/admin/classes/adultos/evolucao')
             ->assertOk()

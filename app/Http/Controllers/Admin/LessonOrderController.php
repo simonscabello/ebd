@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Gate;
 class LessonOrderController extends Controller
 {
     /**
-     * @param  'materials'|'questions'|'readings'|'blocks'  $relation
+     * @param  'materials'|'readings'|'blocks'  $relation
      */
     public function __invoke(Request $request, Lesson $lesson, string $relation, ReorderLessonItems $reorder): RedirectResponse
     {

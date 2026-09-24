@@ -3,7 +3,6 @@
 namespace App\Queries;
 
 use App\Enums\ContentAudience;
-use App\Enums\QuestionKind;
 use App\Enums\Weekday;
 use App\Http\Resources\LessonBlockResource;
 use App\Http\Resources\LessonReadingResource;
@@ -20,7 +19,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * "Minha semana": a semana de estudo (segunda a domingo) da lição atual da classe.
  *
- * - leitura de cada dia (lesson_readings.weekday) e se a pessoa marcou "Li";
+ * - leitura de cada dia (lesson_readings.weekday) e se a pessoa marcou como
+ *   lida (vale marcar qualquer dia, a qualquer momento: adiantar ou recuperar);
  * - conteúdo do dia (curiosidade/conceito): blocos com dia definido ou, sem
  *   dia, distribuídos automaticamente de segunda a sábado;
  * - checklist "Prepare-se para domingo" e sequência de dias.
@@ -62,15 +62,14 @@ class StudyWeekQuery
 
         $lesson->load([
             'readings',
-            'questions' => fn ($q) => $q->where('kind', QuestionKind::Review),
             'blocks' => fn ($q) => $q->where('audience', ContentAudience::Student),
         ]);
 
-        $checkins = DB::table('reading_checkins')
+        $checked = DB::table('reading_checkins')
             ->where('user_id', $user->id)
             ->where('lesson_id', $lesson->id)
-            ->pluck('read_on')
-            ->map(fn ($d) => substr((string) $d, 0, 10))
+            ->pluck('weekday')
+            ->map(fn ($d) => (int) $d)
             ->all();
 
         $blocksByDay = $this->dripSchedule($lesson->blocks);
@@ -85,7 +84,7 @@ class StudyWeekQuery
                 'short' => $weekday->shortLabel(),
                 'is_today' => $date->isSameDay($today),
                 'is_future' => $date->gt($today),
-                'done' => in_array($date->toDateString(), $checkins, true),
+                'done' => in_array($weekday->value, $checked, true),
                 'readings' => LessonReadingResource::collection(
                     $lesson->readings->filter(fn ($r) => $r->weekday === $weekday)->values()
                 )->resolve($request),
@@ -98,11 +97,6 @@ class StudyWeekQuery
             ->filter(fn ($blocks, $day) => $day <= $today->dayOfWeekIso)
             ->flatten(1)
             ->values();
-
-        $attempts = DB::table('question_attempts')
-            ->where('user_id', $user->id)
-            ->whereIn('lesson_question_id', $lesson->questions->pluck('id'))
-            ->count();
 
         $readingDays = $lesson->readings->filter(fn ($r) => $r->weekday !== null && $r->weekday !== Weekday::Sunday)
             ->pluck('weekday')->unique()->count();
@@ -132,13 +126,11 @@ class StudyWeekQuery
                 'days_total' => max($readingDays, 1),
             ],
             'checklist' => [
-                ['key' => 'read', 'label' => 'Ler o texto base ('.($lesson->bible_reference ?? 'da lição').')', 'done' => $checkins !== []],
+                ['key' => 'read', 'label' => 'Ler o texto base ('.($lesson->bible_reference ?? 'da lição').')', 'done' => $checked !== []],
                 ['key' => 'week', 'label' => "Fazer as leituras da semana ({$weekDone}/".max($readingDays, 1).')', 'done' => $weekDone >= max($readingDays, 1)],
-                ['key' => 'review', 'label' => 'Responder a revisão ('.$attempts.'/'.$lesson->questions->count().')', 'done' => $lesson->questions->isNotEmpty() && $attempts >= $lesson->questions->count(), 'hidden' => $lesson->questions->isEmpty()],
                 ['key' => 'note', 'label' => 'Anotar o que Deus falou com você', 'done' => $hasNote],
                 ['key' => 'magazine', 'label' => 'Levar a revista e a Bíblia no domingo', 'done' => null],
             ],
-            'review' => ['answered' => $attempts, 'total' => $lesson->questions->count()],
         ];
     }
 

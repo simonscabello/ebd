@@ -32,7 +32,7 @@ class HomeController extends Controller
         $lesson = $current?->lesson;
 
         $lesson?->load([
-            'readings', 'questions',
+            'readings',
             'materials' => fn ($q) => $q->where('audience', ContentAudience::Student),
         ]);
 

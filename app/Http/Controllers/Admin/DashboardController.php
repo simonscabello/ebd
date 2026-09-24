@@ -35,7 +35,7 @@ class DashboardController extends Controller
                 ->whereHas('meetings', fn ($m) => $m->active()->whereDate('held_on', '>=', $today))
                 ->orWhereDoesntHave('meetings', fn ($m) => $m->active()))
             ->with(['classroom', 'series'])
-            ->withCount(['materials', 'questions'])
+            ->withCount(['materials'])
             ->withMin(['meetings as next_meeting_on' => fn ($m) => $m->active()->whereDate('held_on', '>=', $today)], 'held_on')
             // Em ordem crescente o PostgreSQL já coloca as sem data (NULL) por último.
             ->orderBy('next_meeting_on')

@@ -11,7 +11,6 @@ enum Badge: string
     case Streak7 = 'streak_7';
     case Streak30 = 'streak_30';
     case FaithfulReader = 'faithful_reader';
-    case ReviewMaster = 'review_master';
     case PerfectAttendance = 'perfect_attendance';
 
     public function label(): string
@@ -21,7 +20,6 @@ enum Badge: string
             self::Streak7 => '7 dias seguidos',
             self::Streak30 => '30 dias seguidos',
             self::FaithfulReader => 'Leitor fiel',
-            self::ReviewMaster => 'Revisão em dia',
             self::PerfectAttendance => 'Presença em todos os domingos',
         };
     }
@@ -29,11 +27,10 @@ enum Badge: string
     public function description(): string
     {
         return match ($this) {
-            self::FirstFullWeek => 'Leu a Bíblia de segunda a sábado na mesma semana.',
+            self::FirstFullWeek => 'Leu as leituras de segunda a sábado de uma lição.',
             self::Streak7 => 'Uma semana inteira sem deixar de ler.',
             self::Streak30 => 'Um mês de leitura diária. Que constância!',
             self::FaithfulReader => 'Estudou durante a semana em quase todas as lições do trimestre.',
-            self::ReviewMaster => 'Respondeu todas as perguntas de revisão do trimestre.',
             self::PerfectAttendance => 'Esteve em todos os encontros do trimestre.',
         };
     }
@@ -45,7 +42,6 @@ enum Badge: string
             self::Streak7 => '🔥',
             self::Streak30 => '🌟',
             self::FaithfulReader => '🏅',
-            self::ReviewMaster => '🎯',
             self::PerfectAttendance => '⛪',
         };
     }
@@ -53,6 +49,6 @@ enum Badge: string
     /** Selo conquistado uma vez por série (trimestre). */
     public function isPerSeries(): bool
     {
-        return in_array($this, [self::FaithfulReader, self::ReviewMaster, self::PerfectAttendance], true);
+        return in_array($this, [self::FaithfulReader, self::PerfectAttendance], true);
     }
 }

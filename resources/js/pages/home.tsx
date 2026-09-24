@@ -2,24 +2,21 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     BookMarked,
-    BookOpen,
     CalendarDays,
     CalendarOff,
     FileText,
-    HelpCircle,
     Hourglass,
-    KeyRound,
     Layers,
+    Presentation,
     Sparkles,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { InstallAppBanner } from '@/components/install-app-banner';
-import { ShareButton } from '@/components/lesson/share-button';
+import { LessonHero } from '@/components/lesson/lesson-hero';
 import { EmptyState, Page } from '@/components/page';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { home, library, login, myWeek } from '@/routes';
-import { show } from '@/routes/lessons';
+import { show, sunday } from '@/routes/lessons';
 import type { ClassMeeting, Classroom, Lesson, Series } from '@/types';
 
 type Props = {
@@ -220,8 +217,8 @@ export default function Home({
                 {!auth.user && (
                     <p className="mt-10 rounded-2xl bg-muted/70 p-4 text-sm text-muted-foreground">
                         Faz parte de uma classe? Peça ao seu professor o seu
-                        link pessoal: com ele você marca as leituras, faz a
-                        revisão e acompanha seu progresso. Já tem senha?{' '}
+                        link pessoal: com ele você marca as leituras, faz
+                        anotações e acompanha seu progresso. Já tem senha?{' '}
                         <Link
                             href={login()}
                             className="font-medium text-primary"
@@ -270,9 +267,6 @@ function NextLesson({
     position: string | null;
 }) {
     const readings = lesson.readings ?? [];
-    const questions = (lesson.questions ?? []).filter(
-        (q) => q.kind === 'reflection',
-    );
     const materials = lesson.materials ?? [];
     const primary = materials.find((m) => m.is_primary && m.file);
     const complementary = materials.filter(
@@ -283,74 +277,16 @@ function NextLesson({
 
     return (
         <>
-            <article className="overflow-hidden rounded-3xl bg-primary text-primary-foreground shadow-sm">
-                <div className="p-6 md:p-8">
-                    <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium opacity-90">
-                        <span>{meeting ? 'Próxima aula' : 'Última aula'}</span>
-                        {meeting && (
-                            <>
-                                <span aria-hidden>·</span>
-                                <span className="first-letter:uppercase">
-                                    {meeting.date_label}
-                                </span>
-                            </>
-                        )}
-                        {position && (
-                            <>
-                                <span aria-hidden>·</span>
-                                <span>{position}</span>
-                            </>
-                        )}
-                    </p>
-                    {lesson.number && (
-                        <p className="mt-3 text-sm font-semibold tracking-wide uppercase opacity-80">
-                            Lição {lesson.number}
-                        </p>
-                    )}
-                    <h2 className="mt-1 font-serif text-3xl leading-tight font-semibold tracking-tight text-balance md:text-4xl">
-                        {lesson.title}
-                    </h2>
-                    {lesson.bible_reference && (
-                        <p className="mt-3 flex items-center gap-2 text-lg opacity-95">
-                            <BookOpen className="size-5" />
-                            Texto base:{' '}
-                            <span className="font-semibold">
-                                {lesson.bible_reference}
-                            </span>
-                        </p>
-                    )}
-                    {lesson.key_verse && (
-                        <p className="mt-4 flex gap-2 font-serif leading-relaxed text-pretty italic opacity-95">
-                            <KeyRound className="mt-1 size-4 shrink-0" />
-                            {lesson.key_verse}
-                        </p>
-                    )}
-                    {lesson.summary && (
-                        <p className="mt-4 leading-relaxed text-pretty opacity-90">
-                            {lesson.summary}
-                        </p>
-                    )}
-                    <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
-                        <Button
-                            asChild
-                            size="lg"
-                            variant="secondary"
-                            className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                        >
-                            <Link href={lessonUrl}>
-                                Abrir a lição <ArrowRight />
-                            </Link>
-                        </Button>
-                        <div className="[&_button]:h-12 [&_button]:w-full [&_button]:border-primary-foreground/30 [&_button]:bg-transparent [&_button]:text-primary-foreground [&_button]:hover:bg-primary-foreground/10 sm:[&_button]:w-auto">
-                            <ShareButton
-                                url={lesson.url}
-                                title={lesson.display_title}
-                                text={`📖 ${lesson.display_title}${lesson.bible_reference ? `\nTexto base: ${lesson.bible_reference}` : ''}\n${lesson.url}`}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </article>
+            <LessonHero
+                lesson={lesson}
+                eyebrow={[
+                    meeting ? 'Próxima aula' : 'Última aula',
+                    meeting?.date_label,
+                    position,
+                ]
+                    .filter(Boolean)
+                    .join(' · ')}
+            />
 
             {todayReading && (
                 <Link
@@ -412,36 +348,12 @@ function NextLesson({
                     }
                 />
                 <StudyTile
-                    href={`${lessonUrl}#perguntas`}
-                    icon={<HelpCircle />}
-                    title="Perguntas"
-                    detail={
-                        questions.length
-                            ? `${questions.length} para refletir`
-                            : 'Nenhuma ainda'
-                    }
+                    href={sunday.url(lesson.slug)}
+                    icon={<Presentation />}
+                    title="Modo Domingo"
+                    detail="Acompanhar a aula"
                 />
             </div>
-
-            {questions.length > 0 && (
-                <section className="mt-10">
-                    <h2 className="mb-3 text-lg font-semibold tracking-tight">
-                        Para pensar até domingo
-                    </h2>
-                    <blockquote className="rounded-2xl border-l-4 border-primary bg-card p-5 font-serif text-xl leading-relaxed text-pretty italic shadow-xs">
-                        {questions[0].body}
-                    </blockquote>
-                    {questions.length > 1 && (
-                        <Link
-                            href={`${lessonUrl}#perguntas`}
-                            className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary"
-                        >
-                            Ver as {questions.length} perguntas{' '}
-                            <ArrowRight className="size-4" />
-                        </Link>
-                    )}
-                </section>
-            )}
         </>
     );
 }

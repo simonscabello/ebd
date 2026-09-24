@@ -3,11 +3,9 @@ import { cn } from '@/lib/utils';
 
 export function BiblePassage({
     reference,
-    text,
     size = 'default',
 }: {
     reference: string;
-    text?: string | null;
     size?: 'default' | 'large';
 }) {
     return (
@@ -23,18 +21,6 @@ export function BiblePassage({
             >
                 {reference}
             </p>
-            {text && (
-                <p
-                    className={cn(
-                        'mt-3 font-serif whitespace-pre-line text-foreground/90 italic',
-                        size === 'large'
-                            ? 'text-2xl leading-relaxed'
-                            : 'text-lg leading-relaxed',
-                    )}
-                >
-                    {text}
-                </p>
-            )}
         </div>
     );
 }

@@ -63,10 +63,13 @@ class EngagementSeeder extends Seeder
 
         if ($joao !== null && $lesson !== null) {
             foreach (range(1, 4) as $daysAgo) {
+                $day = $today->subDays($daysAgo);
+
                 DB::table('reading_checkins')->insertOrIgnore([
                     'user_id' => $joao->id,
                     'lesson_id' => $lesson->id,
-                    'read_on' => $today->subDays($daysAgo)->toDateString(),
+                    'weekday' => $day->dayOfWeekIso,
+                    'read_on' => $day->toDateString(),
                     'created_at' => now(),
                 ]);
             }

@@ -31,7 +31,6 @@ class LessonFactory extends Factory
             // A data vem dos encontros: use on() para criar o encontro junto.
             'scheduled_for' => null,
             'bible_reference' => 'Lucas 5:1-11',
-            'bible_text' => null,
             'content' => "## Introdução\n\n".fake()->paragraph()."\n\n".fake()->paragraph(),
             'status' => LessonStatus::Draft,
             'visibility' => LessonVisibility::Public,

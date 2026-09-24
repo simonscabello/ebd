@@ -11,7 +11,6 @@ use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
 use App\Enums\MaterialType;
 use App\Enums\MeetingStatus;
-use App\Enums\QuestionKind;
 use App\Enums\Weekday;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
@@ -19,7 +18,6 @@ use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\ClassroomResource;
 use App\Http\Resources\LessonBlockResource;
 use App\Http\Resources\LessonMaterialResource;
-use App\Http\Resources\LessonQuestionResource;
 use App\Http\Resources\LessonReadingResource;
 use App\Http\Resources\LessonResource;
 use App\Http\Resources\SeriesResource;
@@ -57,7 +55,7 @@ class LessonController extends Controller
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($filters['q'] ?? null, fn ($q, $term) => $q->whereRaw('unaccent(title) ILIKE unaccent(?)', ['%'.addcslashes($term, '%_\\').'%']))
             ->with(['classroom', 'series'])
-            ->withCount(['materials', 'questions'])
+            ->withCount(['materials'])
             ->orderByRaw('scheduled_for IS NULL DESC, scheduled_for DESC')
             ->paginate(20)
             ->withQueryString();
@@ -102,7 +100,7 @@ class LessonController extends Controller
 
         $lesson = $create->handle($request->user(), $classroom, $request->validated());
 
-        $this->toast('Lição criada como rascunho. Agora adicione leituras, materiais e perguntas.');
+        $this->toast('Lição criada como rascunho. Agora adicione leituras e materiais.');
 
         return to_route('admin.lessons.edit', $lesson);
     }
@@ -111,7 +109,7 @@ class LessonController extends Controller
     {
         Gate::authorize('update', $lesson);
 
-        $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'questions', 'blocks', 'meetings']);
+        $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'blocks', 'meetings']);
 
         return Inertia::render('admin/lessons/edit', [
             'lesson' => [
@@ -125,8 +123,6 @@ class LessonController extends Controller
                 'sunday_url' => route('lessons.sunday', $lesson->slug),
                 'summary' => $lesson->summary,
                 'bible_reference' => $lesson->bible_reference,
-                'bible_text' => $lesson->bible_text,
-                'magazine_author' => $lesson->magazine_author,
                 'key_verse' => $lesson->key_verse,
                 'goal' => $lesson->goal,
                 'content' => $lesson->content,
@@ -138,7 +134,6 @@ class LessonController extends Controller
                 'author_ids' => $lesson->authors->pluck('id'),
                 'materials' => LessonMaterialResource::collection($lesson->materials),
                 'readings' => LessonReadingResource::collection($lesson->readings),
-                'questions' => LessonQuestionResource::collection($lesson->questions),
                 'blocks' => LessonBlockResource::editable($lesson->blocks, $request),
                 'meetings' => ClassMeetingResource::collection($lesson->meetings),
                 'agenda_url' => route('admin.classrooms.meetings.index', $lesson->classroom),
@@ -166,7 +161,6 @@ class LessonController extends Controller
                 'default_audience' => $k->defaultAudience()->value,
             ]),
             'audiences' => collect(ContentAudience::cases())->map(fn (ContentAudience $a) => ['value' => $a->value, 'label' => $a->label()]),
-            'questionKinds' => collect(QuestionKind::cases())->map(fn (QuestionKind $k) => ['value' => $k->value, 'label' => $k->label()]),
         ]);
     }
 

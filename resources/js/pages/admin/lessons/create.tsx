@@ -26,7 +26,7 @@ export default function CreateLesson({
             <Page>
                 <PageHeader
                     title="Nova lição"
-                    description="A lição começa como rascunho. Depois você adiciona leituras, blocos de aprofundamento, materiais e perguntas e publica."
+                    description="A lição começa como rascunho. Depois você adiciona leituras, blocos de aprofundamento e materiais e publica."
                 />
                 <LessonForm
                     classrooms={classrooms}
@@ -40,8 +40,6 @@ export default function CreateLesson({
                         slug: '',
                         meeting_on: defaults.meeting_on,
                         bible_reference: '',
-                        bible_text: '',
-                        magazine_author: '',
                         key_verse: '',
                         goal: '',
                         summary: '',

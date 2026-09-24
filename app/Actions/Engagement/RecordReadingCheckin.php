@@ -3,6 +3,7 @@
 namespace App\Actions\Engagement;
 
 use App\Enums\Badge;
+use App\Enums\Weekday;
 use App\Models\Lesson;
 use App\Models\LessonReading;
 use App\Models\User;
@@ -12,8 +13,9 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
- * "Li hoje" (ou "li ontem", para quem esqueceu de marcar). A data vem sempre
- * do servidor, no fuso da igreja: não dá para marcar dias antigos.
+ * Marca como lida a leitura de um dia do plano da lição. Qualquer dia pode
+ * ser marcado a qualquer momento (adiantar ou pôr em dia); read_on guarda
+ * quando a pessoa marcou, no fuso da igreja.
  */
 class RecordReadingCheckin
 {
@@ -24,7 +26,7 @@ class RecordReadingCheckin
     /**
      * @return list<Badge> selos conquistados com este check-in
      */
-    public function handle(User $user, Lesson $lesson, ?LessonReading $reading, bool $yesterday = false): array
+    public function handle(User $user, Lesson $lesson, Weekday $weekday, ?LessonReading $reading = null): array
     {
         if (! $user->isMemberOf($lesson->classroom_id) || Gate::forUser($user)->denies('view', $lesson)) {
             abort(403);
@@ -34,13 +36,12 @@ class RecordReadingCheckin
             throw ValidationException::withMessages(['reading_id' => 'Esta leitura não é desta lição.']);
         }
 
-        $date = $yesterday ? ChurchCalendar::today()->subDay() : ChurchCalendar::today();
-
         DB::table('reading_checkins')->insertOrIgnore([
             'user_id' => $user->id,
             'lesson_id' => $lesson->id,
             'lesson_reading_id' => $reading?->id,
-            'read_on' => $date->toDateString(),
+            'weekday' => ($reading->weekday ?? $weekday)->value,
+            'read_on' => ChurchCalendar::today()->toDateString(),
             'created_at' => now(),
         ]);
 

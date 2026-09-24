@@ -4,8 +4,6 @@ import {
     BookOpenText,
     BookText,
     CalendarDays,
-    CheckSquare,
-    HelpCircle,
     Layers,
     Library,
     Lightbulb,
@@ -24,11 +22,8 @@ import {
     groupStudentBlocks,
 } from '@/components/lesson/lesson-blocks';
 import { MaterialCard, MaterialIcon } from '@/components/lesson/material-card';
-import { QuestionList } from '@/components/lesson/question-list';
 import { ReadingPlan } from '@/components/lesson/reading-plan';
 import { PersonalNote } from '@/components/lesson/personal-note';
-import type { SelfAssessment } from '@/components/lesson/review-quiz';
-import { ReviewQuiz } from '@/components/lesson/review-quiz';
 import { RevistaHeader } from '@/components/lesson/revista-header';
 import { ShareButton } from '@/components/lesson/share-button';
 import { Page, Section } from '@/components/page';
@@ -41,12 +36,10 @@ import {
     destroy as undoCheckin,
     store as storeCheckin,
 } from '@/routes/lessons/checkins';
-import { attempt } from '@/routes/lessons/questions';
 import type { Lesson } from '@/types';
 
 type Study = {
-    checkins: string[];
-    attempts: Record<number, SelfAssessment>;
+    checked_weekdays: number[];
     note: string | null;
     today: string;
 };
@@ -69,9 +62,6 @@ export default function LessonShow({
 
     const materials = lesson.materials ?? [];
     const readings = lesson.readings ?? [];
-    const questions = lesson.questions ?? [];
-    const reflection = questions.filter((q) => q.kind === 'reflection');
-    const review = questions.filter((q) => q.kind === 'review');
     const { deepen, curiosities, concepts, other } = groupStudentBlocks(
         lesson.blocks ?? [],
     );
@@ -98,8 +88,6 @@ export default function LessonShow({
             id: 'materiais',
             label: 'Materiais',
         },
-        reflection.length > 0 && { id: 'perguntas', label: 'Perguntas' },
-        review.length > 0 && { id: 'revisao', label: 'Revisão' },
         references.length > 0 && { id: 'referencias', label: 'Referências' },
         study && { id: 'anotacoes', label: 'Anotações' },
         teacherBlocks.length > 0 && { id: 'professor', label: 'Professor' },
@@ -198,10 +186,7 @@ export default function LessonShow({
 
                 {lesson.bible_reference && (
                     <div className="mt-6">
-                        <BiblePassage
-                            reference={lesson.bible_reference}
-                            text={lesson.bible_text}
-                        />
+                        <BiblePassage reference={lesson.bible_reference} />
                     </div>
                 )}
 
@@ -267,30 +252,34 @@ export default function LessonShow({
                                 tracking={
                                     study
                                         ? {
-                                              checkins: study.checkins,
-                                              today: study.today,
-                                              onCheck: (reading, yesterday) =>
-                                                  router.post(
-                                                      storeCheckin.url(
-                                                          lesson.slug,
-                                                      ),
-                                                      {
-                                                          reading_id:
-                                                              reading.id,
-                                                          yesterday,
-                                                      },
-                                                      visit,
-                                                  ),
-                                              onUndo: (date) =>
-                                                  router.delete(
-                                                      undoCheckin.url(
-                                                          lesson.slug,
-                                                      ),
-                                                      {
-                                                          data: { date },
-                                                          ...visit,
-                                                      },
-                                                  ),
+                                              checkedWeekdays:
+                                                  study.checked_weekdays,
+                                              onToggle: (reading, done) =>
+                                                  done
+                                                      ? router.delete(
+                                                            undoCheckin.url(
+                                                                lesson.slug,
+                                                            ),
+                                                            {
+                                                                data: {
+                                                                    weekday:
+                                                                        reading.weekday,
+                                                                },
+                                                                ...visit,
+                                                            },
+                                                        )
+                                                      : router.post(
+                                                            storeCheckin.url(
+                                                                lesson.slug,
+                                                            ),
+                                                            {
+                                                                weekday:
+                                                                    reading.weekday,
+                                                                reading_id:
+                                                                    reading.id,
+                                                            },
+                                                            visit,
+                                                        ),
                                           }
                                         : undefined
                                 }
@@ -374,44 +363,6 @@ export default function LessonShow({
                                     </div>
                                 </>
                             )}
-                        </Section>
-                    )}
-
-                    {reflection.length > 0 && (
-                        <Section
-                            id="perguntas"
-                            title="Perguntas para reflexão"
-                            icon={<HelpCircle />}
-                            description="Pense nelas durante a semana. Vamos conversar sobre elas no domingo."
-                        >
-                            <QuestionList questions={reflection} />
-                        </Section>
-                    )}
-
-                    {review.length > 0 && (
-                        <Section
-                            id="revisao"
-                            title="Revise o que aprendeu"
-                            icon={<CheckSquare />}
-                            description="Responda, confira o gabarito e veja como você foi."
-                        >
-                            <ReviewQuiz
-                                questions={review}
-                                attempts={study?.attempts}
-                                onAssess={
-                                    study
-                                        ? (question, value) =>
-                                              router.post(
-                                                  attempt.url({
-                                                      lesson: lesson.slug,
-                                                      question: question.id,
-                                                  }),
-                                                  { self_assessment: value },
-                                                  visit,
-                                              )
-                                        : undefined
-                                }
-                            />
                         </Section>
                     )}
 

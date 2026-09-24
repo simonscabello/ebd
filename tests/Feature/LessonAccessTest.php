@@ -8,7 +8,6 @@ use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\LessonBlock;
 use App\Models\LessonMaterial;
-use App\Models\LessonQuestion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -138,19 +137,6 @@ class LessonAccessTest extends TestCase
                 ->has('lesson.blocks', 1)
                 ->has('lesson.teacher_blocks', 1)
                 ->has('lesson.materials', 2));
-    }
-
-    public function test_review_questions_carry_the_answer_key_and_reflection_questions_do_not(): void
-    {
-        $lesson = Lesson::factory()->published()->for($this->classroom)->create(['slug' => 'licao']);
-        LessonQuestion::factory()->for($lesson)->create(['body' => 'Reflita']);
-        LessonQuestion::factory()->for($lesson)->review('Siloé significa Enviado')->create(['body' => 'O que significa Siloé?']);
-
-        $this->get('/licoes/licao')->assertInertia(fn (Assert $page) => $page
-            ->where('lesson.questions.0.kind', 'reflection')
-            ->where('lesson.questions.0.answer', null)
-            ->where('lesson.questions.1.kind', 'review')
-            ->where('lesson.questions.1.answer', 'Siloé significa Enviado'));
     }
 
     public function test_lesson_content_is_rendered_without_raw_html(): void

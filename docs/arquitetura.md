@@ -16,7 +16,7 @@ Request ─▶ Form Request (validação) ─▶ Controller (fino) ─▶ Policy
                                    API Resource ─▶ Inertia::render(page, props)
 ```
 
-- **Actions** (`app/Actions`) concentram as regras: `CreateLesson`, `UpdateLesson`, `ChangeLessonStatus`, `GenerateLessonSlug`, `StoreLessonMaterial`, `ReorderLessonItems`, `AddClassroomMember`… Uma classe, um método `handle()`, injetável por container. CRUD trivial sem regra (editar pergunta, por exemplo) fica no controller com `$model->update($request->validated())`.
+- **Actions** (`app/Actions`) concentram as regras: `CreateLesson`, `UpdateLesson`, `ChangeLessonStatus`, `GenerateLessonSlug`, `StoreLessonMaterial`, `ReorderLessonItems`, `AddClassroomMember`… Uma classe, um método `handle()`, injetável por container. CRUD trivial sem regra (editar uma leitura, por exemplo) fica no controller com `$model->update($request->validated())`.
 - **Queries** (`app/Queries`) para leituras com regra: `NextLessonQuery` (home) e `LibrarySearch` (busca).
 - **Resources** (`app/Http/Resources`) definem o formato dos dados enviados às páginas. São os mesmos que uma API REST devolveria.
 - **Sem repository pattern**: o Eloquent já é a camada de persistência; escopos (`Lesson::visibleTo()`, `upcoming()`) cobrem a reutilização de consultas.
@@ -27,33 +27,31 @@ Request ─▶ Form Request (validação) ─▶ Controller (fino) ─▶ Policy
 ```
 users ──< classroom_user >── classrooms ──< series ──< lessons ──< lesson_blocks
   │         (role: teacher|student)  │                   │   ├──< lesson_materials
-  ├──< access_links                  │                   │   ├──< lesson_questions ──< question_attempts
-  ├──< reading_checkins >────────────┼───────────────────┤   └──< lesson_readings
+  ├──< access_links                  │                   │   └──< lesson_readings
+  ├──< reading_checkins >────────────┼───────────────────┤
   ├──< lesson_notes >────────────────┼───────────────────┘
   ├──< user_badges                   └──< class_meetings ──< attendances
   └──< lesson_authors                     (encontros: domingo x lição)
 ```
 
-| Tabela              | Observações                                                                                                                                                                                                                         |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`             | `is_admin` para a administração geral. `email` e `password` são opcionais: aluno criado pelo professor entra pelo link pessoal. `phone` monta o link do WhatsApp.                                                                   |
-| `classroom_user`    | Papel **por classe** (`teacher`/`student`), com `unique(classroom_id, user_id)`. `created_at` é a data de entrada na classe (usada nos indicadores de presença).                                                                    |
-| `classrooms`        | Classe (Jovens, Adultos…). `Classroom` porque `Class` é palavra reservada.                                                                                                                                                          |
-| `series`            | A revista/trimestre de uma classe. Slug único por classe.                                                                                                                                                                           |
-| `lessons`           | Espelha a lição da revista: `number` (único por série), título, texto base, `key_verse`, `goal`, `magazine_author` e o estudo principal em Markdown (`content`). `status` é só editorial. `scheduled_for` é **cache** (ver abaixo). |
-| `class_meetings`    | **Encontros** da classe: `held_on`, `lesson_id` (opcional), `status` (`planned`/`held`/`cancelled`), `title`, `notes` (só professor), `attendance_taken_at`, `visitors_count`. Único por classe e dia.                              |
-| `lesson_blocks`     | Blocos além do estudo principal: `kind` (roteiro, se houver tempo, nota de precisão, notas, contexto, teologia, curiosidade, aplicação, conceito), `audience` (`teacher`/`student`), Markdown e `drip_weekday`.                     |
-| `lesson_materials`  | Uma tabela para todos os tipos (`pdf`, `file`, `link`, `video`, `audio`, `reference`). `audience` separa material só do professor (ex.: manual completo do NotebookLM).                                                             |
-| `lesson_questions`  | `kind`: `reflection` (discussão) ou `review` (com `answer`, o gabarito, obrigatório por CHECK).                                                                                                                                     |
-| `lesson_readings`   | Leituras da semana; `weekday` ISO (1 = segunda … 7 = domingo) ou nulo.                                                                                                                                                              |
-| `access_links`      | Links pessoais de acesso. Só o hash sha256 do token; no máximo um ativo por pessoa (índice único parcial); contador de uso.                                                                                                         |
-| `reading_checkins`  | "Li hoje": um por pessoa, lição e dia (data no fuso da igreja).                                                                                                                                                                     |
-| `question_attempts` | Autoavaliação na revisão (`correct`/`partial`/`wrong`). A resposta digitada não é guardada.                                                                                                                                         |
-| `lesson_notes`      | Anotação pessoal. **Privada**: não existe rota nem prop que a entregue a outra pessoa.                                                                                                                                              |
-| `user_badges`       | Selos pessoais; os "por trimestre" guardam `series_id`. Único por pessoa, selo e série.                                                                                                                                             |
-| `attendances`       | Presença = existir a linha. Falta só conta em encontro com chamada feita e para quem já estava na classe.                                                                                                                           |
+| Tabela             | Observações                                                                                                                                                                                                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`            | `is_admin` para a administração geral. `avatar_path`: foto de perfil no disco `public` (o app recorta e reduz para 512px antes de enviar). `email` e `password` são opcionais: aluno criado pelo professor entra pelo link pessoal. `phone` monta o link do WhatsApp. |
+| `classroom_user`   | Papel **por classe** (`teacher`/`student`), com `unique(classroom_id, user_id)`. `created_at` é a data de entrada na classe (usada nos indicadores de presença).                                                                                                      |
+| `classrooms`       | Classe (Jovens, Adultos…). `Classroom` porque `Class` é palavra reservada.                                                                                                                                                                                            |
+| `series`           | A revista/trimestre de uma classe. Slug único por classe.                                                                                                                                                                                                             |
+| `lessons`          | Espelha a lição da revista: `number` (único por série), título, texto base, `key_verse`, `goal` e o estudo principal em Markdown (`content`). `status` é só editorial. `scheduled_for` é **cache** (ver abaixo).                                                      |
+| `class_meetings`   | **Encontros** da classe: `held_on`, `lesson_id` (opcional), `status` (`planned`/`held`/`cancelled`), `title`, `notes` (só professor), `attendance_taken_at`, `visitors_count`. Único por classe e dia.                                                                |
+| `lesson_blocks`    | Blocos além do estudo principal: `kind` (roteiro, se houver tempo, nota de precisão, notas, contexto, teologia, curiosidade, aplicação, conceito), `audience` (`teacher`/`student`), Markdown e `drip_weekday`.                                                       |
+| `lesson_materials` | Uma tabela para todos os tipos (`pdf`, `file`, `link`, `video`, `audio`, `reference`). `audience` separa material só do professor (ex.: manual completo do NotebookLM).                                                                                               |
+| `lesson_readings`  | Leituras da semana; `weekday` ISO (1 = segunda … 7 = domingo) ou nulo.                                                                                                                                                                                                |
+| `access_links`     | Links pessoais de acesso. Só o hash sha256 do token; no máximo um ativo por pessoa (índice único parcial); contador de uso.                                                                                                                                           |
+| `reading_checkins` | Leitura marcada: uma por pessoa, lição e dia do plano (`weekday`), marcável a qualquer momento. `read_on` guarda quando a pessoa marcou (fuso da igreja).                                                                                                             |
+| `lesson_notes`     | Anotação pessoal. **Privada**: não existe rota nem prop que a entregue a outra pessoa.                                                                                                                                                                                |
+| `user_badges`      | Selos pessoais; os "por trimestre" guardam `series_id`. Único por pessoa, selo e série.                                                                                                                                                                               |
+| `attendances`      | Presença = existir a linha. Falta só conta em encontro com chamada feita e para quem já estava na classe.                                                                                                                                                             |
 
-Integridade no banco, não só na aplicação: FKs com `restrict`/`cascade` conforme o caso, `CHECK` para todos os enums, `CHECK` que exige gabarito em pergunta de revisão, que proíbe liberar em "Minha semana" um bloco do professor e que exige arquivo ou URL nos materiais (exceto referências).
+Integridade no banco, não só na aplicação: FKs com `restrict`/`cascade` conforme o caso, `CHECK` para todos os enums, `CHECK` que proíbe liberar em "Minha semana" um bloco do professor e que exige arquivo ou URL nos materiais (exceto referências).
 
 **JSON/JSONB não foi usado**: tudo que existe hoje é claramente relacional.
 
@@ -83,18 +81,17 @@ A migração `2026_09_23_001000_backfill_meetings_and_simplify_lesson_status` co
 
 O objetivo é: **link do WhatsApp → conteúdo**, sem tela de login no meio.
 
-| Situação                                    | Visitante               | Membro da classe | Professor da classe / admin |
-| ------------------------------------------- | ----------------------- | ---------------- | --------------------------- |
-| Rascunho                                    | 404                     | 404              | ✅                          |
-| Publicada, **pública**                      | ✅                      | ✅               | ✅                          |
-| Publicada, **só membros**                   | redireciona para login  | ✅               | ✅                          |
-| Blocos e materiais do professor             | ❌ (nem são carregados) | ❌               | ✅                          |
-| Leitura, revisão, anotação (dados pessoais) | —                       | só os próprios   | só os próprios              |
-| Progresso e presença de um aluno            | ❌                      | só os próprios   | ✅ (nunca as anotações)     |
+| Situação                            | Visitante               | Membro da classe | Professor da classe / admin |
+| ----------------------------------- | ----------------------- | ---------------- | --------------------------- |
+| Rascunho                            | 404                     | 404              | ✅                          |
+| Publicada, **pública**              | ✅                      | ✅               | ✅                          |
+| Publicada, **só membros**           | redireciona para login  | ✅               | ✅                          |
+| Blocos e materiais do professor     | ❌ (nem são carregados) | ❌               | ✅                          |
+| Leitura e anotação (dados pessoais) | —                       | só os próprios   | só os próprios              |
+| Progresso e presença de um aluno    | ❌                      | só os próprios   | ✅ (nunca as anotações)     |
 
 - A regra vive em `LessonPolicy::view()` e é espelhada no escopo `Lesson::visibleTo()` para listas (home, biblioteca).
 - Conteúdo do professor é filtrado **na consulta** (`LessonController::present`) com `LessonPolicy::viewTeacherContent`; arquivos do professor dão 404 para os demais em `MaterialFileController`.
-- O gabarito da revisão vai para quem pode ver a lição e fica escondido até a pessoa tentar responder: é regra pedagógica, não segredo.
 - Para usuário logado sem acesso respondemos 404, não 403, para não confirmar que um conteúdo restrito existe.
 
 ## Slugs e URLs
@@ -119,7 +116,7 @@ PostgreSQL full-text, sem Elasticsearch:
 - a entrada do usuário é convertida em termos-prefixo (`sant:*`), apenas letras e números, sempre via binding: não há como injetar sintaxe de `tsquery`;
 - o trecho destacado (`ts_headline`) é escapado no servidor e só então recebe `<mark>`.
 
-_Limitações conhecidas:_ abreviações bíblicas ("Lc 5") não são expandidas; títulos de materiais e perguntas não entram no índice.
+_Limitações conhecidas:_ abreviações bíblicas ("Lc 5") não são expandidas; títulos de materiais não entram no índice.
 
 ## Conteúdo em Markdown
 
@@ -129,7 +126,7 @@ _Trade-off:_ um editor visual (rich text) seria mais amigável para alguns profe
 
 ## Modo Domingo
 
-Página própria (`lessons/sunday`), sem a navegação do app: título, texto base, versículo-chave, tópicos, perguntas (tocáveis para marcar como discutidas, só no aparelho) e revisão com gabarito escondido. Fonte ajustável guardada no `localStorage`. Alunos também podem abrir.
+Página própria (`lessons/sunday`), sem a navegação do app: título, texto base, versículo-chave e tópicos. Fonte ajustável guardada no `localStorage`. Alunos também podem abrir.
 
 Para quem conduz a classe aparecem ainda: **chamada** (toque nos nomes; a lista inteira é reenviada a cada mudança, então Wi-Fi ruim não duplica nada), o **roteiro**, as **notas de precisão**, o "**se houver tempo**" recolhido e o botão **Encerrar aula** (registra onde a turma parou e se a lição terminou ou continua no próximo domingo). O encontro conduzido é o de hoje; senão o último sem chamada; senão o próximo (`MeetingForLessonQuery`).
 
@@ -137,13 +134,13 @@ Ficou de fora de propósito: sincronizar a tela do professor com os alunos em te
 
 ## Semana de estudo do aluno
 
-- **Minha semana** (`/minha-semana`, `StudyWeekQuery`): semana de segunda a domingo da lição atual, com a leitura de cada dia e "Li hoje" (ou "li ontem"; a data vem sempre do servidor), curiosidades e conceitos liberados um por dia (`drip_weekday` ou distribuição automática), checklist "Prepare-se para domingo" e sequência de dias.
-- **Selos** (`AwardBadges`), concedidos no momento da ação, sem scheduler: semana completa, 7 e 30 dias seguidos, leitor fiel, revisão em dia e presença em todos os domingos do trimestre. São pessoais: **não há ranking**.
-- **Sequência** (`StudyStreak`): dias com leitura marcada ou presença no domingo; continua viva se o último dia foi ontem.
+- **Minha semana** (`/minha-semana`, `StudyWeekQuery`): semana de segunda a domingo da lição atual, com a leitura de cada dia; qualquer dia pode ser marcado como lido a qualquer momento (adiantar ou ler tudo no fim de semana), e o check-in guarda o dia do plano (`weekday`) e a data em que foi marcado (`read_on`, do servidor), curiosidades e conceitos liberados um por dia (`drip_weekday` ou distribuição automática), checklist "Prepare-se para domingo" e sequência de dias.
+- **Selos** (`AwardBadges`), concedidos no momento da ação, sem scheduler: semana completa (leituras de segunda a sábado de uma lição), 7 e 30 dias seguidos, leitor fiel e presença em todos os domingos do trimestre. São pessoais: **não há ranking**.
+- **Sequência** (`StudyStreak`): dias (`read_on`) em que marcou leitura ou teve presença no domingo; continua viva se o último dia foi ontem.
 
 ## Evolução da classe
 
-`ClassroomInsightsQuery` alimenta o painel `/admin/classes/{classe}/evolucao`: presença por domingo, estudo em casa e revisão por lição e **alunos que precisam de atenção** (`EBD_RISK_MISSED_MEETINGS` faltas seguidas ou `EBD_RISK_INACTIVE_DAYS` dias sem leitura; quem entrou há menos de 14 dias fica de fora). Os denominadores respeitam a data de entrada do aluno na classe. `SeriesReportQuery` gera o relatório do trimestre, pensado para impressão. Tudo é calculado na leitura, sem tabelas de agregação: o volume de uma classe de EBD é pequeno.
+`ClassroomInsightsQuery` alimenta o painel `/admin/classes/{classe}/evolucao`: presença por domingo, estudo em casa por lição e **alunos que precisam de atenção** (`EBD_RISK_MISSED_MEETINGS` faltas seguidas ou `EBD_RISK_INACTIVE_DAYS` dias sem leitura; quem entrou há menos de 14 dias fica de fora). Os denominadores respeitam a data de entrada do aluno na classe. `SeriesReportQuery` gera o relatório do trimestre, pensado para impressão. Tudo é calculado na leitura, sem tabelas de agregação: o volume de uma classe de EBD é pequeno.
 
 ## Autenticação e autorização
 
@@ -155,7 +152,7 @@ Ficou de fora de propósito: sincronizar a tela do professor com os alunos em te
     - gerar outro link revoga o anterior; "Bloquear acesso" revoga, troca o `remember_token` e apaga as sessões (`SESSION_DRIVER=database`);
     - links **nunca** autenticam professores ou administradores; promover a professor revoga os links; professor não gera link para conta que já tem senha (daria acesso às anotações dela), só o admin;
     - rate limit por IP (10/min e 50/dia) e mensagem de erro genérica.
-- Contas sem senha podem editar o perfil, criar uma senha (depois de cadastrar e-mail) e excluir a conta sem digitar senha (`RequirePasswordIfSet`).
+- **Perfil** (`/conta`): foto, classes e papel em cada uma, "Meus dados", senha e aparência numa página só. A tela de senha abre sem pedir confirmação: trocar a senha já exige a senha atual. Contas sem senha podem editar o perfil, criar uma senha (depois de cadastrar e-mail) e excluir a conta sem digitar senha.
 - Rate limit: login (Fortify, 5/min), link pessoal, estudo do aluno (60/min), arquivos (60/min) e biblioteca (90/min).
 
 ## Frontend
@@ -184,7 +181,7 @@ A aplicação roda com `php artisan serve` (com `PHP_CLI_SERVER_WORKERS`). É ad
 - Sem imagem/Dockerfile de produção nem pipeline de deploy.
 - Upload de áudio grande passa pela aplicação; em produção com S3/R2 o ideal é upload direto com URL pré-assinada.
 - `Content-Range` não é suportado no stream local (áudio longo não permite "pular" no disco local; no S3 funciona).
-- Busca não indexa perguntas nem títulos de materiais.
+- Busca não indexa títulos de materiais.
 - Notificações (push/WhatsApp) ainda não existem: a "mensagem da semana" na agenda é copiada e colada no grupo. `LessonPublished` é o gancho.
 - Não há importação automática dos PDFs do NotebookLM para blocos: o conteúdo é colado em Markdown (os PDFs podem ser anexados como material, marcando "só professor" quando for o caso).
 - Aluno removido da classe mantém seus registros, mas sai das listas e dos denominadores.

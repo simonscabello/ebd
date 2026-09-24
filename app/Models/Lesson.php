@@ -27,8 +27,6 @@ use Illuminate\Support\Carbon;
  * @property string|null $summary
  * @property Carbon|null $scheduled_for
  * @property string|null $bible_reference
- * @property string|null $bible_text
- * @property string|null $magazine_author
  * @property string|null $key_verse
  * @property string|null $goal
  * @property string|null $content
@@ -45,8 +43,6 @@ use Illuminate\Support\Carbon;
     'title',
     'summary',
     'bible_reference',
-    'bible_text',
-    'magazine_author',
     'key_verse',
     'goal',
     'content',
@@ -120,14 +116,6 @@ class Lesson extends Model
     public function materials(): HasMany
     {
         return $this->hasMany(LessonMaterial::class)->ordered();
-    }
-
-    /**
-     * @return HasMany<LessonQuestion, $this>
-     */
-    public function questions(): HasMany
-    {
-        return $this->hasMany(LessonQuestion::class)->ordered();
     }
 
     /**

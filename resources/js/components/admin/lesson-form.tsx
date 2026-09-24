@@ -19,8 +19,6 @@ export type LessonFormData = {
     slug: string;
     meeting_on?: string;
     bible_reference: string;
-    bible_text: string;
-    magazine_author: string;
     key_verse: string;
     goal: string;
     summary: string;
@@ -199,7 +197,7 @@ export function LessonForm({
                 </Field>
             )}
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid items-start gap-6 sm:grid-cols-2">
                 {!editing && (
                     <Field
                         label="Domingo da aula"
@@ -232,20 +230,6 @@ export function LessonForm({
                         maxLength={120}
                     />
                 </Field>
-                <Field
-                    label="Comentarista da revista"
-                    htmlFor="magazine_author"
-                    error={errors.magazine_author}
-                >
-                    <Input
-                        id="magazine_author"
-                        value={data.magazine_author}
-                        onChange={(event) =>
-                            setData('magazine_author', event.target.value)
-                        }
-                        maxLength={120}
-                    />
-                </Field>
             </div>
 
             <Field
@@ -274,26 +258,10 @@ export function LessonForm({
             </Field>
 
             <Field
-                label="Versículos em destaque"
-                htmlFor="bible_text"
-                error={errors.bible_text}
-                hint="Opcional. Trechos do texto base para exibir junto da referência."
-            >
-                <Textarea
-                    id="bible_text"
-                    value={data.bible_text}
-                    onChange={(event) =>
-                        setData('bible_text', event.target.value)
-                    }
-                    rows={3}
-                />
-            </Field>
-
-            <Field
                 label="Resumo / introdução"
                 htmlFor="summary"
                 error={errors.summary}
-                hint="Aparece no topo da lição e na página inicial."
+                hint="Aparece no topo da lição."
             >
                 <Textarea
                     id="summary"

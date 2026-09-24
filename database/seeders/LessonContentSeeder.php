@@ -9,7 +9,6 @@ use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
 use App\Enums\MaterialType;
 use App\Enums\MeetingStatus;
-use App\Enums\QuestionKind;
 use App\Enums\Weekday;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
@@ -48,20 +47,16 @@ class LessonContentSeeder extends Seeder
             $this->sunday(-4), $this->sunday(4));
 
         $this->pastLesson($series, $teacher, -4, 'Água em Vinho: o Primeiro Sinal', 'João 2:1-11',
-            'Nas bodas de Caná, Jesus manifesta sua glória e os discípulos creem nele. O primeiro sinal aponta para a alegria da nova aliança.',
-            ['O que a atitude de Maria ("Façam tudo o que ele mandar") ensina sobre confiança?', 'Por que João chama os milagres de "sinais"?']);
+            'Nas bodas de Caná, Jesus manifesta sua glória e os discípulos creem nele. O primeiro sinal aponta para a alegria da nova aliança.');
 
         $this->pastLesson($series, $teacher, -3, 'A Cura do Paralítico de Cafarnaum', 'Marcos 2:1-12',
-            'Quatro amigos abrem o telhado para levar alguém até Jesus. Antes de curar o corpo, Jesus perdoa pecados e revela sua autoridade.',
-            ['Quem são as pessoas que você tem levado até Jesus?', 'Por que Jesus perdoa os pecados antes de curar?']);
+            'Quatro amigos abrem o telhado para levar alguém até Jesus. Antes de curar o corpo, Jesus perdoa pecados e revela sua autoridade.');
 
         $this->pastLesson($series, $teacher, -2, 'Jesus Acalma a Tempestade', 'Marcos 4:35-41',
-            'No meio da tempestade os discípulos perguntam se Jesus se importa. A resposta vem com autoridade sobre o vento e o mar.',
-            ['"Mestre, não te importas que pereçamos?" Você já fez essa pergunta?', 'Qual a diferença entre ter medo da tempestade e temer ao Senhor?']);
+            'No meio da tempestade os discípulos perguntam se Jesus se importa. A resposta vem com autoridade sobre o vento e o mar.');
 
         $this->pastLesson($series, $teacher, -1, 'A Multiplicação dos Pães', 'João 6:1-14',
-            'Cinco pães e dois peixes nas mãos de Jesus alimentam uma multidão. O pouco entregue a Ele se torna suficiente.',
-            ['O que você tem nas mãos que pode ser entregue a Jesus?', 'Por que Jesus mandou recolher os pedaços que sobraram?']);
+            'Cinco pães e dois peixes nas mãos de Jesus alimentam uma multidão. O pouco entregue a Ele se torna suficiente.');
 
         $this->santidadeDeDeus($series, $teacher);
         $this->eNecessario($series, $teacher);
@@ -84,7 +79,6 @@ class LessonContentSeeder extends Seeder
             'summary' => 'Diante do milagre da pesca, Pedro reconhece a santidade de Jesus e a própria condição de pecador. O Senhor, porém, não o afasta: transforma o medo em chamado.',
             'scheduled_for' => $this->nextSunday->toDateString(),
             'bible_reference' => 'Lucas 5:1–11',
-            'bible_text' => "\"Senhor, afasta-te de mim, porque sou pecador.\" (v. 8)\n\n\"Não temas; de agora em diante serás pescador de homens.\" (v. 10)",
             'content' => <<<'MD'
 ## Introdução
 
@@ -132,7 +126,7 @@ MD,
             'body' => <<<'MD'
 - **Abertura (5 min):** perguntar quem já passou uma "noite inteira sem pescar nada" em alguma área da vida.
 - **Leitura (5 min):** pedir a um aluno para ler Lucas 5:1–11 em voz alta.
-- **Discussão (25 min):** usar as perguntas 1 e 3 com mais tempo; a 5 pode ficar para casa.
+- **Discussão (25 min):** dar mais tempo à reação de Pedro (v. 8) e ao chamado (v. 10).
 - Ligar com Isaías 6 (leitura de segunda-feira) — muitos devem ter lido.
 - **Encerramento:** oração pedindo reverência e disposição para obedecer.
 - Avisar que na próxima semana veremos a cura do leproso (Lucas 5:12-16).
@@ -148,14 +142,6 @@ MD,
             [Weekday::Saturday, 'Hebreus 12:14, 28-29', 'Prepare o coração para o domingo.'],
         ]);
 
-        $lesson->questions()->createMany([
-            ['body' => 'Por que Pedro pede que Jesus se afaste dele após reconhecer quem está diante dele?'],
-            ['body' => 'Pedro obedeceu mesmo achando que não daria certo (v. 5). Em que área da sua vida Deus tem pedido obediência antes do entendimento?'],
-            ['body' => 'O que a reação de Pedro ensina sobre a relação entre a santidade de Deus e a consciência do pecado?'],
-            ['body' => 'Jesus responde ao medo de Pedro com um chamado: "Não temas". Como isso muda a forma como nos aproximamos de Deus?'],
-            ['body' => 'O que significa, na prática, "deixar tudo" para seguir Jesus hoje?'],
-        ]);
-
         $this->fileMaterial($lesson, MaterialType::Pdf, 'Lição 5 — A Santidade de Deus', 'Material da revista para estudo durante a semana.', 'licao-05-a-santidade-de-deus.pdf', [
             'Jornada dos Milagres de Jesus',
             'Lição 5 - A Santidade de Deus',
@@ -168,7 +154,7 @@ MD,
             'Roteiro de estudo pessoal',
             '1. Leia Lucas 5:1-11',
             '2. Anote as palavras que se repetem',
-            '3. Responda as perguntas para reflexão',
+            '3. Anote o que Deus falou com você',
         ]);
 
         $lesson->materials()->createMany([
@@ -212,24 +198,20 @@ MD,
             $this->nextSunday->subYear()->subWeeks(2), $this->nextSunday->subYear());
 
         $this->pastLesson($joao, $teacher, -54, 'Eu Sou o Pão da Vida', 'João 6:35-51',
-            'Depois de alimentar a multidão, Jesus se apresenta como o pão que desce do céu e sacia de verdade.',
-            ['O que você tem buscado para saciar a fome da alma?']);
+            'Depois de alimentar a multidão, Jesus se apresenta como o pão que desce do céu e sacia de verdade.');
 
         $this->pastLesson($joao, $teacher, -53, 'Eu Sou a Luz do Mundo', 'João 8:12-20',
-            'Quem segue a Jesus não anda em trevas. A luz revela, orienta e aquece.',
-            ['Que áreas da sua vida precisam ser iluminadas pela Palavra?']);
+            'Quem segue a Jesus não anda em trevas. A luz revela, orienta e aquece.');
 
         $filipenses = $this->series($classroom, 'Filipenses: Alegria em Cristo', 'filipenses-alegria-em-cristo',
             'Uma carta escrita da prisão que fala de alegria do começo ao fim.',
             $this->sunday(-2), $this->sunday(3));
 
         $this->pastLesson($filipenses, $teacher, -2, 'Alegria em Toda Circunstância', 'Filipenses 1:1-11',
-            'Paulo ora com alegria pelos filipenses, confiante de que Deus completará a boa obra que começou.',
-            ['Pelo que você é grato quando pensa nos irmãos da igreja?', 'O que significa "aquele que começou a boa obra a completará"?']);
+            'Paulo ora com alegria pelos filipenses, confiante de que Deus completará a boa obra que começou.');
 
         $restricted = $this->pastLesson($filipenses, $teacher, -1, 'Viver é Cristo', 'Filipenses 1:12-30',
-            'Mesmo preso, Paulo vê o evangelho avançar. Para ele, viver é Cristo e morrer é lucro.',
-            ['O que precisaria mudar para você dizer "para mim o viver é Cristo"?']);
+            'Mesmo preso, Paulo vê o evangelho avançar. Para ele, viver é Cristo e morrer é lucro.');
         $restricted->forceFill(['visibility' => LessonVisibility::Members])->save();
 
         $next = new Lesson([
@@ -252,10 +234,6 @@ MD,
             [Weekday::Wednesday, 'Filipenses 2:5-11', 'Leia devagar: é um hino.'],
             [Weekday::Friday, 'João 13:1-17', 'Jesus lava os pés dos discípulos.'],
         ]);
-        $next->questions()->createMany([
-            ['body' => 'Em que situações é mais difícil considerar os outros superiores a nós mesmos?'],
-            ['body' => 'O que o "esvaziar-se" de Cristo revela sobre o caráter de Deus?'],
-        ]);
         $next->materials()->create([
             'type' => MaterialType::Reference,
             'title' => 'Comentário de Filipenses — John Stott',
@@ -265,7 +243,7 @@ MD,
 
     /**
      * Lição no formato completo da revista, com blocos de aprofundamento,
-     * curiosidades liberadas ao longo da semana e perguntas de revisão.
+     * e curiosidades liberadas ao longo da semana.
      */
     private function eNecessario(Series $series, User $teacher): void
     {
@@ -275,7 +253,6 @@ MD,
             'summary' => 'Na cura do cego de nascença, Jesus desmonta a lógica do "quem pecou?" e se revela como a luz do mundo.',
             'scheduled_for' => $this->sunday(2)->toDateString(),
             'bible_reference' => 'Jo 9.1-41',
-            'magazine_author' => 'Márcia Geralda Gonçalves Silva',
             'key_verse' => '"É necessário que façamos as obras daquele que me enviou enquanto é dia; a noite vem, quando ninguém pode trabalhar. Enquanto estou no mundo, sou a luz do mundo." (Jo 9.4-5)',
             'goal' => 'Analisar de que maneiras Jesus Cristo demonstrou ser a luz do mundo no episódio da cura do cego de nascença.',
             'content' => <<<'MD'
@@ -345,14 +322,6 @@ MD,
         }
 
         app(SyncLessonSearchText::class)->handle($lesson);
-
-        $lesson->questions()->createMany([
-            ['kind' => QuestionKind::Reflection, 'body' => 'Quando algo difícil acontece, você pergunta "quem pecou?" ou "onde Deus quer manifestar Sua glória aqui"?'],
-            ['kind' => QuestionKind::Reflection, 'body' => 'Existe alguma área em que você "vê demais" e por isso não enxerga o que Jesus quer mostrar?'],
-            ['kind' => QuestionKind::Review, 'body' => 'O que significa o nome "Siloé" e por que isso importa no capítulo?', 'answer' => '"Enviado". Jesus é o Enviado do Pai: lavar-se em Siloé aponta para o próprio Cristo.'],
-            ['kind' => QuestionKind::Review, 'body' => 'Quais os quatro degraus da fé do ex-cego ao longo do capítulo?', 'answer' => '"Um homem chamado Jesus" (v.11), "é um profeta" (v.17), "vem de Deus" (v.33) e "Eu creio, Senhor!", com adoração (v.38).'],
-            ['kind' => QuestionKind::Review, 'body' => 'Por que fazer lama no sábado irritou os fariseus?', 'answer' => 'Pela tradição oral, misturar saliva e terra era "amassar", uma das 39 categorias de trabalho proibido no sábado.'],
-        ]);
     }
 
     private function series(Classroom $classroom, string $title, string $slug, string $description, CarbonImmutable $startsOn, CarbonImmutable $endsOn): Series
@@ -370,10 +339,7 @@ MD,
         return $series;
     }
 
-    /**
-     * @param  list<string>  $questions
-     */
-    private function pastLesson(Series $series, User $teacher, int $weeksFromNextSunday, string $title, string $reference, string $summary, array $questions): Lesson
+    private function pastLesson(Series $series, User $teacher, int $weeksFromNextSunday, string $title, string $reference, string $summary): Lesson
     {
         $lesson = new Lesson([
             'title' => $title,
@@ -385,10 +351,6 @@ MD,
         ]);
 
         $this->saveLesson($lesson, $series, $teacher, null, LessonStatus::Published);
-
-        foreach ($questions as $question) {
-            $lesson->questions()->create(['body' => $question]);
-        }
 
         $lesson->readings()->create(['weekday' => Weekday::Thursday, 'reference' => $reference, 'notes' => 'Texto base da lição.']);
 

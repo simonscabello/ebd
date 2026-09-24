@@ -64,17 +64,6 @@ export type LessonReading = {
     position: number;
 };
 
-export type QuestionKind = 'reflection' | 'review';
-
-export type LessonQuestion = {
-    id: number;
-    kind: QuestionKind;
-    body: string;
-    /** Gabarito (só perguntas de revisão). */
-    answer: string | null;
-    position: number;
-};
-
 export type LessonBlockKind =
     | 'roteiro'
     | 'extra_time'
@@ -143,7 +132,6 @@ export type Lesson = {
     bible_reference: string | null;
     key_verse: string | null;
     goal: string | null;
-    magazine_author: string | null;
     status: LessonStatus;
     status_label: string;
     visibility: 'public' | 'members';
@@ -153,13 +141,10 @@ export type Lesson = {
     authors?: string[];
     materials?: LessonMaterial[];
     readings?: LessonReading[];
-    questions?: LessonQuestion[];
     blocks?: LessonBlock[];
     teacher_blocks?: LessonBlock[];
     meetings?: ClassMeeting[];
-    questions_count?: number;
     materials_count?: number;
-    bible_text?: string | null;
     content_html?: string | null;
     topics?: string[];
     headline?: string | null;

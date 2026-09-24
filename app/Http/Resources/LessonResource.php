@@ -65,7 +65,6 @@ class LessonResource extends JsonResource
             'bible_reference' => $this->bible_reference,
             'key_verse' => $this->key_verse,
             'goal' => $this->goal,
-            'magazine_author' => $this->magazine_author,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'visibility' => $this->visibility->value,
@@ -75,15 +74,12 @@ class LessonResource extends JsonResource
             'authors' => $this->whenLoaded('authors', fn () => $this->authors->pluck('name')->all()),
             'materials' => LessonMaterialResource::collection($this->whenLoaded('materials')),
             'readings' => LessonReadingResource::collection($this->whenLoaded('readings')),
-            'questions' => LessonQuestionResource::collection($this->whenLoaded('questions')),
             'blocks' => $this->whenLoaded('blocks', fn () => LessonBlockResource::collection(
                 $this->blocks->reject->isForTeachers()->values()
             )),
             'meetings' => ClassMeetingResource::collection($this->whenLoaded('meetings')),
-            'questions_count' => $this->whenCounted('questions'),
             'materials_count' => $this->whenCounted('materials'),
             $this->mergeWhen($this->withContent, fn () => [
-                'bible_text' => $this->bible_text,
                 'content_html' => Markdown::toHtml($this->content),
                 'topics' => Markdown::headings($this->content),
             ]),

@@ -37,8 +37,6 @@ type Insights = {
         readers: number;
         readers_rate: number;
         avg_days: number;
-        review_students: number;
-        review_correct_rate: number | null;
     }[];
     students: {
         id: number;
@@ -185,7 +183,7 @@ export default function ClassroomInsights({
                     </Section>
 
                     <Section
-                        title="Estudo em casa e revisão"
+                        title="Estudo em casa"
                         icon={<BookOpen />}
                         description="Quantos alunos marcaram leitura durante a semana de cada lição."
                     >
@@ -205,8 +203,6 @@ export default function ClassroomInsights({
                                             {lesson.readers} alunos leram (
                                             {lesson.readers_rate}%) · média de{' '}
                                             {lesson.avg_days} dias
-                                            {lesson.review_students > 0 &&
-                                                ` · revisão: ${lesson.review_students} alunos${lesson.review_correct_rate !== null ? `, ${lesson.review_correct_rate}% de acertos` : ''}`}
                                         </p>
                                         <Bar value={lesson.readers_rate} />
                                     </li>

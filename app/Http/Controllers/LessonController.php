@@ -91,7 +91,7 @@ class LessonController extends Controller
 
     /**
      * Dados de estudo da própria pessoa (só para membros da classe):
-     * dias marcados como lidos, autoavaliações da revisão e anotação.
+     * dias do plano de leitura já marcados como lidos e anotação.
      *
      * @return array<string, mixed>|null
      */
@@ -104,18 +104,12 @@ class LessonController extends Controller
         }
 
         return [
-            'checkins' => DB::table('reading_checkins')
+            'checked_weekdays' => DB::table('reading_checkins')
                 ->where('user_id', $user->id)
                 ->where('lesson_id', $lesson->id)
-                ->orderBy('read_on')
-                ->pluck('read_on')
-                ->map(fn ($d) => substr((string) $d, 0, 10)),
-            'attempts' => (object) DB::table('question_attempts')
-                ->join('lesson_questions', 'lesson_questions.id', '=', 'question_attempts.lesson_question_id')
-                ->where('question_attempts.user_id', $user->id)
-                ->where('lesson_questions.lesson_id', $lesson->id)
-                ->pluck('self_assessment', 'lesson_question_id')
-                ->all(),
+                ->orderBy('weekday')
+                ->pluck('weekday')
+                ->map(fn ($d) => (int) $d),
             'note' => DB::table('lesson_notes')->where('user_id', $user->id)->where('lesson_id', $lesson->id)->value('body'),
             'today' => ChurchCalendar::today()->toDateString(),
         ];
@@ -129,7 +123,7 @@ class LessonController extends Controller
         // O filtro é na consulta: conteúdo do professor nem chega a ser carregado
         // para alunos e visitantes.
         $lesson->load([
-            'classroom', 'series', 'authors', 'readings', 'questions',
+            'classroom', 'series', 'authors', 'readings',
             'materials' => $audience,
             'blocks' => $audience,
             'meetings' => fn ($query) => $query->active(),

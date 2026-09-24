@@ -180,12 +180,6 @@ export default function AdminDashboard({
                                                     'material',
                                                     'materiais',
                                                 )}
-                                                {' · '}
-                                                {plural(
-                                                    lesson.questions_count ?? 0,
-                                                    'pergunta',
-                                                    'perguntas',
-                                                )}
                                             </p>
                                         </div>
                                         <StatusBadge

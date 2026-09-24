@@ -1,11 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    Award,
-    BookOpen,
-    CalendarCheck,
-    CheckSquare,
-    History,
-} from 'lucide-react';
+import { Award, BookOpen, CalendarCheck, History } from 'lucide-react';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import type {
     AvailableBadge,
@@ -24,9 +18,6 @@ export type LessonProgress = {
     date_short: string | null;
     days_read: number;
     readings_total: number;
-    review_answered: number;
-    review_correct: number;
-    review_total: number;
     meetings: number;
     present: number;
 };
@@ -120,21 +111,12 @@ export function LessonProgressList({
                             {lesson.date_short}
                         </span>
                     </div>
-                    <div className="grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-3">
+                    <div className="grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-2">
                         <Meter
                             icon={<BookOpen className="size-3.5" />}
                             label={`Leitura: ${lesson.days_read}/${lesson.readings_total} dias`}
                             value={lesson.days_read / lesson.readings_total}
                         />
-                        {lesson.review_total > 0 && (
-                            <Meter
-                                icon={<CheckSquare className="size-3.5" />}
-                                label={`Revisão: ${lesson.review_answered}/${lesson.review_total}`}
-                                value={
-                                    lesson.review_answered / lesson.review_total
-                                }
-                            />
-                        )}
                         {lesson.meetings > 0 && (
                             <Meter
                                 icon={<CalendarCheck className="size-3.5" />}

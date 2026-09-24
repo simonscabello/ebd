@@ -1,19 +1,17 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
-    ArrowRight,
-    BookOpen,
     CalendarDays,
+    Check,
     CheckCircle2,
     Circle,
     CircleCheck,
     Hourglass,
-    KeyRound,
     Lightbulb,
     ListChecks,
-    Undo2,
 } from 'lucide-react';
 import { InstallAppBanner } from '@/components/install-app-banner';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
+import { LessonHero } from '@/components/lesson/lesson-hero';
 import { EmptyState, Page, Section } from '@/components/page';
 import type { Streak } from '@/components/progress/streak-flame';
 import { StreakFlame } from '@/components/progress/streak-flame';
@@ -67,7 +65,6 @@ type Week = {
         done: boolean | null;
         hidden?: boolean;
     }[];
-    review?: { answered: number; total: number };
 };
 
 type Props = {
@@ -159,61 +156,44 @@ function WeekContent({
     lesson: NonNullable<Week['lesson']>;
 }) {
     const days = week.days ?? [];
-    const today = days.find((d) => d.is_today);
-    const yesterday = days.find((d) => d.weekday === week.weekday - 1);
     const visit = { preserveScroll: true, preserveState: true };
-    const todayReadings = today?.readings ?? [];
     const otherUnlocked = (week.unlockedBlocks ?? []).filter(
         (b) => !(week.todayBlocks ?? []).some((t) => t.id === b.id),
     );
 
-    const check = (readingId: number | null, isYesterday = false) =>
-        router.post(
-            storeCheckin.url(lesson.slug),
-            { reading_id: readingId, yesterday: isYesterday },
-            visit,
-        );
+    // Dias com leitura no plano; sem plano, a semana toda (segunda a sábado) é
+    // para reler o texto base.
+    const withReadings = days.filter((d) => d.readings.length > 0);
+    const readingDays =
+        withReadings.length > 0
+            ? withReadings
+            : days.filter((d) => d.weekday <= 6);
 
-    const undo = (date: string) =>
-        router.delete(undoCheckin.url(lesson.slug), {
-            data: { date },
-            ...visit,
-        });
+    const toggle = (day: Day) =>
+        day.done
+            ? router.delete(undoCheckin.url(lesson.slug), {
+                  data: { weekday: day.weekday },
+                  ...visit,
+              })
+            : router.post(
+                  storeCheckin.url(lesson.slug),
+                  {
+                      weekday: day.weekday,
+                      reading_id: day.readings[0]?.id ?? null,
+                  },
+                  visit,
+              );
 
     return (
         <div className="space-y-8">
-            <Link
-                href={lesson.url}
-                className="block rounded-3xl bg-primary p-6 text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
-            >
-                <p className="text-sm font-medium opacity-90 first-letter:uppercase">
-                    {week.meeting
+            <LessonHero
+                lesson={lesson}
+                eyebrow={
+                    week.meeting
                         ? `${week.meeting.date_label}${week.meeting.total > 1 ? ` · encontro ${week.meeting.index} de ${week.meeting.total}` : ''}`
-                        : 'Última lição'}
-                </p>
-                {lesson.number && (
-                    <p className="mt-3 text-sm font-semibold tracking-wide uppercase opacity-80">
-                        Lição {lesson.number}
-                    </p>
-                )}
-                <h2 className="mt-1 font-serif text-3xl leading-tight font-semibold text-balance">
-                    {lesson.title}
-                </h2>
-                {lesson.bible_reference && (
-                    <p className="mt-2 flex items-center gap-2 opacity-95">
-                        <BookOpen className="size-4" /> {lesson.bible_reference}
-                    </p>
-                )}
-                {lesson.key_verse && (
-                    <p className="mt-3 flex gap-2 font-serif text-pretty italic opacity-95">
-                        <KeyRound className="mt-1 size-4 shrink-0" />
-                        {lesson.key_verse}
-                    </p>
-                )}
-                <p className="mt-4 inline-flex items-center gap-1 text-sm font-semibold">
-                    Abrir a lição <ArrowRight className="size-4" />
-                </p>
-            </Link>
+                        : 'Última lição'
+                }
+            />
 
             <section className="space-y-3">
                 <WeekBar days={days} />
@@ -225,38 +205,21 @@ function WeekContent({
                 )}
             </section>
 
-            <Section title="Hoje" icon={<CalendarDays />}>
-                <div className="space-y-3">
-                    {todayReadings.length > 0 ? (
-                        todayReadings.map((reading) => (
-                            <TodayReading
-                                key={reading.id}
-                                reading={reading}
-                                done={!!today?.done}
-                                onCheck={() => check(reading.id)}
-                                onUndo={() => today && undo(today.date)}
-                            />
-                        ))
-                    ) : (
-                        <TodayReading
-                            reading={null}
+            <Section
+                title="Leituras da semana"
+                icon={<CalendarDays />}
+                description="Marque quando ler. Pode adiantar ou pôr em dia quando quiser."
+            >
+                <ul className="space-y-2.5">
+                    {readingDays.map((day) => (
+                        <DayReading
+                            key={day.date}
+                            day={day}
                             fallback={lesson.bible_reference}
-                            done={!!today?.done}
-                            onCheck={() => check(null)}
-                            onUndo={() => today && undo(today.date)}
+                            onToggle={() => toggle(day)}
                         />
-                    )}
-
-                    {yesterday && !yesterday.done && (
-                        <button
-                            type="button"
-                            onClick={() => check(null, true)}
-                            className="text-sm font-medium text-primary"
-                        >
-                            Leu ontem e esqueceu de marcar? Marcar ontem
-                        </button>
-                    )}
-                </div>
+                    ))}
+                </ul>
             </Section>
 
             {(week.todayBlocks ?? []).length > 0 && (
@@ -301,14 +264,6 @@ function WeekContent({
                                     >
                                         {item.label}
                                     </span>
-                                    {item.key === 'review' && !item.done && (
-                                        <Link
-                                            href={`${lesson.url}#revisao`}
-                                            className="ml-auto shrink-0 text-sm font-medium text-primary"
-                                        >
-                                            Revisar
-                                        </Link>
-                                    )}
                                     {item.key === 'note' && !item.done && (
                                         <Link
                                             href={`${lesson.url}#anotacoes`}
@@ -333,65 +288,77 @@ function WeekContent({
     );
 }
 
-function TodayReading({
-    reading,
+function DayReading({
+    day,
     fallback,
-    done,
-    onCheck,
-    onUndo,
+    onToggle,
 }: {
-    reading: LessonReading | null;
-    fallback?: string | null;
-    done: boolean;
-    onCheck: () => void;
-    onUndo: () => void;
+    day: Day;
+    fallback: string | null;
+    onToggle: () => void;
 }) {
     return (
-        <div
+        <li
             className={cn(
-                'rounded-2xl border p-4',
-                done
-                    ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40'
-                    : 'border-primary/40 bg-accent/50',
+                'grid grid-cols-[3rem_1fr] items-center gap-x-3.5 gap-y-3 rounded-2xl border bg-card p-3.5 sm:grid-cols-[3rem_1fr_auto]',
+                day.is_today &&
+                    !day.done &&
+                    'border-primary/50 bg-accent/60 ring-1 ring-primary/20',
+                day.done &&
+                    'border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40',
             )}
         >
-            <p className="text-sm font-medium text-muted-foreground">
-                {reading ? 'Leitura de hoje' : 'Hoje não há leitura marcada'}
-            </p>
-            <p className="font-serif text-2xl font-semibold">
-                {reading?.reference ??
-                    (fallback ? `Releia ${fallback}` : 'Releia o texto base')}
-            </p>
-            {reading?.notes && (
-                <p className="mt-1 text-sm text-muted-foreground">
-                    {reading.notes}
+            <span
+                className={cn(
+                    'flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground uppercase',
+                    day.is_today && 'bg-primary text-primary-foreground',
+                    day.done && 'bg-emerald-600 text-white dark:bg-emerald-700',
+                )}
+            >
+                {day.done ? <Check className="size-5" /> : day.short}
+            </span>
+            <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                    {day.is_today ? `Hoje · ${day.label}` : day.label}
                 </p>
-            )}
-            <div className="mt-3">
-                {done ? (
-                    <div className="flex items-center gap-3">
-                        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
-                            <CircleCheck className="size-5" /> Lido hoje
-                        </span>
-                        <button
-                            type="button"
-                            onClick={onUndo}
-                            className="inline-flex items-center gap-1 text-sm text-muted-foreground"
-                        >
-                            <Undo2 className="size-3.5" /> Desfazer
-                        </button>
-                    </div>
+                {day.readings.length > 0 ? (
+                    day.readings.map((reading) => (
+                        <div key={reading.id}>
+                            <p className="font-serif text-lg font-semibold">
+                                {reading.reference}
+                            </p>
+                            {reading.notes && (
+                                <p className="text-sm text-pretty text-muted-foreground">
+                                    {reading.notes}
+                                </p>
+                            )}
+                        </div>
+                    ))
                 ) : (
-                    <Button
-                        size="lg"
-                        onClick={onCheck}
-                        className="w-full sm:w-auto"
-                    >
-                        <CircleCheck /> Li hoje
-                    </Button>
+                    <p className="font-serif text-lg font-semibold">
+                        {fallback
+                            ? `Releia ${fallback}`
+                            : 'Releia o texto base'}
+                    </p>
                 )}
             </div>
-        </div>
+            <button
+                type="button"
+                onClick={onToggle}
+                aria-pressed={day.done}
+                className={cn(
+                    'col-start-2 flex min-h-11 items-center gap-1.5 justify-self-start rounded-xl border px-3 text-sm font-medium sm:col-start-auto',
+                    day.done
+                        ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400'
+                        : day.is_today
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'bg-card hover:bg-muted',
+                )}
+            >
+                <CircleCheck className="size-4" />
+                {day.done ? 'Lido' : 'Marcar como lido'}
+            </button>
+        </li>
     );
 }
 

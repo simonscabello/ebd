@@ -5,7 +5,6 @@ import {
     ExternalLink,
     EyeOff,
     FileText,
-    HelpCircle,
     Layers,
     Paperclip,
     Presentation,
@@ -18,7 +17,6 @@ import { BlocksManager } from '@/components/admin/blocks-manager';
 import { LessonForm } from '@/components/admin/lesson-form';
 import type { MaterialTypeOption } from '@/components/admin/materials-manager';
 import { MaterialsManager } from '@/components/admin/materials-manager';
-import { QuestionsManager } from '@/components/admin/questions-manager';
 import { ReadingsManager } from '@/components/admin/readings-manager';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Page, Section } from '@/components/page';
@@ -30,7 +28,6 @@ import type {
     Classroom,
     LessonBlock,
     LessonMaterial,
-    LessonQuestion,
     LessonReading,
     LessonStatus,
     Option,
@@ -48,8 +45,6 @@ type EditableLesson = {
     sunday_url: string;
     summary: string | null;
     bible_reference: string | null;
-    bible_text: string | null;
-    magazine_author: string | null;
     key_verse: string | null;
     goal: string | null;
     content: string | null;
@@ -61,7 +56,6 @@ type EditableLesson = {
     author_ids: number[];
     materials: LessonMaterial[];
     readings: LessonReading[];
-    questions: LessonQuestion[];
     blocks: LessonBlock[];
     meetings: ClassMeeting[];
     agenda_url: string;
@@ -186,7 +180,6 @@ export default function EditLesson({
                         ['blocos', `Aprofundamento (${lesson.blocks.length})`],
                         ['leituras', `Leituras (${lesson.readings.length})`],
                         ['materiais', `Materiais (${lesson.materials.length})`],
-                        ['perguntas', `Perguntas (${lesson.questions.length})`],
                     ].map(([id, label]) => (
                         <a
                             key={id}
@@ -217,8 +210,6 @@ export default function EditLesson({
                                 title: lesson.title,
                                 slug: lesson.slug,
                                 bible_reference: lesson.bible_reference ?? '',
-                                bible_text: lesson.bible_text ?? '',
-                                magazine_author: lesson.magazine_author ?? '',
                                 key_verse: lesson.key_verse ?? '',
                                 goal: lesson.goal ?? '',
                                 summary: lesson.summary ?? '',
@@ -309,18 +300,6 @@ export default function EditLesson({
                             lessonId={lesson.id}
                             materials={lesson.materials}
                             types={materialTypes}
-                        />
-                    </Section>
-
-                    <Section
-                        id="perguntas"
-                        title="Perguntas"
-                        icon={<HelpCircle />}
-                        description="Reflexão para discutir no domingo; revisão (com gabarito) para o aluno conferir o que aprendeu."
-                    >
-                        <QuestionsManager
-                            lessonId={lesson.id}
-                            questions={lesson.questions}
                         />
                     </Section>
 

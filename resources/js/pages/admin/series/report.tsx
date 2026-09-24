@@ -15,7 +15,6 @@ type Report = {
         lessons: number;
         taught: number;
         meetings_with_attendance: number;
-        review_total: number;
         students: number;
     };
     lessons: {
@@ -30,14 +29,12 @@ type Report = {
         name: string;
         present: number;
         lessons_studied: number;
-        review_answered: number;
         badges: string[];
     }[];
 };
 
 const badgeEmoji: Record<string, string> = {
     faithful_reader: '🏅',
-    review_master: '🎯',
     perfect_attendance: '⛪',
 };
 
@@ -126,7 +123,6 @@ export default function SeriesReport({
                                 <th className="p-3">Aluno</th>
                                 <th className="p-3">Presença</th>
                                 <th className="p-3">Lições estudadas</th>
-                                <th className="p-3">Revisão</th>
                                 <th className="p-3">Selos</th>
                             </tr>
                         </thead>
@@ -146,10 +142,6 @@ export default function SeriesReport({
                                     <td className="p-3">
                                         {student.lessons_studied}/
                                         {totals.taught}
-                                    </td>
-                                    <td className="p-3">
-                                        {student.review_answered}/
-                                        {totals.review_total}
                                     </td>
                                     <td className="p-3">
                                         {student.badges

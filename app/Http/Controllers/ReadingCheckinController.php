@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Engagement\RecordReadingCheckin;
+use App\Enums\Weekday;
 use App\Http\Controllers\Concerns\CelebratesBadges;
 use App\Models\Lesson;
 use App\Models\LessonReading;
 use App\Models\User;
-use App\Support\ChurchCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class ReadingCheckinController extends Controller
 {
@@ -19,8 +20,8 @@ class ReadingCheckinController extends Controller
     public function store(Request $request, Lesson $lesson, RecordReadingCheckin $record): RedirectResponse
     {
         $data = $request->validate([
+            'weekday' => ['required', Rule::enum(Weekday::class)],
             'reading_id' => ['nullable', 'integer'],
-            'yesterday' => ['boolean'],
         ]);
 
         $reading = isset($data['reading_id']) ? LessonReading::query()->whereKey((int) $data['reading_id'])->first() : null;
@@ -28,7 +29,7 @@ class ReadingCheckinController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $badges = $record->handle($user, $lesson, $reading, (bool) ($data['yesterday'] ?? false));
+        $badges = $record->handle($user, $lesson, Weekday::from((int) $data['weekday']), $reading);
 
         $this->celebrate($badges);
 
@@ -36,19 +37,16 @@ class ReadingCheckinController extends Controller
     }
 
     /**
-     * Desfazer só vale para hoje ou ontem, e só os próprios registros.
+     * Desmarca um dia do plano de leitura (só os próprios registros).
      */
     public function destroy(Request $request, Lesson $lesson): RedirectResponse
     {
-        $date = $request->validate(['date' => ['required', 'date_format:Y-m-d']])['date'];
-        $today = ChurchCalendar::today();
-
-        abort_unless(in_array($date, [$today->toDateString(), $today->subDay()->toDateString()], true), 404);
+        $weekday = $request->validate(['weekday' => ['required', Rule::enum(Weekday::class)]])['weekday'];
 
         DB::table('reading_checkins')
             ->where('user_id', $request->user()?->id)
             ->where('lesson_id', $lesson->id)
-            ->where('read_on', $date)
+            ->where('weekday', (int) $weekday)
             ->delete();
 
         return back();

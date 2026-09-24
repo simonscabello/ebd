@@ -1,14 +1,14 @@
 # EBD — Escola Bíblica Dominical
 
-O lugar permanente e organizado dos estudos da EBD. O WhatsApp continua sendo o canal de aviso; o conteúdo (lições, PDFs, leituras, perguntas, vídeos, referências) fica aqui, fácil de achar hoje e daqui a alguns anos.
+O lugar permanente e organizado dos estudos da EBD. O WhatsApp continua sendo o canal de aviso; o conteúdo (lições, PDFs, leituras, vídeos, referências) fica aqui, fácil de achar hoje e daqui a alguns anos.
 
 O fluxo do produto:
 
 **Agenda da classe → preparação durante a semana → aula no domingo → evolução da classe → biblioteca**
 
-- **Início**: responde "o que eu preciso estudar para o próximo domingo?" (lição do próximo encontro, "encontro 2 de 2", aviso de domingo sem EBD, leitura do dia, materiais e perguntas).
-- **Lição** (`/licoes/{slug}`): no formato da revista (número, versículo-chave, alvo, estudo em I/II/III) e além dela: contexto, teologia, curiosidades, conceitos, revisão com gabarito e anotações pessoais. Lições públicas abrem **sem login**.
-- **Minha semana** (`/minha-semana`): leitura do dia com "Li hoje", curiosidade do dia, "Prepare-se para domingo", sequência de dias e selos. O aluno entra por um **link pessoal** enviado no WhatsApp, sem senha.
+- **Início**: responde "o que eu preciso estudar para o próximo domingo?" (lição do próximo encontro, "encontro 2 de 2", aviso de domingo sem EBD, leitura do dia e materiais).
+- **Lição** (`/licoes/{slug}`): no formato da revista (número, versículo-chave, alvo, estudo em I/II/III) e além dela: contexto, teologia, curiosidades, conceitos e anotações pessoais. Lições públicas abrem **sem login**.
+- **Minha semana** (`/minha-semana`): leituras da semana (cada dia pode ser marcado como lido a qualquer momento: adiantar ou pôr em dia), curiosidade do dia, "Prepare-se para domingo", sequência de dias e selos. O aluno entra por um **link pessoal** enviado no WhatsApp, sem senha.
 - **Modo Domingo** (`/licoes/{slug}/domingo`): para conduzir ou acompanhar a aula; o professor vê roteiro, notas de precisão, "se houver tempo", faz a chamada e encerra a aula (lição concluída ou continua).
 - **Biblioteca** (`/biblioteca`): busca por título, conteúdo, série e texto bíblico, com filtros por classe, série e ano.
 - **Gestão** (`/admin`): agenda da classe (planejar trimestre, domingos sem EBD), lições e blocos de aprofundamento, alunos e links de acesso, evolução da classe e relatório do trimestre.
@@ -117,7 +117,7 @@ make seed             # só popula
 make fresh            # apaga tudo, roda as migrations e popula
 ```
 
-O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres de Jesus** com a lição **A Santidade de Deus** (Lucas 5:1–11) no próximo domingo, a **Lição 11 — É Necessário** (Jo 9) completa no formato da revista (blocos, curiosidades liberadas por dia, revisão com gabarito), aulas anteriores com chamada, uma série do ano passado, uma lição restrita a membros e um rascunho. As datas são calculadas a partir de hoje, então a home sempre tem uma "próxima aula".
+O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres de Jesus** com a lição **A Santidade de Deus** (Lucas 5:1–11) no próximo domingo, a **Lição 11 — É Necessário** (Jo 9) completa no formato da revista (blocos e curiosidades liberadas por dia), aulas anteriores com chamada, uma série do ano passado, uma lição restrita a membros e um rascunho. As datas são calculadas a partir de hoje, então a home sempre tem uma "próxima aula".
 
 **Usuários de desenvolvimento (apenas ambiente local, senha `password` para todos):**
 

@@ -4,8 +4,6 @@ namespace App\Queries;
 
 use App\Enums\Badge;
 use App\Enums\MeetingStatus;
-use App\Enums\QuestionKind;
-use App\Enums\SelfAssessment;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\User;
@@ -15,8 +13,7 @@ use App\Support\StudyStreak;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Progresso de um aluno numa classe: lição a lição (leitura em casa, revisão,
- * presença), sequência e selos. Usado em "Meu progresso" e, pelo professor,
+ * Progresso de um aluno numa classe: lição a lição (leitura em casa e presença), sequência e selos. Usado em "Meu progresso" e, pelo professor,
  * na página do aluno. Nunca inclui as anotações pessoais.
  */
 class StudentProgressQuery
@@ -38,7 +35,6 @@ class StudentProgressQuery
             ->whereHas('meetings', fn ($q) => $q->active()->whereDate('held_on', '<=', $today))
             ->withMax(['meetings as last_meeting_on' => fn ($q) => $q->active()->whereDate('held_on', '<=', $today)], 'held_on')
             ->withCount(['readings' => fn ($q) => $q->whereNotNull('weekday')])
-            ->withCount(['questions as review_total' => fn ($q) => $q->where('kind', QuestionKind::Review)])
             ->orderByDesc('last_meeting_on')
             ->limit($limit)
             ->get();
@@ -49,17 +45,8 @@ class StudentProgressQuery
             ->where('user_id', $user->id)
             ->whereIn('lesson_id', $ids)
             ->groupBy('lesson_id')
-            ->selectRaw('lesson_id, COUNT(DISTINCT read_on) AS days')
+            ->selectRaw('lesson_id, COUNT(DISTINCT weekday) AS days')
             ->pluck('days', 'lesson_id');
-
-        $reviews = DB::table('question_attempts')
-            ->join('lesson_questions', 'lesson_questions.id', '=', 'question_attempts.lesson_question_id')
-            ->where('question_attempts.user_id', $user->id)
-            ->whereIn('lesson_questions.lesson_id', $ids)
-            ->groupBy('lesson_questions.lesson_id')
-            ->selectRaw('lesson_questions.lesson_id, COUNT(*) AS answered, COUNT(*) FILTER (WHERE self_assessment = ?) AS correct', [SelfAssessment::Correct->value])
-            ->get()
-            ->keyBy('lesson_id');
 
         $attendance = DB::table('class_meetings')
             ->leftJoin('attendances', fn ($join) => $join
@@ -94,8 +81,7 @@ class StudentProgressQuery
                 'description' => $b->description(),
                 'emoji' => $b->emoji(),
             ], Badge::cases()),
-            'lessons' => $lessons->map(function (Lesson $lesson) use ($daysRead, $reviews, $attendance) {
-                $review = $reviews->get($lesson->id);
+            'lessons' => $lessons->map(function (Lesson $lesson) use ($daysRead, $attendance) {
                 $presence = $attendance->get($lesson->id);
 
                 return [
@@ -107,9 +93,6 @@ class StudentProgressQuery
                         : null,
                     'days_read' => (int) ($daysRead[$lesson->id] ?? 0),
                     'readings_total' => max((int) $lesson->getAttribute('readings_count'), 1),
-                    'review_answered' => (int) ($review->answered ?? 0),
-                    'review_correct' => (int) ($review->correct ?? 0),
-                    'review_total' => (int) $lesson->getAttribute('review_total'),
                     'meetings' => $presence ? (int) $presence->meetings : 0,
                     'present' => $presence ? (int) $presence->present : 0,
                 ];

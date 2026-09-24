@@ -79,22 +79,4 @@ class LessonBlockTest extends TestCase
             ->put("/admin/licoes/{$this->lesson->id}/blocos/{$foreign->id}", ['kind' => 'curiosity', 'body' => 'x'])
             ->assertNotFound();
     }
-
-    public function test_review_question_requires_an_answer_key(): void
-    {
-        $this->actingAs($this->teacher)
-            ->post("/admin/licoes/{$this->lesson->id}/perguntas", ['kind' => 'review', 'body' => 'O que significa Siloé?'])
-            ->assertSessionHasErrors('answer');
-
-        $this->actingAs($this->teacher)
-            ->post("/admin/licoes/{$this->lesson->id}/perguntas", ['kind' => 'review', 'body' => 'O que significa Siloé?', 'answer' => 'Enviado'])
-            ->assertSessionHasNoErrors();
-
-        // Reflexão não guarda gabarito.
-        $this->actingAs($this->teacher)
-            ->post("/admin/licoes/{$this->lesson->id}/perguntas", ['kind' => 'reflection', 'body' => 'Para onde você corre?', 'answer' => 'ignorado'])
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame(['Enviado', null], $this->lesson->questions()->pluck('answer')->all());
-    }
 }

@@ -4,10 +4,8 @@ namespace App\Actions\Engagement;
 
 use App\Enums\Badge;
 use App\Enums\MeetingStatus;
-use App\Enums\QuestionKind;
 use App\Models\ClassMeeting;
 use App\Models\Lesson;
-use App\Models\LessonQuestion;
 use App\Models\Series;
 use App\Models\User;
 use App\Support\ChurchCalendar;
@@ -15,7 +13,7 @@ use App\Support\StudyStreak;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Confere e concede selos depois de cada ação do aluno (check-in, revisão,
+ * Confere e concede selos depois de cada ação do aluno (leitura marcada,
  * chamada). Idempotente: um selo nunca é concedido duas vezes.
  *
  * @return list<Badge> selos recém-conquistados
@@ -51,10 +49,6 @@ class AwardBadges
                 $awarded[] = $this->award($user, Badge::FaithfulReader, $series);
             }
 
-            if ($this->mastersReview($user, $series)) {
-                $awarded[] = $this->award($user, Badge::ReviewMaster, $series);
-            }
-
             if ($this->hasPerfectAttendance($user, $series)) {
                 $awarded[] = $this->award($user, Badge::PerfectAttendance, $series);
             }
@@ -78,15 +72,15 @@ class AwardBadges
         return $inserted > 0 ? $badge : null;
     }
 
-    /** Leu de segunda a sábado numa mesma semana. */
+    /** Marcou as leituras de segunda a sábado de uma mesma lição. */
     private function hasFullWeek(User $user): bool
     {
         return DB::table('reading_checkins')
-            ->selectRaw("date_trunc('week', read_on) AS week")
+            ->select('lesson_id')
             ->where('user_id', $user->id)
-            ->whereRaw('EXTRACT(ISODOW FROM read_on) BETWEEN 1 AND 6')
-            ->groupByRaw("date_trunc('week', read_on)")
-            ->havingRaw('COUNT(DISTINCT read_on) >= 6')
+            ->whereBetween('weekday', [1, 6])
+            ->groupBy('lesson_id')
+            ->havingRaw('COUNT(DISTINCT weekday) >= 6')
             ->exists();
     }
 
@@ -111,31 +105,11 @@ class AwardBadges
                 ->where('user_id', $user->id)
                 ->whereIn('lesson_id', $taught)
                 ->groupBy('lesson_id')
-                ->havingRaw('COUNT(DISTINCT read_on) >= 3'),
+                ->havingRaw('COUNT(DISTINCT weekday) >= 3'),
             'studied',
         )->count();
 
         return $studied >= (int) ceil($taught->count() * 0.8);
-    }
-
-    /** Respondeu todas as perguntas de revisão da série (mínimo de 5). */
-    private function mastersReview(User $user, Series $series): bool
-    {
-        $questions = LessonQuestion::query()
-            ->where('kind', QuestionKind::Review)
-            ->whereHas('lesson', fn ($q) => $q->whereBelongsTo($series)->visible())
-            ->pluck('id');
-
-        if ($questions->count() < 5) {
-            return false;
-        }
-
-        $answered = DB::table('question_attempts')
-            ->where('user_id', $user->id)
-            ->whereIn('lesson_question_id', $questions)
-            ->count();
-
-        return $answered === $questions->count();
     }
 
     /**

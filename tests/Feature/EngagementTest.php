@@ -7,9 +7,7 @@ use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\LessonBlock;
-use App\Models\LessonQuestion;
 use App\Models\LessonReading;
-use App\Models\Series;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +15,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
- * Estudo do aluno durante a semana: "Li hoje", Minha semana, revisão,
+ * Estudo do aluno durante a semana: leituras marcadas, Minha semana,
  * anotações e selos.
  */
 class EngagementTest extends TestCase
@@ -47,38 +45,58 @@ class EngagementTest extends TestCase
         ]);
     }
 
+    /**
+     * @return array<int, string> dia do plano => data em que marcou
+     */
     private function checkins(): array
     {
-        return DB::table('reading_checkins')->where('user_id', $this->student->id)->orderBy('read_on')->pluck('read_on')
+        return DB::table('reading_checkins')->where('user_id', $this->student->id)->orderBy('weekday')->pluck('read_on', 'weekday')
             ->map(fn ($d) => substr((string) $d, 0, 10))->all();
     }
 
-    public function test_student_checks_in_today_or_yesterday_only_and_idempotently(): void
+    private function checkIn(Lesson $lesson, int $weekday, string $readOn): void
     {
-        $reading = LessonReading::factory()->for($this->lesson)->create(['weekday' => 3, 'reference' => 'Rm 12.1-2']);
+        DB::table('reading_checkins')->insert([
+            'user_id' => $this->student->id,
+            'lesson_id' => $lesson->id,
+            'weekday' => $weekday,
+            'read_on' => $readOn,
+            'created_at' => now(),
+        ]);
+    }
 
-        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['reading_id' => $reading->id])->assertRedirect();
-        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['reading_id' => $reading->id]);
-        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['yesterday' => true]);
+    public function test_student_marks_any_day_of_the_plan_at_any_time_and_idempotently(): void
+    {
+        $friday = LessonReading::factory()->for($this->lesson)->create(['weekday' => 5, 'reference' => 'Rm 12.1-2']);
 
-        $this->assertSame(['2026-09-22', '2026-09-23'], $this->checkins());
+        // Quarta-feira: adianta a leitura de sexta e põe a de segunda em dia.
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 5, 'reading_id' => $friday->id])->assertRedirect();
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 5, 'reading_id' => $friday->id]);
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 1]);
 
-        // Desfazer só vale para hoje/ontem.
-        $this->actingAs($this->student)->delete('/licoes/e-necessario/leituras', ['date' => '2026-09-20'])->assertNotFound();
-        $this->actingAs($this->student)->delete('/licoes/e-necessario/leituras', ['date' => '2026-09-23']);
-        $this->assertSame(['2026-09-22'], $this->checkins());
+        // read_on é quando marcou; o dia do plano vem da leitura.
+        $this->assertSame([1 => '2026-09-23', 5 => '2026-09-23'], $this->checkins());
+
+        // A leitura manda no dia do plano, mesmo que o dia enviado seja outro.
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 2, 'reading_id' => $friday->id]);
+        $this->assertSame([1, 5], array_keys($this->checkins()));
+
+        $this->actingAs($this->student)->delete('/licoes/e-necessario/leituras', ['weekday' => 1])->assertRedirect();
+        $this->assertSame([5 => '2026-09-23'], $this->checkins());
+
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 8])->assertSessionHasErrors('weekday');
     }
 
     public function test_only_members_can_check_in_and_guests_are_sent_to_login(): void
     {
-        $this->post('/licoes/e-necessario/leituras')->assertRedirect(route('login'));
+        $this->post('/licoes/e-necessario/leituras', ['weekday' => 3])->assertRedirect(route('login'));
 
         $outsider = User::factory()->studentOf(Classroom::factory()->create())->create();
-        $this->actingAs($outsider)->post('/licoes/e-necessario/leituras')->assertForbidden();
+        $this->actingAs($outsider)->post('/licoes/e-necessario/leituras', ['weekday' => 3])->assertForbidden();
 
         $foreignReading = LessonReading::factory()->create();
         $this->actingAs($this->student)
-            ->post('/licoes/e-necessario/leituras', ['reading_id' => $foreignReading->id])
+            ->post('/licoes/e-necessario/leituras', ['weekday' => 3, 'reading_id' => $foreignReading->id])
             ->assertSessionHasErrors('reading_id');
     }
 
@@ -89,8 +107,7 @@ class EngagementTest extends TestCase
         LessonBlock::factory()->for($this->lesson)->drip(3)->create(['title' => 'Siloé significa Enviado']);
         LessonBlock::factory()->for($this->lesson)->drip(5)->create(['title' => 'Sexta']);
         LessonBlock::factory()->for($this->lesson)->teacherOnly()->create(['title' => 'Roteiro secreto']);
-        LessonQuestion::factory()->for($this->lesson)->review()->create();
-        DB::table('reading_checkins')->insert(['user_id' => $this->student->id, 'lesson_id' => $this->lesson->id, 'read_on' => '2026-09-21', 'created_at' => now()]);
+        $this->checkIn($this->lesson, 1, '2026-09-21');
 
         $this->actingAs($this->student)->get('/minha-semana')
             ->assertOk()
@@ -108,7 +125,7 @@ class EngagementTest extends TestCase
                 ->has('week.unlockedBlocks', 1)
                 ->where('week.progress.days_done', 1)
                 ->where('week.progress.days_total', 2)
-                ->where('week.review.total', 1)
+                ->missing('week.review')
                 ->where('week.checklist.0.done', true)
                 ->where('week.streak.current', 0));
     }
@@ -138,30 +155,6 @@ class EngagementTest extends TestCase
                 ->where('week.lesson.title', 'Jovens'));
     }
 
-    public function test_review_attempts_are_saved_only_for_review_questions(): void
-    {
-        $review = LessonQuestion::factory()->for($this->lesson)->review()->create();
-        $reflection = LessonQuestion::factory()->for($this->lesson)->create();
-
-        $this->actingAs($this->student)
-            ->post("/licoes/e-necessario/perguntas/{$review->id}/tentativa", ['self_assessment' => 'partial'])
-            ->assertSessionHasNoErrors();
-        $this->actingAs($this->student)
-            ->post("/licoes/e-necessario/perguntas/{$review->id}/tentativa", ['self_assessment' => 'correct']);
-        $this->actingAs($this->student)
-            ->post("/licoes/e-necessario/perguntas/{$reflection->id}/tentativa", ['self_assessment' => 'correct'])
-            ->assertSessionHasErrors('self_assessment');
-
-        $this->assertDatabaseCount('question_attempts', 1);
-        $this->assertDatabaseHas('question_attempts', ['lesson_question_id' => $review->id, 'self_assessment' => 'correct']);
-
-        // Pergunta de outra lição não passa pela rota desta lição.
-        $foreign = LessonQuestion::factory()->review()->create();
-        $this->actingAs($this->student)
-            ->post("/licoes/e-necessario/perguntas/{$foreign->id}/tentativa", ['self_assessment' => 'correct'])
-            ->assertNotFound();
-    }
-
     public function test_personal_note_is_private_to_the_student(): void
     {
         $this->actingAs($this->student)->put('/licoes/e-necessario/anotacao', ['body' => 'Uma coisa sei: eu era cego'])->assertRedirect();
@@ -188,14 +181,18 @@ class EngagementTest extends TestCase
 
     public function test_full_week_and_streak_badges_are_awarded_once(): void
     {
-        foreach (['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19', '2026-09-20', '2026-09-21', '2026-09-22'] as $date) {
-            DB::table('reading_checkins')->insert(['user_id' => $this->student->id, 'lesson_id' => $this->lesson->id, 'read_on' => $date, 'created_at' => now()]);
+        // Semana passada: todas as leituras de uma lição, uma por dia.
+        $previous = Lesson::factory()->for($this->classroom)->published()->on('2026-09-20')->create();
+        foreach (range(1, 7) as $weekday) {
+            $this->checkIn($previous, $weekday, '2026-09-'.(13 + $weekday));
         }
+        $this->checkIn($this->lesson, 1, '2026-09-21');
+        $this->checkIn($this->lesson, 2, '2026-09-22');
 
-        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras')->assertRedirect();
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 3])->assertRedirect();
         $this->assertSame([Badge::Streak7->label(), Badge::FirstFullWeek->label()], collect(session('inertia.flash_data.badges'))->pluck('label')->all());
 
-        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras');
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 4]);
         $this->assertSame(2, DB::table('user_badges')->where('user_id', $this->student->id)->count());
 
         $this->actingAs($this->student)->get('/meu-progresso')
@@ -205,24 +202,23 @@ class EngagementTest extends TestCase
                 ->has('progress.badges', 2));
     }
 
-    public function test_review_master_badge_for_answering_every_review_question_of_the_series(): void
+    public function test_reading_everything_on_the_weekend_still_completes_the_week(): void
     {
-        $series = Series::factory()->for($this->classroom)->create();
-        $this->lesson->forceFill(['series_id' => $series->id])->save();
-        $questions = LessonQuestion::factory()->for($this->lesson)->review()->count(5)->create();
+        $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 26)->setTime(10, 0));
 
-        foreach ($questions as $question) {
-            $this->actingAs($this->student)->post("/licoes/e-necessario/perguntas/{$question->id}/tentativa", ['self_assessment' => 'wrong']);
+        foreach (range(1, 6) as $weekday) {
+            $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => $weekday]);
         }
 
-        $this->assertDatabaseHas('user_badges', ['user_id' => $this->student->id, 'badge' => 'review_master', 'series_id' => $series->id]);
+        $this->assertDatabaseHas('user_badges', ['user_id' => $this->student->id, 'badge' => Badge::FirstFullWeek->value]);
+        $this->assertDatabaseMissing('user_badges', ['user_id' => $this->student->id, 'badge' => Badge::Streak7->value]);
     }
 
     public function test_meu_progresso_lists_studied_lessons(): void
     {
         $past = Lesson::factory()->for($this->classroom)->published()->on('2026-09-20')->create(['title' => 'Passada']);
         LessonReading::factory()->for($past)->count(3)->sequence(['weekday' => 1], ['weekday' => 2], ['weekday' => 3])->create();
-        DB::table('reading_checkins')->insert(['user_id' => $this->student->id, 'lesson_id' => $past->id, 'read_on' => '2026-09-15', 'created_at' => now()]);
+        $this->checkIn($past, 1, '2026-09-15');
         $meeting = ClassMeeting::query()->where('lesson_id', $past->id)->sole();
         $meeting->forceFill(['attendance_taken_at' => now()])->save();
         DB::table('attendances')->insert(['class_meeting_id' => $meeting->id, 'user_id' => $this->student->id, 'created_at' => now()]);

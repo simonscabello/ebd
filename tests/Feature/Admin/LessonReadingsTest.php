@@ -5,12 +5,12 @@ namespace Tests\Feature\Admin;
 use App\Enums\Weekday;
 use App\Models\Classroom;
 use App\Models\Lesson;
-use App\Models\LessonQuestion;
+use App\Models\LessonReading;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class LessonQuestionsAndReadingsTest extends TestCase
+class LessonReadingsTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -27,52 +27,39 @@ class LessonQuestionsAndReadingsTest extends TestCase
         $this->lesson = Lesson::factory()->for($classroom)->create();
     }
 
-    public function test_questions_are_appended_in_order_and_can_be_reordered(): void
+    public function test_readings_are_appended_in_order_and_can_be_reordered(): void
     {
-        foreach (['Primeira?', 'Segunda?', 'Terceira?'] as $body) {
+        foreach (['Isaías 6', 'Salmo 99', 'Lucas 5'] as $reference) {
             $this->actingAs($this->teacher)
-                ->post("/admin/licoes/{$this->lesson->id}/perguntas", ['body' => $body])
+                ->post("/admin/licoes/{$this->lesson->id}/leituras", ['reference' => $reference])
                 ->assertSessionHasNoErrors();
         }
 
-        $ids = $this->lesson->questions()->pluck('id')->all();
-        $this->assertSame(['Primeira?', 'Segunda?', 'Terceira?'], $this->lesson->questions()->pluck('body')->all());
+        $ids = $this->lesson->readings()->pluck('id')->all();
+        $this->assertSame(['Isaías 6', 'Salmo 99', 'Lucas 5'], $this->lesson->readings()->pluck('reference')->all());
 
         $this->actingAs($this->teacher)
-            ->put("/admin/licoes/{$this->lesson->id}/ordem/questions", ['ids' => [$ids[2], $ids[0], $ids[1]]])
+            ->put("/admin/licoes/{$this->lesson->id}/ordem/readings", ['ids' => [$ids[2], $ids[0], $ids[1]]])
             ->assertRedirect();
 
-        $this->assertSame(['Terceira?', 'Primeira?', 'Segunda?'], $this->lesson->questions()->pluck('body')->all());
+        $this->assertSame(['Lucas 5', 'Isaías 6', 'Salmo 99'], $this->lesson->readings()->pluck('reference')->all());
     }
 
     public function test_reorder_rejects_ids_from_other_lessons(): void
     {
-        $mine = LessonQuestion::factory()->for($this->lesson)->create();
-        $foreign = LessonQuestion::factory()->create();
+        $mine = LessonReading::factory()->for($this->lesson)->create();
+        $foreign = LessonReading::factory()->create();
 
         $this->actingAs($this->teacher)
-            ->put("/admin/licoes/{$this->lesson->id}/ordem/questions", ['ids' => [$foreign->id, $mine->id]])
+            ->put("/admin/licoes/{$this->lesson->id}/ordem/readings", ['ids' => [$foreign->id, $mine->id]])
             ->assertSessionHasErrors('ids');
     }
 
-    public function test_questions_can_be_edited_and_removed(): void
-    {
-        $question = LessonQuestion::factory()->for($this->lesson)->create();
-
-        $this->actingAs($this->teacher)
-            ->put("/admin/licoes/{$this->lesson->id}/perguntas/{$question->id}", ['body' => 'Nova redação?'])
-            ->assertSessionHasNoErrors();
-        $this->assertSame('Nova redação?', $question->refresh()->body);
-
-        $this->actingAs($this->teacher)->delete("/admin/licoes/{$this->lesson->id}/perguntas/{$question->id}");
-        $this->assertModelMissing($question);
-    }
-
-    public function test_empty_question_is_rejected(): void
+    public function test_questions_are_no_longer_a_reorderable_relation(): void
     {
         $this->actingAs($this->teacher)
-            ->post("/admin/licoes/{$this->lesson->id}/perguntas", ['body' => ''])
-            ->assertSessionHasErrors('body');
+            ->put("/admin/licoes/{$this->lesson->id}/ordem/questions", ['ids' => []])
+            ->assertNotFound();
     }
 
     public function test_readings_with_optional_weekday(): void

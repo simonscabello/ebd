@@ -7,15 +7,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Reordena materiais, perguntas, leituras ou blocos de uma lição.
+ * Reordena materiais, leituras ou blocos de uma lição.
  * Recebe a lista completa de IDs na nova ordem.
  */
 class ReorderLessonItems
 {
-    public const RELATIONS = ['materials', 'questions', 'readings', 'blocks'];
+    public const RELATIONS = ['materials', 'readings', 'blocks'];
 
     /**
-     * @param  'materials'|'questions'|'readings'|'blocks'  $relation
+     * @param  'materials'|'readings'|'blocks'  $relation
      * @param  list<int>  $orderedIds
      */
     public function handle(Lesson $lesson, string $relation, array $orderedIds): void

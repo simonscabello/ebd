@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { reorder } from '@/routes/admin/lessons';
 
-type Relation = 'materials' | 'questions' | 'readings' | 'blocks';
+type Relation = 'materials' | 'readings' | 'blocks';
 
 /**
  * Setas para reordenar itens. Botões são mais acessíveis e confiáveis no

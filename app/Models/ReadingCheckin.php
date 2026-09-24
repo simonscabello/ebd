@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $user_id
  * @property int $lesson_id
  * @property int|null $lesson_reading_id
+ * @property int $weekday 1 = segunda ... 7 = domingo (dia do plano de leitura)
  * @property CarbonImmutable $read_on
  */
 class ReadingCheckin extends Model

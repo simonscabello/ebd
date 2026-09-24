@@ -4,8 +4,6 @@ namespace App\Queries;
 
 use App\Enums\ClassroomRole;
 use App\Enums\MeetingStatus;
-use App\Enums\QuestionKind;
-use App\Enums\SelfAssessment;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Support\ChurchCalendar;
@@ -15,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Evolução da classe para o professor: presença por encontro, estudo em casa
- * por lição, revisão e alunos que precisam de atenção.
+ * por lição e alunos que precisam de atenção.
  *
  * Denominadores respeitam a data de entrada do aluno na classe: quem entrou
  * depois de um encontro não conta como falta nele.
@@ -76,7 +74,7 @@ class ClassroomInsightsQuery
             ];
         })->values();
 
-        // Estudo em casa e revisão por lição (lições dos encontros acima).
+        // Estudo em casa por lição (lições dos encontros acima).
         $lessonIds = $meetings->pluck('lesson_id')->filter()->unique()->values();
 
         $reading = DB::table('reading_checkins')
@@ -87,22 +85,11 @@ class ClassroomInsightsQuery
             ->get()
             ->keyBy('lesson_id');
 
-        $review = DB::table('question_attempts')
-            ->join('lesson_questions', 'lesson_questions.id', '=', 'question_attempts.lesson_question_id')
-            ->whereIn('lesson_questions.lesson_id', $lessonIds)
-            ->where('lesson_questions.kind', QuestionKind::Review->value)
-            ->whereIn('question_attempts.user_id', $studentIds)
-            ->groupBy('lesson_questions.lesson_id')
-            ->selectRaw('lesson_questions.lesson_id, COUNT(DISTINCT question_attempts.user_id) AS students, COUNT(*) AS answers, COUNT(*) FILTER (WHERE self_assessment = ?) AS correct', [SelfAssessment::Correct->value])
-            ->get()
-            ->keyBy('lesson_id');
-
         $studentCount = max(count($studentIds), 1);
 
-        $lessons = $lessonIds->map(function (int $lessonId) use ($meetings, $reading, $review, $studentCount) {
+        $lessons = $lessonIds->map(function (int $lessonId) use ($meetings, $reading, $studentCount) {
             $meeting = $meetings->firstWhere('lesson_id', $lessonId);
             $r = $reading->get($lessonId);
-            $q = $review->get($lessonId);
 
             return [
                 'id' => $lessonId,
@@ -110,8 +97,6 @@ class ClassroomInsightsQuery
                 'readers' => (int) ($r->readers ?? 0),
                 'readers_rate' => round(((int) ($r->readers ?? 0)) / $studentCount * 100),
                 'avg_days' => $r && $r->readers > 0 ? round($r->checkins / $r->readers, 1) : 0,
-                'review_students' => (int) ($q->students ?? 0),
-                'review_correct_rate' => $q && $q->answers > 0 ? round($q->correct / $q->answers * 100) : null,
             ];
         })->values();
 

@@ -4,7 +4,6 @@ namespace App\Queries;
 
 use App\Enums\ClassroomRole;
 use App\Enums\MeetingStatus;
-use App\Enums\QuestionKind;
 use App\Models\ClassMeeting;
 use App\Models\Lesson;
 use App\Models\Series;
@@ -27,7 +26,6 @@ class SeriesReportQuery
             ->orderByRaw('number IS NULL, number')
             ->orderBy('scheduled_for')
             ->with(['meetings' => fn ($q) => $q->active()])
-            ->withCount(['questions as review_total' => fn ($q) => $q->where('kind', QuestionKind::Review)])
             ->get();
 
         $students = DB::table('classroom_user')
@@ -73,14 +71,6 @@ class SeriesReportQuery
             ->selectRaw('lesson_id, COUNT(DISTINCT user_id) AS readers')
             ->pluck('readers', 'lesson_id');
 
-        $reviewByStudent = DB::table('question_attempts')
-            ->join('lesson_questions', 'lesson_questions.id', '=', 'question_attempts.lesson_question_id')
-            ->whereIn('lesson_questions.lesson_id', $lessonIds)
-            ->whereIn('question_attempts.user_id', $studentIds)
-            ->groupBy('question_attempts.user_id')
-            ->selectRaw('question_attempts.user_id, COUNT(*) AS answered')
-            ->pluck('answered', 'user_id');
-
         $badges = DB::table('user_badges')
             ->where('series_id', $series->id)
             ->whereIn('user_id', $studentIds)
@@ -88,7 +78,6 @@ class SeriesReportQuery
             ->groupBy('user_id');
 
         $taught = $lessons->filter(fn (Lesson $l) => $l->meetings->contains(fn ($m) => $m->held_on->lte(ChurchCalendar::today())))->count();
-        $reviewTotal = (int) $lessons->sum('review_total');
         $studentCount = max($students->count(), 1);
 
         return [
@@ -102,7 +91,6 @@ class SeriesReportQuery
                 'lessons' => $lessons->count(),
                 'taught' => $taught,
                 'meetings_with_attendance' => $meetingIds->count(),
-                'review_total' => $reviewTotal,
                 'students' => $students->count(),
             ],
             'lessons' => $lessons->map(fn (Lesson $lesson) => [
@@ -117,7 +105,6 @@ class SeriesReportQuery
                 'name' => $s->name,
                 'present' => (int) ($attendance[$s->id] ?? 0),
                 'lessons_studied' => (int) ($readingByStudent[$s->id] ?? 0),
-                'review_answered' => (int) ($reviewByStudent[$s->id] ?? 0),
                 'badges' => $badges->get($s->id, collect())->pluck('badge')->all(),
             ])->values(),
         ];

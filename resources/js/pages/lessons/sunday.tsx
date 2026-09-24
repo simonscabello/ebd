@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Check, Eye, EyeOff, Minus, Plus, X } from 'lucide-react';
+import { Minus, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Roster } from '@/components/lesson/attendance-sheet';
 import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
@@ -39,12 +39,11 @@ function readScale(): number {
 
 /**
  * Modo Domingo: interface limpa para conduzir (professor) ou acompanhar (aluno)
- * a aula no notebook, tablet ou celular. Sem navegação do app, fonte ajustável
- * e perguntas que podem ser marcadas como discutidas (apenas neste aparelho).
+ * a aula no notebook, tablet ou celular. Sem navegação do app e com fonte
+ * ajustável (lembrada neste aparelho).
  */
 export default function SundayMode({ lesson, canManage, conduct }: Props) {
     const [scale, setScale] = useState(1);
-    const [discussed, setDiscussed] = useState<number[]>([]);
 
     useEffect(() => {
         setScale(readScale());
@@ -61,19 +60,6 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
         }
     };
 
-    const toggle = (id: number) =>
-        setDiscussed((current) =>
-            current.includes(id)
-                ? current.filter((item) => item !== id)
-                : [...current, id],
-        );
-
-    const [showAnswers, setShowAnswers] = useState(false);
-
-    const questions = (lesson.questions ?? []).filter(
-        (q) => q.kind === 'reflection',
-    );
-    const review = (lesson.questions ?? []).filter((q) => q.kind === 'review');
     const topics = lesson.topics ?? [];
     const teacher = lesson.teacher_blocks ?? [];
     const roteiro = teacher.filter((b) =>
@@ -184,7 +170,6 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                 {lesson.bible_reference && (
                     <BiblePassage
                         reference={lesson.bible_reference}
-                        text={lesson.bible_text}
                         size="large"
                     />
                 )}
@@ -206,94 +191,6 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                                         {index + 1}.
                                     </span>
                                     {topic}
-                                </li>
-                            ))}
-                        </ol>
-                    </section>
-                )}
-
-                {questions.length > 0 && (
-                    <section>
-                        <h2 className="mb-3 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
-                            Perguntas para discussão
-                        </h2>
-                        <ol className="space-y-3">
-                            {questions.map((question, index) => {
-                                const done = discussed.includes(question.id);
-
-                                return (
-                                    <li key={question.id}>
-                                        <button
-                                            type="button"
-                                            onClick={() => toggle(question.id)}
-                                            aria-pressed={done}
-                                            className={cn(
-                                                'flex w-full gap-4 rounded-2xl border bg-card p-5 text-left transition-opacity',
-                                                done && 'opacity-50',
-                                            )}
-                                        >
-                                            <span
-                                                className={cn(
-                                                    'flex size-[1.8em] shrink-0 items-center justify-center rounded-full bg-accent text-[0.8em] font-semibold text-accent-foreground',
-                                                    done &&
-                                                        'bg-primary text-primary-foreground',
-                                                )}
-                                            >
-                                                {done ? (
-                                                    <Check className="size-[1em]" />
-                                                ) : (
-                                                    index + 1
-                                                )}
-                                            </span>
-                                            <span className="font-serif text-[1.2em] leading-relaxed text-pretty">
-                                                {question.body}
-                                            </span>
-                                        </button>
-                                    </li>
-                                );
-                            })}
-                        </ol>
-                        <p className="mt-2 text-[0.75em] text-muted-foreground">
-                            Toque numa pergunta para marcá-la como discutida.
-                        </p>
-                    </section>
-                )}
-
-                {review.length > 0 && (
-                    <section>
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                            <h2 className="text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
-                                Revisão
-                            </h2>
-                            <button
-                                type="button"
-                                onClick={() => setShowAnswers((v) => !v)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-[0.75em] font-medium"
-                            >
-                                {showAnswers ? (
-                                    <EyeOff className="size-4" />
-                                ) : (
-                                    <Eye className="size-4" />
-                                )}
-                                {showAnswers
-                                    ? 'Esconder gabarito'
-                                    : 'Mostrar gabarito'}
-                            </button>
-                        </div>
-                        <ol className="space-y-3">
-                            {review.map((question, index) => (
-                                <li
-                                    key={question.id}
-                                    className="rounded-2xl border bg-card p-5"
-                                >
-                                    <p className="font-serif text-[1.15em] leading-relaxed text-pretty">
-                                        {index + 1}. {question.body}
-                                    </p>
-                                    {showAnswers && (
-                                        <p className="mt-2 text-[0.9em] text-emerald-800 dark:text-emerald-300">
-                                            {question.answer}
-                                        </p>
-                                    )}
                                 </li>
                             ))}
                         </ol>

@@ -215,7 +215,7 @@ export default function ClassroomMembers({
                 <PageHeader
                     eyebrow={`Classe ${classroom.name}`}
                     title="Membros"
-                    description="Alunos entram pelo link pessoal (sem senha) e passam a registrar leitura, revisão e presença."
+                    description="Alunos entram pelo link pessoal (sem senha) e passam a registrar leitura e presença."
                     actions={
                         <Button asChild variant="outline">
                             <Link href={insights(classroom.slug)}>

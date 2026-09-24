@@ -9,7 +9,6 @@ use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\MaterialFileController;
 use App\Http\Controllers\MyProgressController;
 use App\Http\Controllers\MyWeekController;
-use App\Http\Controllers\QuestionAttemptController;
 use App\Http\Controllers\ReadingCheckinController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,7 +26,7 @@ Route::get('licoes/{lesson:slug}', [LessonController::class, 'show'])->name('les
 Route::get('licoes/{lesson:slug}/domingo', [LessonController::class, 'sunday'])->name('lessons.sunday');
 
 /*
-| Estudo do aluno (exige login): semana de estudo, "Li hoje", revisão e anotações.
+| Estudo do aluno (exige login): semana de estudo, leituras marcadas e anotações.
 */
 Route::middleware(['auth', 'throttle:engagement'])->group(function () {
     Route::get('minha-semana', MyWeekController::class)->name('my-week');
@@ -35,9 +34,6 @@ Route::middleware(['auth', 'throttle:engagement'])->group(function () {
 
     Route::post('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'store'])->name('lessons.checkins.store');
     Route::delete('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'destroy'])->name('lessons.checkins.destroy');
-    Route::post('licoes/{lesson:slug}/perguntas/{question}/tentativa', QuestionAttemptController::class)
-        ->scopeBindings()
-        ->name('lessons.questions.attempt');
     Route::put('licoes/{lesson:slug}/anotacao', [LessonNoteController::class, 'update'])->name('lessons.note.update');
 });
 
@@ -108,7 +104,7 @@ Route::middleware(['auth', 'can:access-admin'])
 
         Route::post('licoes/{lesson}/status', Admin\LessonStatusController::class)->name('lessons.status');
         Route::put('licoes/{lesson}/ordem/{relation}', Admin\LessonOrderController::class)
-            ->whereIn('relation', ['materials', 'questions', 'readings', 'blocks'])
+            ->whereIn('relation', ['materials', 'readings', 'blocks'])
             ->name('lessons.reorder');
 
         Route::scopeBindings()->group(function () {
@@ -116,10 +112,6 @@ Route::middleware(['auth', 'can:access-admin'])
             // POST (e não PUT) para permitir envio de arquivo via multipart.
             Route::post('licoes/{lesson}/materiais/{material}', [Admin\LessonMaterialController::class, 'update'])->name('lessons.materials.update');
             Route::delete('licoes/{lesson}/materiais/{material}', [Admin\LessonMaterialController::class, 'destroy'])->name('lessons.materials.destroy');
-
-            Route::post('licoes/{lesson}/perguntas', [Admin\LessonQuestionController::class, 'store'])->name('lessons.questions.store');
-            Route::put('licoes/{lesson}/perguntas/{question}', [Admin\LessonQuestionController::class, 'update'])->name('lessons.questions.update');
-            Route::delete('licoes/{lesson}/perguntas/{question}', [Admin\LessonQuestionController::class, 'destroy'])->name('lessons.questions.destroy');
 
             Route::post('licoes/{lesson}/blocos', [Admin\LessonBlockController::class, 'store'])->name('lessons.blocks.store');
             Route::put('licoes/{lesson}/blocos/{block}', [Admin\LessonBlockController::class, 'update'])->name('lessons.blocks.update');
