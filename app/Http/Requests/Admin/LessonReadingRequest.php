@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\Weekday;
+use App\Concerns\LessonValidationRules;
 use App\Models\Lesson;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class LessonReadingRequest extends FormRequest
 {
+    use LessonValidationRules;
+
     public function authorize(): bool
     {
         /** @var Lesson $lesson */
@@ -22,11 +23,7 @@ class LessonReadingRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'weekday' => ['nullable', Rule::enum(Weekday::class)],
-            'reference' => ['required', 'string', 'max:160'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ];
+        return $this->lessonReadingRules();
     }
 
     /**

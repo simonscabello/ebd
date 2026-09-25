@@ -2,18 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Actions\Lessons\CreateLesson;
-use App\Actions\Lessons\SyncLessonSearchText;
-use App\Actions\Lessons\UpdateLesson;
-use App\Enums\ContentAudience;
-use App\Enums\LessonBlockKind;
+use App\Actions\Lessons\ImportLessonDraft;
+use App\Concerns\LessonValidationRules;
 use App\Enums\LessonStatus;
-use App\Enums\LessonVisibility;
-use App\Enums\MaterialType;
-use App\Enums\Weekday;
 use App\Models\Classroom;
 use App\Models\Lesson;
-use App\Models\LessonMaterial;
 use App\Models\Series;
 use App\Models\User;
 use Illuminate\Console\Attributes\Description;
@@ -22,7 +15,6 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 /**
  * Cadastra uma lição inteira (dados, leituras, blocos e materiais com link) a
@@ -46,12 +38,9 @@ use Illuminate\Validation\Rule;
 #[Description('Cadastra uma lição (rascunho) a partir de um JSON')]
 class ImportLesson extends Command
 {
-    private const array LESSON_FIELDS = ['number', 'title', 'summary', 'bible_reference', 'key_verse', 'goal', 'content', 'visibility'];
+    use LessonValidationRules;
 
-    /** Materiais que não dependem de arquivo enviado. */
-    private const array LINK_MATERIALS = [MaterialType::Reference, MaterialType::Link, MaterialType::Video, MaterialType::Audio];
-
-    public function handle(CreateLesson $create, UpdateLesson $update, SyncLessonSearchText $syncSearch): int
+    public function handle(ImportLessonDraft $import): int
     {
         $path = (string) $this->argument('path');
 
@@ -150,46 +139,13 @@ class ImportLesson extends Command
             return self::FAILURE;
         }
 
-        $lesson = DB::transaction(function () use ($data, $classroom, $series, $author, $existing, $create, $update) {
-            $fields = Arr::only($data, self::LESSON_FIELDS) + ['series_id' => $series?->id];
-
-            if ($existing !== null) {
-                $lesson = $update->handle($existing, $fields);
-                $lesson->readings()->delete();
-                $lesson->blocks()->delete();
-                $lesson->materials()->whereNull('path')->delete();
-            } else {
-                $lesson = $create->handle($author, $classroom, $fields + [
-                    'author_ids' => [$author->id],
-                    'meeting_on' => $data['meeting_on'] ?? null,
-                ]);
-            }
-
-            foreach ($data['readings'] ?? [] as $reading) {
-                $lesson->readings()->create($reading);
-            }
-
-            foreach ($data['blocks'] ?? [] as $block) {
-                $block['audience'] ??= LessonBlockKind::from($block['kind'])->defaultAudience()->value;
-
-                if ($block['audience'] === ContentAudience::Teacher->value) {
-                    $block['drip_weekday'] = null;
-                }
-
-                $lesson->blocks()->create($block);
-            }
-
-            foreach ($data['materials'] ?? [] as $material) {
-                $material['audience'] ??= ContentAudience::Student->value;
-                $record = new LessonMaterial($material);
-                $record->lesson_id = $lesson->id;
-                $record->save();
-            }
-
-            return $lesson;
-        });
-
-        $syncSearch->handle($lesson);
+        // Na substituição, as três listas são trocadas mesmo quando vêm vazias no arquivo.
+        $lesson = $import->handle($author, $classroom, Arr::only($data, [...ImportLessonDraft::LESSON_FIELDS, 'meeting_on']) + [
+            'series_id' => $series?->id,
+            'readings' => $data['readings'] ?? [],
+            'blocks' => $data['blocks'] ?? [],
+            'materials' => $data['materials'] ?? [],
+        ], $existing);
 
         if ($existing !== null && filled($data['meeting_on'] ?? null)) {
             $this->components->warn('O domingo da aula não muda na substituição. Ajuste pela agenda da classe.');
@@ -212,30 +168,13 @@ class ImportLesson extends Command
             'series' => ['nullable', 'string'],
             'author' => ['required', 'email', 'exists:users,email'],
             'meeting_on' => ['nullable', 'date'],
-            'number' => ['nullable', 'integer', 'min:1', 'max:999'],
-            'title' => ['required', 'string', 'max:180'],
-            'summary' => ['nullable', 'string', 'max:2000'],
-            'bible_reference' => ['nullable', 'string', 'max:120'],
-            'key_verse' => ['nullable', 'string', 'max:160'],
-            'goal' => ['nullable', 'string', 'max:2000'],
-            'content' => ['nullable', 'string', 'max:100000'],
-            'visibility' => ['required', Rule::enum(LessonVisibility::class)],
+            ...$this->lessonFieldRules(),
             'readings' => ['nullable', 'array', 'max:14'],
-            'readings.*.weekday' => ['nullable', Rule::enum(Weekday::class)],
-            'readings.*.reference' => ['required', 'string', 'max:160'],
-            'readings.*.notes' => ['nullable', 'string', 'max:1000'],
+            ...$this->lessonReadingRules('readings.*.'),
             'blocks' => ['nullable', 'array', 'max:60'],
-            'blocks.*.kind' => ['required', Rule::enum(LessonBlockKind::class)],
-            'blocks.*.audience' => ['nullable', Rule::enum(ContentAudience::class)],
-            'blocks.*.title' => ['nullable', 'string', 'max:180'],
-            'blocks.*.body' => ['required', 'string', 'max:60000'],
-            'blocks.*.drip_weekday' => ['nullable', Rule::enum(Weekday::class)],
+            ...$this->lessonBlockRules('blocks.*.'),
             'materials' => ['nullable', 'array', 'max:30'],
-            'materials.*.type' => ['required', Rule::in(array_map(fn (MaterialType $type) => $type->value, self::LINK_MATERIALS))],
-            'materials.*.audience' => ['nullable', Rule::enum(ContentAudience::class)],
-            'materials.*.title' => ['required', 'string', 'max:180'],
-            'materials.*.description' => ['nullable', 'string', 'max:2000'],
-            'materials.*.url' => ['nullable', 'required_unless:materials.*.type,reference', 'url:http,https', 'max:2048'],
+            ...$this->lessonLinkMaterialRules('materials.*.'),
         ];
     }
 

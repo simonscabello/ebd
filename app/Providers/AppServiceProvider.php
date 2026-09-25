@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Passport\Passport;
 use Psr\Log\LoggerInterface;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // O MCP usa só authorization code + refresh token; sem as rotas /oauth/device.
+        Passport::$deviceCodeGrantEnabled = false;
+
         $this->app->bind(PushSender::class, function (): PushSender {
             $public = (string) config('ebd.push.public_key');
             $private = (string) config('ebd.push.private_key');
@@ -53,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureAuthorization();
         $this->configureRateLimiting();
+        $this->configureOAuth();
     }
 
     /**
@@ -115,5 +120,19 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('engagement', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
         RateLimiter::for('library', fn (Request $request) => Limit::perMinute(90)->by($request->user()?->id ?: $request->ip()));
+
+        // Agentes de IA fazem várias chamadas seguidas numa mesma conversa.
+        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+    }
+
+    /**
+     * OAuth (Passport) do servidor MCP: tela de consentimento em português e
+     * tokens curtos, renovados sozinhos pelo aplicativo do agente.
+     */
+    protected function configureOAuth(): void
+    {
+        Passport::authorizationView('mcp.authorize');
+        Passport::tokensExpireIn(now()->addDay());
+        Passport::refreshTokensExpireIn(now()->addDays(30));
     }
 }

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 class ClassroomInsightsQuery
 {
     /**
-     * @return array<string, mixed>
+     * @return array{kpis: array<string, mixed>, meetings: Collection<int, covariant array<string, mixed>>, lessons: Collection<int, covariant array<string, mixed>>, students: list<array<string, mixed>>, thresholds: array<string, int>}
      */
     public function for(Classroom $classroom, int $meetingsLimit = 12): array
     {

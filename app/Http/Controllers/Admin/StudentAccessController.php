@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Access\IssueAccessLink;
 use App\Actions\Access\RevokeStudentAccess;
 use App\Actions\Classrooms\CreateManagedStudent;
+use App\Concerns\StudentValidationRules;
 use App\Http\Controllers\Controller;
 use App\Models\Classroom;
 use App\Models\User;
@@ -18,14 +19,13 @@ use Inertia\Inertia;
  */
 class StudentAccessController extends Controller
 {
+    use StudentValidationRules;
+
     public function store(Request $request, Classroom $classroom, CreateManagedStudent $create): RedirectResponse
     {
         Gate::authorize('manageMembers', $classroom);
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30', 'regex:/^[0-9 ()+.-]{8,30}$/'],
-        ], ['phone.regex' => 'Use só números, com DDD (e DDI, se for de fora do Brasil).'], ['name' => 'nome', 'phone' => 'telefone']);
+        $data = $request->validate($this->studentRules(), $this->studentMessages(), $this->studentAttributes());
 
         $result = $create->handle($classroom, $data['name'], $data['phone'] ?? null, $request->user());
 

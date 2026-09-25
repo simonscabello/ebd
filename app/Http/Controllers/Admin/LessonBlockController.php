@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Lessons\SaveLessonBlock;
 use App\Actions\Lessons\SyncLessonSearchText;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonBlockRequest;
@@ -19,20 +20,18 @@ class LessonBlockController extends Controller
         private readonly SyncLessonSearchText $syncSearch,
     ) {}
 
-    public function store(LessonBlockRequest $request, Lesson $lesson): RedirectResponse
+    public function store(LessonBlockRequest $request, Lesson $lesson, SaveLessonBlock $save): RedirectResponse
     {
-        $lesson->blocks()->create($request->validated());
-        $this->syncSearch->handle($lesson);
+        $save->handle($lesson, $request->validated());
 
         $this->toast('Bloco adicionado.');
 
         return back();
     }
 
-    public function update(LessonBlockRequest $request, Lesson $lesson, LessonBlock $block): RedirectResponse
+    public function update(LessonBlockRequest $request, Lesson $lesson, LessonBlock $block, SaveLessonBlock $save): RedirectResponse
     {
-        $block->update($request->validated());
-        $this->syncSearch->handle($lesson);
+        $save->handle($lesson, $request->validated(), $block);
 
         $this->toast('Bloco atualizado.');
 
