@@ -68,7 +68,7 @@ O `.env.example` já vem pronto para o Docker. Os pontos que você talvez queira
 make setup
 ```
 
-O `make setup` cria o `.env` (se não existir), constrói a imagem, instala dependências PHP e Node, gera a `APP_KEY`, sobe os containers, recria o banco e popula os dados de desenvolvimento.
+O `make setup` cria o `.env` (se não existir), constrói a imagem, instala dependências PHP e Node, gera a `APP_KEY` e as chaves do OAuth (`storage/oauth-*.key`, fora do Git), sobe os containers, recria o banco e popula os dados de desenvolvimento.
 
 Depois acesse:
 
@@ -83,6 +83,7 @@ docker compose build
 docker compose run --rm --no-deps app composer install
 docker compose run --rm --no-deps app npm install
 docker compose run --rm --no-deps app php artisan key:generate
+docker compose run --rm --no-deps app php artisan passport:keys
 docker compose up -d
 docker compose exec app php artisan migrate:fresh --seed
 ```
@@ -258,6 +259,24 @@ Horários no fuso da igreja (`EBD_TIMEZONE`), definidos em `routes/console.php`.
 - A assinatura VAPID usa BCMath (`ext-bcmath` no `composer.json`, que o Railpack instala). Sem ela a biblioteca só avisa no log e usa a implementação lenta.
 - O service worker (`public/sw.js`) mostra a notificação e, ao tocar, abre a página indicada. Ao mudar o `sw.js`, aumente a `VERSION`.
 
+## Agentes de IA (MCP)
+
+O app tem um servidor [MCP](https://modelcontextprotocol.io) em `/mcp` para que agentes de IA (Claude no navegador, no celular ou no Claude Code) operem o sistema **em nome de um professor ou administrador**, com as mesmas permissões das telas de gestão.
+
+**Conectar no Claude:** _Configurações → Conectores → Adicionar conector personalizado_, com a URL `https://ebd.up.railway.app/mcp`. O Claude abre o login do EBD e a tela "Conectar Claude"; depois de permitir, o conector fica disponível no navegador e no app do celular. No Claude Code: `claude mcp add --transport http ebd https://ebd.up.railway.app/mcp`.
+
+| Grupo            | Ferramentas                                                                                                                         |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Consultas        | `list_classrooms`, `get_classroom_overview`, `list_lessons`, `get_lesson`, `list_meetings`, `list_students`, `get_student_progress` |
+| Lições           | `save_lesson_draft`, `save_lesson_block`, `save_lesson_reading`, `save_lesson_material`, `remove_lesson_item`                       |
+| Agenda e chamada | `plan_meetings`, `save_meeting`, `record_attendance`, `finish_meeting`, `cancel_meeting`                                            |
+| Alunos           | `add_managed_student`, `update_student`, `move_student`                                                                             |
+
+- **Fica de fora de propósito:** publicar lição (avisa a classe inteira), editar lição publicada, apagar lição, série, encontro ou membro, gerar ou revogar link de acesso, criar classe e definir professores. Isso continua só no app.
+- **Histórico:** toda alteração feita por um agente fica em `audit_logs` (quem, qual aplicativo, ferramenta, argumentos, antes e depois). Registros com mais de um ano são apagados pelo `model:prune` agendado.
+- **Tokens:** valem 1 dia e são renovados sozinhos pelo aplicativo (refresh de 30 dias). Tokens vencidos são limpos pelo `passport:purge` agendado.
+- **Desenvolvimento:** `php artisan mcp:inspector mcp` abre o MCP Inspector contra o servidor local. Os testes ficam em `tests/Feature/Mcp`.
+
 ## Estratégia de storage
 
 Uploads usam a abstração de filesystem do Laravel com o disco definido em `EBD_MATERIALS_DISK`. Os arquivos ficam **fora da pasta pública**, com nome aleatório, e são entregues por `/materiais/{id}/arquivo` só depois de checar a permissão da lição. Em disco local o Laravel faz o stream; em disco `s3` (AWS S3, Cloudflare R2, MinIO) a aplicação redireciona para uma URL temporária assinada.
@@ -334,6 +353,7 @@ Não há Redis nem worker: cache e sessões ficam no PostgreSQL e a fila é `syn
 | `EBD_ACCESS_LINK_*`, `EBD_RISK_*`                               | opcionais, ver `.env.example`                | padrões funcionam; `SESSION_DRIVER` precisa ser `database` para "Bloquear acesso" derrubar sessões |
 | `EBD_ADMIN_EMAILS`                                              | e-mails separados por vírgula                | contas promovidas a admin no pre-deploy                                                            |
 | `VAPID_SUBJECT` / `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`      | `php artisan ebd:vapid-keys`                 | notificações push; a privada é secreta, só no Railway                                              |
+| `PASSPORT_PRIVATE_KEY` / `PASSPORT_PUBLIC_KEY`                  | `php artisan passport:keys --force` (local)  | OAuth do servidor MCP; conteúdo PEM completo dos arquivos gerados; a privada é secreta             |
 | `RAILPACK_SKIP_MIGRATIONS`                                      | `true`                                       | as migrations rodam no pre-deploy, não no start                                                    |
 
 ### Migrations
@@ -384,6 +404,7 @@ Os materiais enviados (PDFs, áudios) ficam no **volume** do serviço `app`, mon
 - Cookies de sessão são `secure` e `SameSite=Lax`. O CSRF é o padrão do Laravel.
 - `.env` não existe na imagem (as variáveis vêm do Railway), e o Caddy do Railpack esconde `.env*` e `.git`. O cabeçalho `X-Powered-By` é removido.
 - Uploads ficam fora de `public/`; os arquivos só saem pelo controller, depois de checar a permissão da lição.
+- O OAuth do servidor MCP só aceita aplicativos com retorno em `claude.ai`, `claude.com` ou `localhost` (`config/mcp.php`), e o token só funciona para professores e administradores.
 
 ### Deploys futuros
 

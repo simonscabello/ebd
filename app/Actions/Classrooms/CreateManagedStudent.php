@@ -24,6 +24,19 @@ class CreateManagedStudent
     public function handle(Classroom $classroom, string $name, ?string $phone, User $issuer): array
     {
         return DB::transaction(function () use ($classroom, $name, $phone, $issuer) {
+            $user = $this->createAccount($classroom, $name, $phone);
+
+            return ['user' => $user, 'url' => $this->issueLink->handle($user, $classroom, $issuer)];
+        });
+    }
+
+    /**
+     * Só a conta e o vínculo com a classe, sem link. Usado pelo servidor MCP:
+     * o link é gerado e enviado pela tela de Membros, onde a pessoa o vê.
+     */
+    public function createAccount(Classroom $classroom, string $name, ?string $phone): User
+    {
+        return DB::transaction(function () use ($classroom, $name, $phone) {
             $user = new User;
             $user->name = trim($name);
             $user->phone = self::normalizePhone($phone);
@@ -32,7 +45,7 @@ class CreateManagedStudent
             $classroom->members()->attach($user->id, ['role' => ClassroomRole::Student->value]);
             $user->flushClassroomRoles();
 
-            return ['user' => $user, 'url' => $this->issueLink->handle($user, $classroom, $issuer)];
+            return $user;
         });
     }
 

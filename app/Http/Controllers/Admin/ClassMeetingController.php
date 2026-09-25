@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Lessons\SyncLessonSchedule;
 use App\Actions\Meetings\PlanMeetings;
 use App\Actions\Meetings\SaveMeeting;
+use App\Concerns\MeetingValidationRules;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MeetingRequest;
 use App\Http\Resources\ClassMeetingResource;
@@ -20,7 +21,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,6 +29,8 @@ use Inertia\Response;
  */
 class ClassMeetingController extends Controller
 {
+    use MeetingValidationRules;
+
     public function index(Request $request, Classroom $classroom, WeeklyMessage $weeklyMessage): Response
     {
         Gate::authorize('manageContent', $classroom);
@@ -105,11 +107,7 @@ class ClassMeetingController extends Controller
     {
         Gate::authorize('manageContent', $classroom);
 
-        $data = $request->validate([
-            'from' => ['required', 'date'],
-            'to' => ['required', 'date', 'after_or_equal:from', 'before_or_equal:'.CarbonImmutable::parse((string) $request->input('from'))->addYear()->toDateString()],
-            'series_id' => ['nullable', 'integer', Rule::exists('series', 'id')->where('classroom_id', $classroom->id)],
-        ], [], ['from' => 'início', 'to' => 'fim', 'series_id' => 'série']);
+        $data = $request->validate($this->meetingPlanRules($classroom, $request->input('from')), [], $this->meetingAttributes());
 
         $result = $plan->handle(
             $classroom,

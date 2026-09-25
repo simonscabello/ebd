@@ -163,6 +163,19 @@ Ficou de fora de propósito: sincronizar a tela do professor com os alunos em te
 - **Perfil** (`/conta`): foto, classes e papel em cada uma, "Meus dados", senha e aparência numa página só. A tela de senha abre sem pedir confirmação: trocar a senha já exige a senha atual. Contas sem senha podem editar o perfil, criar uma senha (depois de cadastrar e-mail) e excluir a conta sem digitar senha.
 - Rate limit: login (Fortify, 5/min), link pessoal, estudo do aluno (60/min), arquivos (60/min) e biblioteca (90/min).
 
+## Agentes de IA (MCP)
+
+Servidor MCP com o pacote oficial `laravel/mcp` (`app/Mcp`, rota em `routes/ai.php`), autenticado por OAuth com o Passport.
+
+- **Age como a pessoa.** O token é de um usuário; cada ferramenta (base `App\Mcp\Tools\EbdTool`) chama as mesmas Policies das telas (`Gate::forUser`) e só enxerga as classes de `manageableClassroomIds()`. Aluno não vê nenhuma ferramenta, e a rota exige `can:access-admin`.
+- **Mesmas regras, mesmas Actions.** As regras de validação saíram dos Form Requests para traits em `app/Concerns` (`LessonValidationRules`, `MeetingValidationRules`, `StudentValidationRules`) e são usadas pelas telas, pelo `lesson:import` e pelo MCP. O trabalho é sempre das Actions (`ImportLessonDraft`, `SaveLessonBlock`, `RecordAttendance`...).
+- **Nomes, não ids.** O agente conversa com a pessoa: classes são achadas por slug ou nome, alunos por nome sem acento. Quando o nome é ambíguo, o erro lista os candidatos com id para o agente perguntar.
+- **Só rascunho.** Nenhuma ferramenta publica nem edita lição publicada (há um teste que procura `ChangeLessonStatus` em `app/Mcp`). Materiais com arquivo continuam só no app.
+- **Chamada sem surpresa.** `record_attendance` exige `mode`: `add` soma aos presentes, `set` troca a lista (a Action sincroniza a lista inteira). A resposta traz presentes e ausentes para a pessoa conferir.
+- **Link de acesso não passa pelo agente.** O link em claro só existe uma vez, na tela de Membros; gerar outro revogaria o anterior sem ninguém ver o novo. Por isso o MCP cadastra o aluno sem link.
+- **Auditoria.** `audit_logs` guarda quem, por qual aplicativo (cliente OAuth), a ferramenta, os argumentos (textos longos viram tamanho + hash), o antes e o depois, e as tentativas negadas. Serve para conferir e desfazer; o app não lê a tabela.
+- **Tela de consentimento em Blade** (`resources/views/mcp/authorize.blade.php`). Como o Fortify devolve para `/oauth/authorize` numa navegação do Inertia, o middleware `RequireFullPageVisit` transforma essa volta em carregamento de página inteira.
+
 ## Frontend
 
 - Starter kit oficial (Inertia + React + TS + Tailwind + primitivos shadcn/Radix). Não há painel administrativo pronto (Filament/Nova): ele imporia visual de "sistema administrativo", e a gestão aqui é pequena e precisa ser boa no celular.

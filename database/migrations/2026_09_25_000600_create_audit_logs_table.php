@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // Registro do que agentes de IA (servidor MCP) alteraram em nome de
+        // alguém: quem, por qual aplicativo, qual ferramenta, o antes e o depois.
+        // Serve para conferir e desfazer; nada aqui é lido pelo app em si.
+        Schema::create('audit_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('source', 20);
+            $table->string('client_id', 100)->nullable();
+            $table->string('client_name', 255)->nullable();
+            $table->string('tool', 100);
+            $table->jsonb('arguments')->nullable();
+            $table->nullableMorphs('subject');
+            $table->foreignId('classroom_id')->nullable()->constrained()->nullOnDelete();
+            $table->jsonb('changes')->nullable();
+            $table->string('status', 20);
+            $table->text('error')->nullable();
+            $table->timestamp('created_at')->nullable();
+
+            $table->index(['user_id', 'created_at']);
+            $table->index(['classroom_id', 'created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('audit_logs');
+    }
+};

@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Concerns\MeetingValidationRules;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class MeetingRequest extends FormRequest
 {
+    use MeetingValidationRules;
+
     public function authorize(): bool
     {
         $meeting = $this->meeting();
@@ -23,19 +25,7 @@ class MeetingRequest extends FormRequest
      */
     public function rules(): array
     {
-        $classroom = $this->classroom();
-
-        return [
-            'held_on' => [
-                'required', 'date',
-                Rule::unique('class_meetings', 'held_on')
-                    ->where('classroom_id', $classroom->id)
-                    ->ignore($this->meeting()?->id),
-            ],
-            'lesson_id' => ['nullable', 'integer', Rule::exists('lessons', 'id')->where('classroom_id', $classroom->id)->whereNull('deleted_at')],
-            'title' => ['nullable', 'string', 'max:120'],
-            'notes' => ['nullable', 'string', 'max:5000'],
-        ];
+        return $this->meetingRules($this->classroom(), $this->meeting());
     }
 
     /**
@@ -43,12 +33,7 @@ class MeetingRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return [
-            'held_on' => 'data',
-            'lesson_id' => 'lição',
-            'title' => 'título',
-            'notes' => 'anotações',
-        ];
+        return $this->meetingAttributes();
     }
 
     /**
@@ -56,7 +41,7 @@ class MeetingRequest extends FormRequest
      */
     public function messages(): array
     {
-        return ['held_on.unique' => 'Já existe um encontro desta classe nesta data.'];
+        return $this->meetingMessages();
     }
 
     public function meeting(): ?ClassMeeting

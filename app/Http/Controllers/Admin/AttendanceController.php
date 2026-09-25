@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Meetings\FinishMeeting;
 use App\Actions\Meetings\RecordAttendance;
+use App\Concerns\MeetingValidationRules;
 use App\Http\Controllers\Controller;
 use App\Models\ClassMeeting;
 use App\Models\Lesson;
@@ -16,15 +17,13 @@ use Illuminate\Support\Facades\Gate;
  */
 class AttendanceController extends Controller
 {
+    use MeetingValidationRules;
+
     public function update(Request $request, ClassMeeting $meeting, RecordAttendance $record): RedirectResponse
     {
         Gate::authorize('takeAttendance', $meeting);
 
-        $data = $request->validate([
-            'present' => ['present', 'array', 'max:500'],
-            'present.*' => ['integer'],
-            'visitors' => ['nullable', 'integer', 'min:0', 'max:500'],
-        ]);
+        $data = $request->validate($this->attendanceRules());
 
         $record->handle($meeting, $data['present'] ?? [], (int) ($data['visitors'] ?? 0), $request->user());
 
@@ -35,10 +34,7 @@ class AttendanceController extends Controller
     {
         Gate::authorize('update', $meeting);
 
-        $data = $request->validate([
-            'continues' => ['required', 'boolean'],
-            'notes' => ['nullable', 'string', 'max:5000'],
-        ]);
+        $data = $request->validate($this->finishMeetingRules());
 
         $leftover = $finish->handle($meeting, (bool) $data['continues'], $data['notes'] ?? null);
 

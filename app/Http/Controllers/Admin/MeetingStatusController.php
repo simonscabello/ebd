@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Meetings\CancelMeeting;
 use App\Actions\Meetings\ContinueLessonNextMeeting;
+use App\Concerns\MeetingValidationRules;
 use App\Enums\MeetingStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ClassMeeting;
@@ -18,14 +19,13 @@ use Illuminate\Support\Facades\Gate;
  */
 class MeetingStatusController extends Controller
 {
+    use MeetingValidationRules;
+
     public function cancel(Request $request, ClassMeeting $meeting, CancelMeeting $cancel): RedirectResponse
     {
         Gate::authorize('update', $meeting);
 
-        $data = $request->validate([
-            'reason' => ['nullable', 'string', 'max:120'],
-            'shift' => ['boolean'],
-        ]);
+        $data = $request->validate($this->cancelMeetingRules());
 
         $leftover = $cancel->handle($meeting, $data['reason'] ?? null, (bool) ($data['shift'] ?? true));
 
