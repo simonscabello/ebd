@@ -42,10 +42,10 @@ class McpStudentToolsTest extends TestCase
             ->assertDontSee('/entrar#');
 
         $student = User::query()->where('name', 'João Pedro')->sole();
-        $this->assertSame('11988887777', $student->phone);
+        $this->assertSame('5511988887777', $student->phone);
         $this->assertSame(ClassroomRole::Student, $student->roleIn($this->classroom));
         $this->assertSame(0, AccessLink::query()->count());
-        $this->assertSame(['name' => 'João Pedro', 'phone' => '11988887777'], AuditLog::query()->sole()->changes['after']);
+        $this->assertSame(['name' => 'João Pedro', 'phone' => '5511988887777'], AuditLog::query()->sole()->changes['after']);
     }
 
     public function test_similar_names_need_confirmation(): void

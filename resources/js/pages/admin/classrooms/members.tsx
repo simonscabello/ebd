@@ -41,6 +41,8 @@ type Member = {
     role: 'teacher' | 'student';
     role_label: string;
     is_managed: boolean;
+    /** E-mail, senha, WhatsApp, nascimento e gênero preenchidos. */
+    profile_complete: boolean;
     /** Aparelhos com lembretes push ativos. */
     reminder_devices: number;
     access_link: {
@@ -55,7 +57,6 @@ type Props = {
     classroom: Classroom;
     members: Member[];
     canAssignTeachers: boolean;
-    isAdmin: boolean;
 };
 
 const relative = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' });
@@ -72,7 +73,6 @@ export default function ClassroomMembers({
     classroom,
     members,
     canAssignTeachers,
-    isAdmin,
 }: Props) {
     const confirm = useConfirm();
     const [issued, setIssued] = useState<IssuedLink | null>(null);
@@ -105,12 +105,19 @@ export default function ClassroomMembers({
     };
 
     const generate = async (member: Member) => {
+        // Quem já tem senha recebe um link de recuperação.
+        const recovery = !member.is_managed;
+
         if (
-            member.access_link &&
+            (member.access_link || recovery) &&
             !(await confirm({
-                title: `Gerar um novo link para ${member.name}?`,
-                description: 'O link atual deixa de funcionar.',
-                confirmLabel: 'Gerar novo link',
+                title: recovery
+                    ? `Gerar um link de recuperação para ${member.name}?`
+                    : `Gerar um novo link para ${member.name}?`,
+                description: recovery
+                    ? 'Use quando a pessoa esqueceu a senha. Ao abrir o link, a senha atual deixa de valer e ela cria outra.'
+                    : 'O link atual deixa de funcionar.',
+                confirmLabel: 'Gerar link',
             }))
         ) {
             return;
@@ -177,6 +184,12 @@ export default function ClassroomMembers({
                                             : '')}
                                 </p>
                                 {member.role === 'student' &&
+                                    !member.profile_complete && (
+                                        <p className="mt-1 inline-flex rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning-foreground">
+                                            Cadastro pendente
+                                        </p>
+                                    )}
+                                {member.role === 'student' &&
                                     member.access_link && (
                                         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                                             <KeyRound className="size-3.5" />
@@ -212,19 +225,18 @@ export default function ClassroomMembers({
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-1">
-                                {member.role === 'student' &&
-                                    (member.is_managed || isAdmin) && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => generate(member)}
-                                        >
-                                            <Link2 />
-                                            {member.access_link
-                                                ? 'Novo link'
-                                                : 'Gerar link'}
-                                        </Button>
-                                    )}
+                                {member.role === 'student' && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => generate(member)}
+                                    >
+                                        <Link2 />
+                                        {member.access_link
+                                            ? 'Novo link'
+                                            : 'Gerar link'}
+                                    </Button>
+                                )}
                                 {member.role === 'student' &&
                                     member.access_link && (
                                         <Button
@@ -268,7 +280,7 @@ export default function ClassroomMembers({
                         { title: 'Membros' },
                     ]}
                     title="Membros"
-                    description="Alunos entram pelo link pessoal (sem senha) e passam a registrar leitura e presença."
+                    description="Alunos entram pelo link pessoal e, no primeiro acesso, completam o cadastro com e-mail e senha."
                     actions={
                         <Button asChild variant="outline">
                             <Link href={insights(classroom.slug)}>

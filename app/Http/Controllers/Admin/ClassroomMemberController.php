@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Access\RevokeStudentAccess;
 use App\Actions\Classrooms\AddClassroomMember;
 use App\Enums\ClassroomRole;
 use App\Http\Controllers\Controller;
@@ -24,7 +25,7 @@ class ClassroomMemberController extends Controller
 
         $members = ClassroomMember::query()
             ->whereBelongsTo($classroom)
-            ->with(['user' => fn ($q) => $q->withCount('pushSubscriptions'), 'user.accessLinks' => fn ($q) => $q->active()])
+            ->with(['user' => fn ($q) => $q->withCount('pushSubscriptions'), 'user.accessLinks' => fn ($q) => $q->usable()])
             ->get()
             ->sortBy(fn (ClassroomMember $member) => $member->user->name)
             ->values()
@@ -36,6 +37,7 @@ class ClassroomMemberController extends Controller
                 'role' => $member->role->value,
                 'role_label' => $member->role->label(),
                 'is_managed' => $member->user->isManaged(),
+                'profile_complete' => $member->user->hasCompleteProfile(),
                 'reminder_devices' => (int) $member->user->getAttribute('push_subscriptions_count'),
                 'access_link' => ($link = $member->user->accessLinks->first()) ? [
                     'created_at' => $link->created_at->toIso8601String(),
@@ -49,21 +51,20 @@ class ClassroomMemberController extends Controller
             'classroom' => ClassroomResource::make($classroom),
             'members' => $members,
             'canAssignTeachers' => $request->user()->can('assignTeachers', $classroom),
-            'isAdmin' => $request->user()->isAdmin(),
         ]);
     }
 
     public function store(ClassroomMemberRequest $request, Classroom $classroom, AddClassroomMember $add): RedirectResponse
     {
         $role = ClassroomRole::from($request->validated('role'));
-        $user = $add->handle($classroom, $request->validated('email'), $role);
+        $user = $add->handle($classroom, $request->validated('email'), $role, $request->user());
 
         $this->toast("{$user->name} agora é {$role->label()} da classe.");
 
         return back();
     }
 
-    public function destroy(Request $request, Classroom $classroom, User $user): RedirectResponse
+    public function destroy(Request $request, Classroom $classroom, User $user, RevokeStudentAccess $revoke): RedirectResponse
     {
         Gate::authorize('manageMembers', $classroom);
 
@@ -73,6 +74,15 @@ class ClassroomMemberController extends Controller
         }
 
         $classroom->members()->detach($user->id);
+        $user->flushClassroomRoles();
+
+        // O link desta classe deixa de valer. Sem senha e sem nenhuma classe,
+        // a conta não tem mais o que fazer no app: encerra os aparelhos também.
+        $user->accessLinks()->active()->where('classroom_id', $classroom->id)->update(['revoked_at' => now()]);
+
+        if ($user->isManaged() && $user->memberClassroomIds() === []) {
+            $revoke->handle($user);
+        }
 
         $this->toast("{$user->name} foi removido(a) da classe.");
 

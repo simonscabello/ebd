@@ -52,6 +52,7 @@ class StudentAccessController extends Controller
     {
         Gate::authorize('manageMembers', $classroom);
         abort_unless($user->isMemberOf($classroom) && ! $user->isTeacherOf($classroom), 404);
+        abort_if($user->isAdmin() || $user->canAccessAdmin(), 403, 'Professores e administradores não usam link de acesso.');
 
         $revoke->handle($user);
 

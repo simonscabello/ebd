@@ -37,7 +37,7 @@ class McpMeetingToolsTest extends TestCase
         // Domingo, 27/09/2026, durante a EBD.
         $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 27)->setTime(10, 0));
 
-        $this->classroom = Classroom::factory()->create(['slug' => 'jovens']);
+        $this->classroom = Classroom::factory()->create(['slug' => 'jovens', 'name' => 'Jovens']);
         $this->teacher = User::factory()->teacherOf($this->classroom)->create();
     }
 

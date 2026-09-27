@@ -14,9 +14,10 @@ use Illuminate\Validation\ValidationException;
  *
  * Regras:
  * - só para alunos da classe; nunca para professores ou administradores;
- * - professor só gera para contas sem senha (gerenciadas). Uma conta com senha
- *   é da própria pessoa: gerar link daria ao professor acesso às anotações dela.
- *   A administração pode (ex.: aluno que esqueceu a senha e não tem e-mail).
+ * - vale também para quem já tem senha: é assim que o aluno recupera o acesso
+ *   (o e-mail de "esqueci minha senha" não está ligado). Ao entrar pelo link,
+ *   a senha antiga é apagada e a pessoa cria outra (ver LoginWithAccessLink);
+ *   quem gerou o link fica registrado em created_by.
  *
  * Devolve a URL completa. O token fica no fragmento (#), que o navegador não
  * envia ao servidor: não aparece em logs nem no preview do WhatsApp.
@@ -31,10 +32,6 @@ class IssueAccessLink
 
         if ($student->isAdmin() || $student->canAccessAdmin()) {
             throw ValidationException::withMessages(['user' => 'Professores e administradores entram com e-mail e senha.']);
-        }
-
-        if (! $student->isManaged() && ! $issuer->isAdmin()) {
-            throw ValidationException::withMessages(['user' => 'Esta pessoa já tem senha própria. Peça para ela entrar com e-mail e senha.']);
         }
 
         $token = Str::random(48);

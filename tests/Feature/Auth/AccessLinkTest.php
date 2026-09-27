@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Actions\Access\LoginWithAccessLink;
 use App\Models\AccessLink;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -81,7 +83,8 @@ class AccessLinkTest extends TestCase
         Auth::logout();
         $response = $this->post('/entrar', ['token' => $token]);
 
-        $response->assertRedirect(route('my-week'));
+        // Aluno novo completa o cadastro (e-mail, senha...) no primeiro acesso.
+        $response->assertRedirect(route('onboarding.show'));
         $this->assertAuthenticatedAs($student);
         $this->assertNotEmpty(collect($response->headers->getCookies())->first(fn ($c) => str_starts_with($c->getName(), 'remember_web_')));
         $this->assertSame(1, AccessLink::query()->sole()->use_count);
@@ -106,7 +109,7 @@ class AccessLinkTest extends TestCase
         $this->flushSession();
 
         $this->withUnencryptedCookie($remember->getName(), (string) $remember->getValue())
-            ->get('/minha-semana')
+            ->get('/completar-cadastro')
             ->assertOk();
 
         $this->assertAuthenticatedAs($student);
@@ -132,7 +135,7 @@ class AccessLinkTest extends TestCase
         $this->post('/entrar', ['token' => 'curto'])->assertSessionHasErrors('token');
 
         AccessLink::query()->update(['expires_at' => now()->subDay()]);
-        $this->post('/entrar', ['token' => $token])->assertSessionHasErrors(['token' => 'Este link não é mais válido. Peça um novo ao seu professor.']);
+        $this->post('/entrar', ['token' => $token])->assertSessionHasErrors(['token' => LoginWithAccessLink::INVALID]);
 
         AccessLink::query()->update(['expires_at' => null, 'revoked_at' => now()]);
         $this->post('/entrar', ['token' => $token])->assertSessionHasErrors('token');
@@ -150,7 +153,7 @@ class AccessLinkTest extends TestCase
         $this->assertSame(1, AccessLink::query()->active()->count());
 
         $this->post('/entrar', ['token' => $old])->assertSessionHasErrors('token');
-        $this->post('/entrar', ['token' => $new])->assertRedirect(route('my-week'));
+        $this->post('/entrar', ['token' => $new])->assertRedirect(route('onboarding.show'));
     }
 
     public function test_blocking_access_revokes_link_and_forgets_devices(): void
@@ -199,17 +202,57 @@ class AccessLinkTest extends TestCase
         $this->assertSame(0, AccessLink::query()->active()->count());
     }
 
-    public function test_teacher_cannot_issue_link_for_account_with_password_but_admin_can(): void
+    /**
+     * Sem e-mail de recuperação, quem esquece a senha pede um link novo ao
+     * professor. Entrar por ele apaga a senha antiga e leva a criar outra.
+     */
+    public function test_teacher_issues_a_recovery_link_that_replaces_a_forgotten_password(): void
     {
-        $student = User::factory()->studentOf($this->classroom)->create();
+        $student = User::factory()->studentOf($this->classroom)->create(['email' => 'rute@example.com']);
+        $token = $this->issue($student);
+
+        $this->post('/entrar', ['token' => $token])->assertRedirect(route('onboarding.show'));
+
+        $this->assertAuthenticatedAs($student);
+        $this->assertNull($student->refresh()->password);
+        $this->get('/minha-semana')->assertRedirect(route('onboarding.show'));
+
+        $this->post('/completar-cadastro', [
+            'name' => $student->name,
+            'email' => 'rute@example.com',
+            'phone' => $student->phone,
+            'birth_date' => $student->birth_date->toDateString(),
+            'gender' => $student->gender->value,
+            'password' => 'senha-nova-123',
+            'password_confirmation' => 'senha-nova-123',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertTrue(Hash::check('senha-nova-123', $student->refresh()->password));
+        $this->assertSame(0, AccessLink::query()->active()->count());
+        $this->post('/entrar', ['token' => $token])->assertSessionHasErrors('token');
+    }
+
+    public function test_teacher_cannot_block_someone_who_teaches_another_classroom(): void
+    {
+        $colleague = User::factory()->teacherOf(Classroom::factory()->create())->studentOf($this->classroom)->create();
 
         $this->actingAs($this->teacher)
-            ->post("/admin/classes/adultos/membros/{$student->id}/link")
-            ->assertSessionHasErrors('user');
+            ->delete("/admin/classes/adultos/membros/{$colleague->id}/link")
+            ->assertForbidden();
+    }
 
-        $this->actingAs(User::factory()->admin()->create())
-            ->post("/admin/classes/adultos/membros/{$student->id}/link")
+    public function test_creating_a_password_in_the_profile_revokes_the_personal_link(): void
+    {
+        $student = User::factory()->studentOf($this->classroom)->create();
+        $this->issue($student);
+        $this->assertSame(1, AccessLink::query()->active()->count());
+
+        $this->actingAs($student)
+            ->put('/conta/senha', ['current_password' => 'password', 'password' => 'nova-senha-123', 'password_confirmation' => 'nova-senha-123'])
             ->assertSessionHasNoErrors();
+
+        $this->assertSame(0, AccessLink::query()->active()->count());
+        $this->assertAuthenticatedAs($student);
     }
 
     public function test_teacher_of_another_classroom_cannot_manage_links(): void
@@ -236,30 +279,19 @@ class AccessLinkTest extends TestCase
         $token = $this->issue($student);
         $other = User::factory()->studentOf($this->classroom)->create();
 
-        $this->actingAs($other)->post('/entrar', ['token' => $token])->assertRedirect(route('my-week'));
+        $this->actingAs($other)->post('/entrar', ['token' => $token])->assertRedirect(route('onboarding.show'));
 
         $this->assertAuthenticatedAs($student);
     }
 
-    public function test_managed_student_updates_profile_and_creates_password_only_with_email(): void
+    public function test_managed_student_completes_the_profile_before_using_the_settings(): void
     {
         $student = User::factory()->managed()->studentOf($this->classroom)->create(['name' => 'João']);
 
-        $this->actingAs($student)->patch('/conta/perfil', ['name' => 'João Pereira', 'email' => ''])->assertSessionHasNoErrors();
-        $this->assertSame('João Pereira', $student->refresh()->name);
+        $this->actingAs($student)->patch('/conta/perfil', ['name' => 'João Pereira'])->assertRedirect(route('onboarding.show'));
+        $this->actingAs($student)->get('/conta/seguranca')->assertRedirect(route('onboarding.show'));
 
-        $this->actingAs($student)->get('/conta/seguranca')->assertOk();
-
-        $this->actingAs($student)
-            ->put('/conta/senha', ['password' => 'nova-senha-123', 'password_confirmation' => 'nova-senha-123'])
-            ->assertSessionHasErrors('password');
-
-        $student->update(['email' => 'joao@example.com']);
-        $this->actingAs($student)
-            ->put('/conta/senha', ['password' => 'nova-senha-123', 'password_confirmation' => 'nova-senha-123'])
-            ->assertSessionHasNoErrors();
-
-        $this->assertFalse($student->refresh()->isManaged());
+        $this->assertSame('João', $student->refresh()->name);
     }
 
     public function test_managed_account_without_password_cannot_log_in_by_email_form(): void

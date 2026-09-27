@@ -20,7 +20,7 @@ class StudentProgressController extends Controller
     {
         Gate::authorize('viewStudentProgress', [$classroom, $user]);
 
-        $link = $user->accessLinks()->active()->first();
+        $link = $user->accessLinks()->usable()->first();
 
         return Inertia::render('admin/classrooms/student', [
             'classroom' => ClassroomResource::make($classroom),

@@ -37,7 +37,7 @@ class EngagementTest extends TestCase
         $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 23)->setTime(10, 0));
 
         $this->classroom = Classroom::factory()->create(['slug' => 'adultos']);
-        $this->student = User::factory()->managed()->studentOf($this->classroom)->create();
+        $this->student = User::factory()->studentOf($this->classroom)->create();
         $this->lesson = Lesson::factory()->for($this->classroom)->published()->number(11)->on('2026-09-27')->create([
             'slug' => 'e-necessario',
             'title' => 'É Necessário',

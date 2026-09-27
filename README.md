@@ -56,6 +56,8 @@ O `.env.example` já vem pronto para o Docker. Os pontos que você talvez queira
 | `EBD_MATERIALS_DISK`                                                  | Disco dos arquivos enviados (`local` em dev; `s3` para S3/R2)                                          |
 | `EBD_ACCESS_LINK_REMEMBER_DAYS`                                       | Dias que o aparelho do aluno fica conectado após usar o link pessoal (padrão 400)                      |
 | `EBD_ACCESS_LINK_TTL_DAYS`                                            | Validade do link pessoal em dias (vazio = até ser trocado ou bloqueado)                                |
+| `EBD_ONBOARDING_REQUIRED`                                             | Aluno completa o cadastro (e-mail, senha, WhatsApp, nascimento, gênero) antes de usar o app            |
+| `EBD_PASSWORD_RESET_BY_EMAIL`                                         | "Esqueci minha senha" por e-mail; `false` orienta a pedir um link novo ao professor                    |
 | `EBD_RISK_MISSED_MEETINGS`, `EBD_RISK_INACTIVE_DAYS`                  | Limites de "alunos que precisam de atenção" (padrão 2 faltas seguidas / 10 dias sem leitura)           |
 | `APP_PORT`, `VITE_PORT`, `FORWARD_DB_PORT`, `FORWARD_MAILPIT_UI_PORT` | Portas publicadas no host                                                                              |
 | `DOCKER_UID`, `DOCKER_GID`                                            | Seu usuário no Linux (`id -u`/`id -g`), para os arquivos criados pelo container ficarem com o seu dono |
@@ -351,6 +353,7 @@ Não há Redis nem worker: cache e sessões ficam no PostgreSQL e a fila é `syn
 | `MAIL_MAILER`                                                   | `log`                                        | provisório: e-mails só aparecem no log (ver pendências)                                            |
 | `EBD_CHURCH_NAME`, `EBD_TIMEZONE`, `EBD_REGISTRATION_ENABLED`   | ver `.env.example`                           |                                                                                                    |
 | `EBD_ACCESS_LINK_*`, `EBD_RISK_*`                               | opcionais, ver `.env.example`                | padrões funcionam; `SESSION_DRIVER` precisa ser `database` para "Bloquear acesso" derrubar sessões |
+| `EBD_ONBOARDING_REQUIRED` / `EBD_PASSWORD_RESET_BY_EMAIL`       | `true` / `false`                             | cadastro obrigatório do aluno; ligar o e-mail só depois de configurar um provedor SMTP             |
 | `EBD_ADMIN_EMAILS`                                              | e-mails separados por vírgula                | contas promovidas a admin no pre-deploy                                                            |
 | `VAPID_SUBJECT` / `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`      | `php artisan ebd:vapid-keys`                 | notificações push; a privada é secreta, só no Railway                                              |
 | `PASSPORT_PRIVATE_KEY` / `PASSPORT_PUBLIC_KEY`                  | `php artisan passport:keys --force` (local)  | OAuth do servidor MCP; conteúdo PEM completo dos arquivos gerados; a privada é secreta             |

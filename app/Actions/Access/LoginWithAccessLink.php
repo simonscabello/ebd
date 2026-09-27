@@ -11,10 +11,13 @@ use Illuminate\Validation\ValidationException;
 /**
  * Entrada pelo link pessoal. Qualquer falha devolve a mesma mensagem genérica,
  * sem revelar se o link existiu ou de quem era.
+ *
+ * Em conta que já tem senha, o link é de recuperação: a senha antiga é apagada
+ * e a pessoa cria outra em "Completar cadastro" antes de usar o app.
  */
 class LoginWithAccessLink
 {
-    public const INVALID = 'Este link não é mais válido. Peça um novo ao seu professor.';
+    public const INVALID = 'Este link não é mais válido. Se você já criou sua senha, entre com e-mail e senha; se não, peça um novo link ao seu professor.';
 
     public function handle(string $token): User
     {
@@ -28,6 +31,10 @@ class LoginWithAccessLink
 
         if (Auth::check() && Auth::id() !== $user->id) {
             Auth::guard('web')->logout();
+        }
+
+        if (! $user->isManaged()) {
+            $user->forceFill(['password' => null])->save();
         }
 
         $guard = Auth::guard('web');

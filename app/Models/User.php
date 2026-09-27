@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use App\Enums\ClassroomRole;
+use App\Enums\Gender;
 use App\Notifications\ResetPasswordNotification;
+use App\Support\ChurchCalendar;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -23,11 +26,13 @@ use Laravel\Passport\HasApiTokens;
  * @property string|null $email
  * @property string|null $avatar_path
  * @property string|null $phone
+ * @property Carbon|null $birth_date
+ * @property Gender|null $gender
  * @property string|null $password
  * @property bool $is_admin
  * @property Carbon|null $email_verified_at
  */
-#[Fillable(['name', 'email', 'phone', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'birth_date', 'gender', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements OAuthenticatable
 {
@@ -68,6 +73,8 @@ class User extends Authenticatable implements OAuthenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birth_date' => 'date',
+            'gender' => Gender::class,
             'password' => 'hashed',
             'is_admin' => 'boolean',
         ];
@@ -192,6 +199,50 @@ class User extends Authenticatable implements OAuthenticatable
     public function memberClassroomIds(): array
     {
         return array_keys($this->classroomRoles());
+    }
+
+    /**
+     * Aluno de ao menos uma classe.
+     */
+    public function isStudentAnywhere(): bool
+    {
+        return in_array(ClassroomRole::Student, $this->classroomRoles(), true);
+    }
+
+    /**
+     * Cadastro que o aluno completa no primeiro acesso: e-mail e senha para
+     * entrar, WhatsApp para o professor, nascimento e gênero para a classe.
+     */
+    public function hasCompleteProfile(): bool
+    {
+        return $this->password !== null
+            && filled($this->email)
+            && filled($this->phone)
+            && $this->birth_date !== null
+            && $this->gender !== null;
+    }
+
+    /**
+     * Alunos (não professores nem administradores) com cadastro incompleto
+     * passam pela tela "Completar cadastro" antes de usar o app.
+     */
+    public function needsProfileCompletion(): bool
+    {
+        return ! $this->hasCompleteProfile() && ! $this->canAccessAdmin() && $this->isStudentAnywhere();
+    }
+
+    /**
+     * Idade hoje, no fuso da igreja.
+     */
+    public function age(): ?int
+    {
+        if ($this->birth_date === null) {
+            return null;
+        }
+
+        $born = CarbonImmutable::parse($this->birth_date->toDateString(), ChurchCalendar::timezone());
+
+        return (int) $born->diffInYears(ChurchCalendar::today());
     }
 
     /**

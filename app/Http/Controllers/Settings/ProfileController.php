@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\Classrooms\CreateManagedStudent;
+use App\Enums\Gender;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
@@ -19,9 +21,18 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+
         return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'profile' => [
+                'phone' => $user->phone,
+                'birth_date' => $user->birth_date?->toDateString(),
+                'gender' => $user->gender?->value,
+            ],
+            'isStudent' => $user->isStudentAnywhere() && ! $user->canAccessAdmin(),
+            'genders' => Gender::options(),
         ]);
     }
 
@@ -30,7 +41,10 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $request->user()->fill([
+            ...$request->validated(),
+            'phone' => CreateManagedStudent::normalizePhone($request->validated('phone')),
+        ]);
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;

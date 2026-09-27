@@ -41,7 +41,7 @@ class AttendanceAndInsightsTest extends TestCase
      */
     private function student(string $name, string $joinedOn = '2026-08-01'): User
     {
-        $user = User::factory()->managed()->create(['name' => $name]);
+        $user = User::factory()->create(['name' => $name]);
         $this->classroom->members()->attach($user->id, ['role' => 'student', 'created_at' => $joinedOn, 'updated_at' => $joinedOn]);
 
         return $user;
