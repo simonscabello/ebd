@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ClassroomRequest;
 use App\Http\Resources\ClassroomResource;
 use App\Models\Classroom;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -66,6 +67,8 @@ class ClassroomController extends Controller
 
         return Inertia::render('admin/classrooms/form', [
             'classroom' => [...ClassroomResource::make($classroom)->resolve(), 'position' => $classroom->position],
+            'teachers' => $classroom->teachers()->orderBy('name')->get(['users.id', 'users.name', 'users.email'])
+                ->map(fn (User $teacher) => ['id' => $teacher->id, 'name' => $teacher->name, 'email' => $teacher->email]),
         ]);
     }
 

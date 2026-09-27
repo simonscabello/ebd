@@ -56,7 +56,7 @@ class ListStudents extends EbdTool
                 'has_access_link' => $m->user->accessLinks->isNotEmpty(),
             ])->values()->all(),
             'teachers' => $teachers->map(fn (ClassroomMember $m) => ['id' => $m->user->id, 'name' => $m->user->name])->values()->all(),
-            'members_url' => route('admin.classrooms.members.index', $classroom),
+            'students_url' => route('admin.classrooms.students.index', $classroom),
         ]);
     }
 }

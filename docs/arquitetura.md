@@ -148,9 +148,12 @@ Ficou de fora de propósito: sincronizar a tela do professor com os alunos em te
 
 ## Gestão da classe
 
-A gestão é organizada em torno da classe (`/admin/classes/{classe}`), com abas **Resumo · Domingos · Alunos**. O Painel (`/admin`) mostra cada classe com o que vem neste domingo e os domingos pendentes; professores veem só as próprias classes (com uma só, "Classes" vai direto para ela).
+A gestão é organizada em torno da classe (`/admin/classes/{classe}`), com abas **Resumo · Domingos · Alunos · Relatório**. O Painel (`/admin`) mostra cada classe com o que vem neste domingo e os domingos pendentes; professores veem só as próprias classes (com uma só, "Classes" vai direto para ela). Quem dá aula na classe é definido pela administração, na edição da classe (seção Professores).
 
 - **Resumo** (`ClassroomOverviewQuery`, também usado pela ferramenta `get_classroom_overview` do MCP): este domingo ("Hoje" ou "Próximo domingo", com Modo Domingo, chamada e mensagem da semana), último domingo com "onde paramos", domingos pendentes, alunos que precisam de atenção (com WhatsApp), aniversariantes do mês e os números da classe.
+- **Alunos** (`/alunos`): a lista com a frequência do período e os avisos (precisa de atenção, novo, aniversário, cadastro pendente, nunca entrou). "Adicionar aluno" avisa quando já existe nome parecido na classe (`FindSimilarStudents`, o mesmo do MCP).
+- **Ficha do aluno** (`/alunos/{id}`): contato e WhatsApp, idade e gênero, frequência, estudo em casa por lição, domingo a domingo desde que entrou, **anotações do professor** (`student_notes`: só professores da classe e a administração veem; quem escreveu ou a administração edita), acesso ao app (cadastro, link, aparelhos com lembrete), mover de classe e remover. O professor corrige nome, WhatsApp, nascimento e gênero de qualquer aluno (`UpdateStudentProfile`); o e-mail (login) só em conta sem senha ou pela administração.
+- **Relatório** (`/relatorio`): fechado por série (revista). Padrão: a série da lição da semana; senão a que está em andamento; senão a última; sem série, os últimos 3 meses. Mostra a chamada aluno × domingo (em branco antes de o aluno entrar), totais por domingo e visitantes, frequência por gênero e estudo em casa por lição; imprime em A4 deitado.
 - **Vocabulário:** Domingo (Planejado, Realizado, Sem EBD); Chamada (o ato e a lista); Presentes (contagem); Frequência (taxa); Estudo em casa; Onde paramos (a anotação do domingo); Alunos (nunca "Membros").
 
 ### Uma regra para cada número
@@ -166,8 +169,6 @@ Tudo sai do **livro de chamada** (`AttendanceBookQuery` → `AttendanceBook`) e 
 - **Período** (`Period`): a série da lição da semana (datas da série ou, sem elas, do primeiro ao último domingo das lições dela); sem série, os últimos 3 meses.
 
 Só os alunos atuais entram nos números. Quem sai da classe continua na chamada dos domingos em que esteve (a chamada só sincroniza a lista dos alunos atuais), mas some das contas; ver "Débitos".
-
-`SeriesReportQuery` ainda gera o relatório da série para impressão.
 
 ## Autenticação e autorização
 

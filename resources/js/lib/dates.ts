@@ -18,6 +18,11 @@ export function dayMonth(date: string): string {
     return format(date, { day: 'numeric', month: 'short' });
 }
 
+/** "set." */
+export function monthShort(date: string): string {
+    return format(date, { month: 'short' });
+}
+
 /** "domingo, 27 de setembro" */
 export function longDate(date: string): string {
     return format(date, { weekday: 'long', day: 'numeric', month: 'long' });

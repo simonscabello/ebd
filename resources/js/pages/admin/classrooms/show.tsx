@@ -23,13 +23,12 @@ import { Button } from '@/components/ui/button';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { dateTile, dayMonth, longDate, relativeDay } from '@/lib/dates';
 import { birthdayMessage, missYouMessage } from '@/lib/whatsapp';
-import { edit, show as classroomPage } from '@/routes/admin/classrooms';
+import { edit, report, show as classroomPage } from '@/routes/admin/classrooms';
 import {
     index as meetingsIndex,
     show as meetingPage,
 } from '@/routes/admin/classrooms/meetings';
 import { show as studentPage } from '@/routes/admin/classrooms/students';
-import { report } from '@/routes/admin/series';
 import { sunday } from '@/routes/lessons';
 import type {
     Classroom,
@@ -294,13 +293,11 @@ export default function ClassroomOverview({
                             }
                         />
                     </div>
-                    {stats.period.series_id && (
-                        <Button asChild variant="outline" className="mt-4">
-                            <Link href={report(stats.period.series_id)}>
-                                <FileText /> Relatório da série
-                            </Link>
-                        </Button>
-                    )}
+                    <Button asChild variant="outline" className="mt-4">
+                        <Link href={report(classroom.slug)}>
+                            <FileText /> Ver o relatório completo
+                        </Link>
+                    </Button>
                 </Section>
             </Page>
         </>

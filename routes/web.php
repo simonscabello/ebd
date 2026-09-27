@@ -13,6 +13,7 @@ use App\Http\Controllers\MyWeekController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReadingCheckinController;
 use App\Models\Classroom;
+use App\Models\Series;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -109,15 +110,26 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('classes/{classroom}/agenda', fn (Classroom $classroom) => redirect()->route('admin.classrooms.meetings.index', $classroom, 301));
         Route::get('classes/{classroom}/evolucao', fn (Classroom $classroom) => redirect()->route('admin.classrooms.show', $classroom, 301));
 
-        Route::get('classes/{classroom}/alunos/{user}', Admin\StudentProgressController::class)->name('classrooms.students.show');
-        Route::get('series/{series}/relatorio', Admin\SeriesReportController::class)->name('series.report');
+        // Alunos: a lista, a ficha de cada um e as anotações do professor.
+        Route::get('classes/{classroom}/alunos', [Admin\StudentController::class, 'index'])->name('classrooms.students.index');
+        Route::post('classes/{classroom}/alunos', [Admin\StudentAccessController::class, 'store'])->name('classrooms.students.store');
+        Route::get('classes/{classroom}/alunos/{user}', [Admin\StudentController::class, 'show'])->name('classrooms.students.show');
+        Route::put('classes/{classroom}/alunos/{user}', [Admin\StudentController::class, 'update'])->name('classrooms.students.update');
+        Route::post('classes/{classroom}/alunos/{user}/mover', [Admin\StudentController::class, 'move'])->name('classrooms.students.move');
+        Route::post('classes/{classroom}/alunos/{user}/anotacoes', [Admin\StudentNoteController::class, 'store'])->name('classrooms.students.notes.store');
+        Route::put('anotacoes/{note}', [Admin\StudentNoteController::class, 'update'])->name('notes.update');
+        Route::delete('anotacoes/{note}', [Admin\StudentNoteController::class, 'destroy'])->name('notes.destroy');
 
-        Route::get('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'index'])->name('classrooms.members.index');
+        // Vínculos (adicionar por e-mail, remover da classe) e link pessoal.
         Route::post('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'store'])->name('classrooms.members.store');
         Route::delete('classes/{classroom}/membros/{user}', [Admin\ClassroomMemberController::class, 'destroy'])->name('classrooms.members.destroy');
-        Route::post('classes/{classroom}/alunos', [Admin\StudentAccessController::class, 'store'])->name('classrooms.students.store');
         Route::post('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'issue'])->name('classrooms.members.link.store');
         Route::delete('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'revoke'])->name('classrooms.members.link.destroy');
+
+        Route::get('classes/{classroom}/relatorio', Admin\ClassroomReportController::class)->name('classrooms.report');
+
+        Route::get('classes/{classroom}/membros', fn (Classroom $classroom) => redirect()->route('admin.classrooms.students.index', $classroom, 301));
+        Route::get('series/{series}/relatorio', fn (Series $series) => redirect()->route('admin.classrooms.report', [$series->classroom, 'serie' => $series->id], 301));
 
         Route::resource('series', Admin\SeriesController::class)
             ->parameters(['series' => 'series'])

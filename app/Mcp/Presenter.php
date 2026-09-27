@@ -175,6 +175,8 @@ final class Presenter
             'phone' => $student->phone,
             'email' => $student->email,
             'is_managed' => $student->isManaged(),
+            'birth_date' => $student->birth_date?->toDateString(),
+            'gender' => $student->gender?->value,
         ];
     }
 }

@@ -7,53 +7,14 @@ use App\Actions\Classrooms\AddClassroomMember;
 use App\Enums\ClassroomRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ClassroomMemberRequest;
-use App\Http\Resources\ClassroomResource;
 use App\Models\Classroom;
-use App\Models\ClassroomMember;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class ClassroomMemberController extends Controller
 {
-    public function index(Request $request, Classroom $classroom): Response
-    {
-        Gate::authorize('manageMembers', $classroom);
-
-        $members = ClassroomMember::query()
-            ->whereBelongsTo($classroom)
-            ->with(['user' => fn ($q) => $q->withCount('pushSubscriptions'), 'user.accessLinks' => fn ($q) => $q->usable()])
-            ->get()
-            ->sortBy(fn (ClassroomMember $member) => $member->user->name)
-            ->values()
-            ->map(fn (ClassroomMember $member) => [
-                'id' => $member->user->id,
-                'name' => $member->user->name,
-                'email' => $member->user->email,
-                'phone' => $member->user->phone,
-                'role' => $member->role->value,
-                'role_label' => $member->role->label(),
-                'is_managed' => $member->user->isManaged(),
-                'profile_complete' => $member->user->hasCompleteProfile(),
-                'reminder_devices' => (int) $member->user->getAttribute('push_subscriptions_count'),
-                'access_link' => ($link = $member->user->accessLinks->first()) ? [
-                    'created_at' => $link->created_at->toIso8601String(),
-                    'use_count' => $link->use_count,
-                    'last_used_at' => $link->last_used_at?->toIso8601String(),
-                    'expires_at' => $link->expires_at?->toIso8601String(),
-                ] : null,
-            ]);
-
-        return Inertia::render('admin/classrooms/members', [
-            'classroom' => ClassroomResource::make($classroom),
-            'members' => $members,
-            'canAssignTeachers' => $request->user()->can('assignTeachers', $classroom),
-        ]);
-    }
-
     public function store(ClassroomMemberRequest $request, Classroom $classroom, AddClassroomMember $add): RedirectResponse
     {
         $role = ClassroomRole::from($request->validated('role'));
@@ -69,7 +30,9 @@ class ClassroomMemberController extends Controller
         Gate::authorize('manageMembers', $classroom);
 
         // Professores só podem ser removidos pela administração.
-        if ($user->isTeacherOf($classroom)) {
+        $wasTeacher = $user->isTeacherOf($classroom);
+
+        if ($wasTeacher) {
             Gate::authorize('assignTeachers', $classroom);
         }
 
@@ -86,6 +49,8 @@ class ClassroomMemberController extends Controller
 
         $this->toast("{$user->name} foi removido(a) da classe.");
 
-        return back();
+        // Professor sai pela edição da classe; aluno, pela ficha, que deixa de
+        // existir: nesse caso volta para a lista de Alunos.
+        return $wasTeacher ? back() : to_route('admin.classrooms.students.index', $classroom);
     }
 }
