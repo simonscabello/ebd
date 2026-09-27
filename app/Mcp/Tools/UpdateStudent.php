@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Actions\Classrooms\UpdateManagedStudent;
+use App\Actions\Classrooms\UpdateStudentProfile;
 use App\Concerns\StudentValidationRules;
 use App\Mcp\Presenter;
 use App\Models\User;
@@ -21,7 +21,7 @@ class UpdateStudent extends EbdTool
 
     protected string $title = 'Corrigir dados do aluno';
 
-    protected string $description = 'Corrige o nome ou o telefone de um aluno da classe. Professores só alteram contas criadas por eles (sem senha); quem tem senha própria atualiza o perfil sozinho.';
+    protected string $description = 'Corrige nome, telefone, data de nascimento ou gênero de um aluno da classe. Campos omitidos ficam como estão. O e-mail (login) não é alterado por aqui.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -30,25 +30,31 @@ class UpdateStudent extends EbdTool
             'student' => $schema->string()->description('Nome atual ou id do aluno.')->required(),
             'name' => $schema->string()->description('Nome corrigido.'),
             'phone' => $schema->string()->nullable()->description('Telefone com DDD (null apaga).'),
+            'birth_date' => $schema->string()->format('date')->nullable()->description('Data de nascimento (AAAA-MM-DD).'),
+            'gender' => $schema->string()->enum(['male', 'female'])->nullable()->description('Gênero: male ou female.'),
         ];
     }
 
-    public function handle(Request $request, UpdateManagedStudent $update): Response
+    public function handle(Request $request, UpdateStudentProfile $update): Response
     {
         $user = $this->actor($request);
         $classroom = $this->resolveClassroom($user, $request->get('classroom'));
         $this->authorize($request, 'manageMembers', $classroom);
         $student = $this->resolveStudent($classroom, $request->get('student'));
 
-        $rules = array_map(fn (array $rules) => ['sometimes', ...$rules], $this->studentRules());
-        $data = Arr::only($request->validate([...$rules, 'classroom' => ['required'], 'student' => ['required']], $this->studentMessages(), $this->studentAttributes()), ['name', 'phone']);
+        $rules = array_map(fn (array $rules) => ['sometimes', ...$rules], [
+            ...$this->studentRules(),
+            'birth_date' => $this->birthDateRules(),
+            'gender' => $this->genderRules(),
+        ]);
+        $data = Arr::only($request->validate([...$rules, 'classroom' => ['required'], 'student' => ['required']], $this->studentMessages(), $this->studentAttributes()), ['name', 'phone', 'birth_date', 'gender']);
 
         $this->audited(
             $request,
             $student,
             $classroom->id,
             fn () => $update->handle($student, $data, $user),
-            fn (User $u) => Arr::only($u->attributesToArray(), ['name', 'phone']),
+            fn (User $u) => Arr::only($u->attributesToArray(), ['name', 'phone', 'birth_date', 'gender']),
         );
 
         return $this->json(['student' => Presenter::student($student->refresh())]);

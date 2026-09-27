@@ -158,10 +158,10 @@ class AttendanceAndInsightsTest extends TestCase
         $this->actingAs($this->teacher)->get("/admin/classes/adultos/alunos/{$notMember->id}")->assertNotFound();
         $this->actingAs($this->teacher)->get("/admin/classes/adultos/alunos/{$ana->id}")
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('admin/classrooms/student')->where('student.name', 'Ana'));
+            ->assertInertia(fn (Assert $page) => $page->component('admin/classrooms/students/show')->where('student.name', 'Ana'));
     }
 
-    public function test_perfect_attendance_badge_and_series_report(): void
+    public function test_perfect_attendance_badge_and_the_series_report(): void
     {
         $ana = $this->student('Ana');
         $bia = $this->student('Bia');
@@ -177,18 +177,22 @@ class AttendanceAndInsightsTest extends TestCase
         $this->assertDatabaseHas('user_badges', ['user_id' => $ana->id, 'badge' => 'perfect_attendance', 'series_id' => $series->id]);
         $this->assertDatabaseMissing('user_badges', ['user_id' => $bia->id, 'badge' => 'perfect_attendance']);
 
+        // O endereço antigo do relatório da série leva ao relatório da classe.
         $this->actingAs($this->teacher)->get("/admin/series/{$series->id}/relatorio")
+            ->assertStatus(301)
+            ->assertRedirect("/admin/classes/adultos/relatorio?serie={$series->id}");
+
+        $this->actingAs($this->teacher)->get("/admin/classes/adultos/relatorio?serie={$series->id}")
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('admin/series/report')
-                ->where('report.totals.meetings_with_attendance', 4)
-                ->where('report.students.0.name', 'Ana')
-                ->where('report.students.0.present', 4)
-                ->where('report.students.0.badges', ['perfect_attendance'])
-                ->where('report.students.1.present', 3));
+                ->component('admin/classrooms/report')
+                ->where('totals.sundays', 4)
+                ->where('students.0.name', 'Ana')
+                ->where('students.0.present', 4)
+                ->where('students.1.present', 3));
 
         $this->actingAs(User::factory()->teacherOf(Classroom::factory()->create())->create())
-            ->get("/admin/series/{$series->id}/relatorio")
+            ->get("/admin/classes/adultos/relatorio?serie={$series->id}")
             ->assertForbidden();
     }
 }

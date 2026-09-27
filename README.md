@@ -11,7 +11,7 @@ O fluxo do produto:
 - **Minha semana** (`/minha-semana`): leituras da semana (cada dia pode ser marcado como lido a qualquer momento: adiantar ou pôr em dia), curiosidade do dia, "Prepare-se para domingo", sequência de dias e selos. O aluno entra por um **link pessoal** enviado no WhatsApp, sem senha.
 - **Modo Domingo** (`/licoes/{slug}/domingo`): para conduzir ou acompanhar a aula; o professor vê roteiro, notas de precisão, "se houver tempo", faz a chamada e encerra a aula (lição concluída ou continua).
 - **Biblioteca** (`/biblioteca`): busca por título, conteúdo, série e texto bíblico, com filtros por classe, série e ano.
-- **Gestão** (`/admin`): cada classe tem Resumo (este domingo, pendências, quem precisa de atenção, aniversariantes e os números da classe), Domingos (planejar trimestre, domingos sem EBD e a página de cada domingo com chamada e "onde paramos") e Alunos (links de acesso e cadastro); além de lições, blocos de aprofundamento e relatório da série.
+- **Gestão** (`/admin`): cada classe tem Resumo (este domingo, pendências, quem precisa de atenção, aniversariantes e os números da classe), Domingos (planejar trimestre, domingos sem EBD e a página de cada domingo com chamada e "onde paramos"), Alunos (a ficha de cada um, com histórico, anotações do professor e acesso ao app) e Relatório (por série, com a chamada aluno × domingo, pronto para imprimir); além de lições e blocos de aprofundamento.
 
 > Decisões de arquitetura, modelagem e trade-offs estão em [`docs/arquitetura.md`](docs/arquitetura.md).
 
@@ -129,8 +129,10 @@ O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres
 | `admin@ebd.test`      | Administrador (todas as classes, cadastro de classes e professores) |
 | `professor@ebd.test`  | Professor da classe Jovens                                          |
 | `professora@ebd.test` | Professora da classe Adultos                                        |
-| `aluno@ebd.test`      | Aluno da classe Jovens                                              |
+| `aluno@ebd.test`      | Aluno da classe Jovens (aniversário hoje, para o Resumo)            |
 | `aluna@ebd.test`      | Aluna da classe Adultos                                             |
+
+Os alunos já têm cadastro completo (WhatsApp, nascimento e gênero). A **Aluna do link** (Jovens) não tem e-mail nem senha: gere o link dela em Alunos para testar a entrada pelo link e a tela "Completar cadastro".
 
 > ⚠️ Essas credenciais existem só para desenvolvimento. O `DatabaseSeeder` se recusa a rodar com `APP_ENV=production`.
 

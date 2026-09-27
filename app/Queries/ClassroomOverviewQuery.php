@@ -7,6 +7,7 @@ use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\User;
 use App\Queries\Data\AttendanceBook;
+use App\Queries\Data\CurrentLesson;
 use App\Queries\Data\Period;
 use App\Support\ChurchCalendar;
 use App\Support\WeeklyMessage;
@@ -26,7 +27,7 @@ class ClassroomOverviewQuery
         private readonly CurrentLessonQuery $current,
         private readonly AttendanceBookQuery $books,
         private readonly HomeStudyQuery $homeStudy,
-        private readonly StudentsNeedingAttention $attention,
+        private readonly StudentsNeedingAttention $needingAttention,
         private readonly WeeklyMessage $weeklyMessage,
     ) {}
 
@@ -45,12 +46,7 @@ class ClassroomOverviewQuery
         $meeting = $week->isFallback ? null : $week->meeting;
         $lesson = $meeting !== null ? $week->lesson : null;
 
-        $study = null;
-
-        if ($lesson !== null) {
-            $firstSunday = ClassMeeting::query()->where('lesson_id', $lesson->id)->active()->min('held_on');
-            $study = $this->homeStudy->forLessons([$lesson->id => substr((string) ($firstSunday ?? $todayString), 0, 10)], $book)[$lesson->id];
-        }
+        $study = $this->currentStudy($week, $book);
 
         $before = $meeting?->held_on->toDateString() ?? $todayString;
         $lastSunday = $book->meetings->reverse()->first(
@@ -108,11 +104,7 @@ class ClassroomOverviewQuery
                     'lesson' => $m->lesson?->displayTitle(),
                     'title' => $m->title,
                 ])->all(),
-            'attention' => $this->attention->for(
-                $book,
-                $this->homeStudy->lastReadOn($classroom, array_keys($book->since)),
-                $study,
-            ),
+            'attention' => $this->attention($classroom, $book, $study),
             'home_study' => $study === null ? null : array_diff_key($study, ['days' => true]),
             'birthdays' => $this->birthdays($book, $today->month, $today->day),
             'stats' => [
@@ -126,6 +118,40 @@ class ClassroomOverviewQuery
                 'new_student_days' => StudentsNeedingAttention::NEW_STUDENT_DAYS,
             ],
         ];
+    }
+
+    /**
+     * Estudo em casa da lição da semana (null sem domingo pela frente).
+     *
+     * @return array{lesson_id: int, lesson_title: string, readings_total: int, readers: int, expected: int, rate: int|null, avg_days: float, days: array<int, int>}|null
+     */
+    public function currentStudy(CurrentLesson $week, AttendanceBook $book): ?array
+    {
+        $lesson = $week->isFallback ? null : $week->lesson;
+
+        if ($lesson === null) {
+            return null;
+        }
+
+        $firstSunday = ClassMeeting::query()->where('lesson_id', $lesson->id)->active()->min('held_on');
+        $sunday = substr((string) ($firstSunday ?? ChurchCalendar::todayString()), 0, 10);
+
+        return $this->homeStudy->forLessons([$lesson->id => $sunday], $book)[$lesson->id];
+    }
+
+    /**
+     * Quem precisa de atenção (também usado na lista de Alunos).
+     *
+     * @param  array{readings_total: int, days: array<int, int>}|null  $study  estudo da lição atual
+     * @return list<array{id: int, name: string, phone: string|null, reasons: list<string>, missed_in_a_row: int, last_present_on: string|null, last_read_on: string|null}>
+     */
+    public function attention(Classroom $classroom, AttendanceBook $book, ?array $study): array
+    {
+        return $this->needingAttention->for(
+            $book,
+            $this->homeStudy->lastReadOn($classroom, array_keys($book->since)),
+            $study,
+        );
     }
 
     /**

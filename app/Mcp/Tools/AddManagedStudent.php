@@ -3,12 +3,12 @@
 namespace App\Mcp\Tools;
 
 use App\Actions\Classrooms\CreateManagedStudent;
+use App\Actions\Classrooms\FindSimilarStudents;
 use App\Concerns\StudentValidationRules;
 use App\Mcp\Presenter;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -33,7 +33,7 @@ class AddManagedStudent extends EbdTool
         ];
     }
 
-    public function handle(Request $request, CreateManagedStudent $create): Response
+    public function handle(Request $request, CreateManagedStudent $create, FindSimilarStudents $findSimilar): Response
     {
         $user = $this->actor($request);
         $classroom = $this->resolveClassroom($user, $request->get('classroom'));
@@ -42,12 +42,7 @@ class AddManagedStudent extends EbdTool
         $data = $request->validate([...$this->studentRules(), 'confirm_duplicate' => ['nullable', 'boolean']], $this->studentMessages(), $this->studentAttributes());
 
         if (! ($data['confirm_duplicate'] ?? false)) {
-            $needle = Str::lower(Str::ascii(Str::squish($data['name'])));
-            $similar = $classroom->students()->get()->filter(function (User $s) use ($needle) {
-                $name = Str::lower(Str::ascii($s->name));
-
-                return str_contains($name, $needle) || str_contains($needle, $name);
-            });
+            $similar = $findSimilar->in($classroom, $data['name']);
 
             if ($similar->isNotEmpty()) {
                 throw ValidationException::withMessages([
@@ -66,8 +61,8 @@ class AddManagedStudent extends EbdTool
 
         return $this->json([
             'student' => Presenter::student($student),
-            'message' => 'Aluno cadastrado. Para ele entrar no app, gere e envie o link pessoal na tela de Membros: '.route('admin.classrooms.members.index', $classroom),
-            'members_url' => route('admin.classrooms.members.index', $classroom),
+            'message' => 'Aluno cadastrado. Para ele entrar no app, gere e envie o link pessoal na tela Alunos: '.route('admin.classrooms.students.index', $classroom),
+            'students_url' => route('admin.classrooms.students.index', $classroom),
         ]);
     }
 }

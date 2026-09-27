@@ -143,7 +143,7 @@ export default function CompleteProfile({
                                             id="password-hint"
                                             className="text-xs text-muted-foreground"
                                         >
-                                            Pelo menos 10 caracteres, com letras
+                                            Pelo menos 6 caracteres, com letras
                                             e números.
                                         </p>
                                         <InputError message={errors.password} />

@@ -38,7 +38,7 @@ class McpStudentToolsTest extends TestCase
     {
         EbdServer::actingAs($this->teacher)->tool(AddManagedStudent::class, ['classroom' => 'jovens', 'name' => 'João Pedro', 'phone' => '(11) 98888-7777'])
             ->assertOk()
-            ->assertSee(['João Pedro', '"is_managed":true', '/admin/classes/jovens/membros'])
+            ->assertSee(['João Pedro', '"is_managed":true', '/admin/classes/jovens/alunos'])
             ->assertDontSee('/entrar#');
 
         $student = User::query()->where('name', 'João Pedro')->sole();
@@ -59,21 +59,24 @@ class McpStudentToolsTest extends TestCase
             ->assertOk();
     }
 
-    public function test_teacher_fixes_managed_accounts_but_not_accounts_with_password(): void
+    public function test_teacher_fixes_student_data_but_never_staff(): void
     {
         $managed = User::factory()->managed()->studentOf($this->classroom)->create(['name' => 'Marya', 'phone' => '11999990000']);
-        User::factory()->studentOf($this->classroom)->create(['name' => 'Paulo']);
+        $paulo = User::factory()->studentOf($this->classroom)->create(['name' => 'Paulo']);
+        User::factory()->teacherOf(Classroom::factory()->create())->studentOf($this->classroom)->create(['name' => 'Professora Rute']);
 
         EbdServer::actingAs($this->teacher)->tool(UpdateStudent::class, ['classroom' => 'jovens', 'student' => 'Marya', 'name' => 'Maria'])
             ->assertOk()
             ->assertSee('"name":"Maria"');
         $this->assertSame(['Maria', '11999990000'], [$managed->fresh()->name, $managed->fresh()->phone]);
 
-        EbdServer::actingAs($this->teacher)->tool(UpdateStudent::class, ['classroom' => 'jovens', 'student' => 'Paulo', 'name' => 'Paulo Souza'])
-            ->assertHasErrors(['senha própria']);
-
-        EbdServer::actingAs(User::factory()->admin()->create())->tool(UpdateStudent::class, ['classroom' => 'jovens', 'student' => 'Paulo', 'name' => 'Paulo Souza'])
+        // Quem já tem senha também pode ter nome, nascimento e gênero corrigidos.
+        EbdServer::actingAs($this->teacher)->tool(UpdateStudent::class, ['classroom' => 'jovens', 'student' => 'Paulo', 'name' => 'Paulo Souza', 'birth_date' => '2004-02-10', 'gender' => 'male'])
             ->assertOk();
+        $this->assertSame(['Paulo Souza', '2004-02-10'], [$paulo->fresh()->name, $paulo->fresh()->birth_date->toDateString()]);
+
+        EbdServer::actingAs($this->teacher)->tool(UpdateStudent::class, ['classroom' => 'jovens', 'student' => 'Professora Rute', 'name' => 'Rute'])
+            ->assertHasErrors(['Professores e administradores']);
     }
 
     public function test_move_student_requires_managing_both_classrooms(): void

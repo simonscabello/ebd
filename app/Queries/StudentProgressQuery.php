@@ -11,6 +11,7 @@ use App\Models\UserBadge;
 use App\Support\ChurchCalendar;
 use App\Support\Enrollment;
 use App\Support\StudyStreak;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,7 +25,12 @@ class StudentProgressQuery
     ) {}
 
     /**
-     * @return array<string, mixed>
+     * @return array{
+     *     streak: array{current: int, best: int, today_done: bool},
+     *     badges: Collection<int, array{badge: value-of<Badge>, label: string, description: string, emoji: string, series: string|null, awarded_at: string}>,
+     *     available_badges: list<array{badge: value-of<Badge>, label: string, description: string, emoji: string}>,
+     *     lessons: Collection<int, array{id: int, slug: string, display_title: string, date_short: string|null, days_read: int, readings_total: positive-int, meetings: int, present: int}>,
+     * }
      */
     public function for(User $user, Classroom $classroom, int $limit = 12): array
     {
