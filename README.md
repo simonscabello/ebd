@@ -129,8 +129,10 @@ O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres
 | `admin@ebd.test`      | Administrador (todas as classes, cadastro de classes e professores) |
 | `professor@ebd.test`  | Professor da classe Jovens                                          |
 | `professora@ebd.test` | Professora da classe Adultos                                        |
-| `aluno@ebd.test`      | Aluno da classe Jovens                                              |
+| `aluno@ebd.test`      | Aluno da classe Jovens (aniversário hoje, para o Resumo)            |
 | `aluna@ebd.test`      | Aluna da classe Adultos                                             |
+
+Os alunos já têm cadastro completo (WhatsApp, nascimento e gênero). A **Aluna do link** (Jovens) não tem e-mail nem senha: gere o link dela em Alunos para testar a entrada pelo link e a tela "Completar cadastro".
 
 > ⚠️ Essas credenciais existem só para desenvolvimento. O `DatabaseSeeder` se recusa a rodar com `APP_ENV=production`.
 
