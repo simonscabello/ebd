@@ -49,10 +49,23 @@ class CreateManagedStudent
         });
     }
 
+    /**
+     * Só dígitos, com DDI. Número brasileiro digitado sem DDI (DDD + número,
+     * 10 ou 11 dígitos, sem "+") ganha o 55 na frente: o link do WhatsApp
+     * precisa do código do país.
+     */
     public static function normalizePhone(?string $phone): ?string
     {
         $digits = preg_replace('/\D+/', '', (string) $phone);
 
-        return $digits !== '' && $digits !== null ? $digits : null;
+        if ($digits === '' || $digits === null) {
+            return null;
+        }
+
+        if (! str_starts_with(trim((string) $phone), '+') && in_array(strlen($digits), [10, 11], true)) {
+            return '55'.$digits;
+        }
+
+        return $digits;
     }
 }

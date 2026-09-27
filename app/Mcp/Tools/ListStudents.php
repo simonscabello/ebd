@@ -40,7 +40,7 @@ class ListStudents extends EbdTool
 
         $members = ClassroomMember::query()
             ->whereBelongsTo($classroom)
-            ->with(['user.accessLinks' => fn ($q) => $q->active()])
+            ->with(['user.accessLinks' => fn ($q) => $q->usable()])
             ->get()
             ->filter(fn (ClassroomMember $m) => $needle === '' || str_contains(Str::lower(Str::ascii($m->user->name)), $needle))
             ->sortBy(fn (ClassroomMember $m) => Str::lower(Str::ascii($m->user->name)))

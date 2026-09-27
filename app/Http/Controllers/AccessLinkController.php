@@ -35,8 +35,15 @@ class AccessLinkController extends Controller
         }
 
         $user = $login->handle($token);
+        $firstName = strtok($user->name, ' ');
 
-        $this->toast('Olá, '.strtok($user->name, ' ').'! Este aparelho vai lembrar de você.');
+        if ($user->needsProfileCompletion() && config('ebd.onboarding.required')) {
+            $this->toast("Olá, {$firstName}! Falta só completar o seu cadastro.", 'info');
+
+            return redirect()->route('onboarding.show');
+        }
+
+        $this->toast("Olá, {$firstName}! Este aparelho vai lembrar de você.");
 
         return redirect()->route('my-week');
     }

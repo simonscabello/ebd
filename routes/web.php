@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\LessonNoteController;
@@ -52,6 +53,12 @@ Route::get('entrar', [AccessLinkController::class, 'show'])->name('access-link.s
 Route::post('entrar', [AccessLinkController::class, 'store'])
     ->middleware('throttle:access-link')
     ->name('access-link.store');
+
+// Cadastro que o aluno completa no primeiro acesso (ver EnsureProfileIsComplete).
+Route::middleware('auth')->group(function () {
+    Route::get('completar-cadastro', [CompleteProfileController::class, 'show'])->name('onboarding.show');
+    Route::post('completar-cadastro', [CompleteProfileController::class, 'store'])->name('onboarding.store');
+});
 
 // Tutorial para instalar o app (PWA) no Android e no iPhone.
 Route::inertia('instalar', 'install')->name('install');

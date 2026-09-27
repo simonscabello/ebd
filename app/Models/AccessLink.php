@@ -62,11 +62,26 @@ class AccessLink extends Model
     }
 
     /**
+     * Não revogado. É o que o índice único "um link ativo por pessoa" considera,
+     * então é por este escopo que links antigos são revogados.
+     *
      * @param  Builder<self>  $query
      */
     #[Scope]
     protected function active(Builder $query): void
     {
         $query->whereNull('revoked_at');
+    }
+
+    /**
+     * Não revogado e dentro da validade: o que ainda deixa a pessoa entrar.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function usable(Builder $query): void
+    {
+        $query->whereNull('revoked_at')
+            ->where(fn (Builder $q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 }

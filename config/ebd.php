@@ -35,6 +35,19 @@ return [
     ],
 
     /*
+    | Cadastro do aluno. Quem entra pelo link pessoal completa, no primeiro
+    | acesso, e-mail, senha, WhatsApp, nascimento e gênero antes de usar o app.
+    | required: desligue (false) só em emergência, para liberar o acesso.
+    | password_reset_by_email: enquanto não houver provedor de e-mail em
+    | produção, "Esqueci minha senha" orienta a pedir um novo link ao professor.
+    */
+    'onboarding' => [
+        'required' => (bool) env('EBD_ONBOARDING_REQUIRED', true),
+    ],
+
+    'password_reset_by_email' => (bool) env('EBD_PASSWORD_RESET_BY_EMAIL', false),
+
+    /*
     | "Alunos que precisam de atenção" no painel de evolução da classe.
     */
     'insights' => [

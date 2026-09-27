@@ -59,8 +59,10 @@ class FortifyServiceProvider extends ServiceProvider
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ]));
 
+        // Sem provedor de e-mail em produção, a página orienta a pedir um link novo ao professor.
         Fortify::requestPasswordResetLinkView(fn (Request $request) => Inertia::render('auth/forgot-password', [
             'status' => $request->session()->get('status'),
+            'emailEnabled' => (bool) config('ebd.password_reset_by_email'),
         ]));
 
         Fortify::registerView(fn () => Inertia::render('auth/register', [

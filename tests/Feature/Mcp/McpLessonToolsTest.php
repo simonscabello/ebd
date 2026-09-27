@@ -44,7 +44,7 @@ class McpLessonToolsTest extends TestCase
         $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 24)->setTime(10, 0));
         Event::fake([LessonPublished::class]);
 
-        $this->classroom = Classroom::factory()->create(['slug' => 'jovens']);
+        $this->classroom = Classroom::factory()->create(['slug' => 'jovens', 'name' => 'Jovens']);
         $this->series = Series::factory()->for($this->classroom)->create(['slug' => '4-tri-2026']);
         $this->teacher = User::factory()->teacherOf($this->classroom)->create();
     }

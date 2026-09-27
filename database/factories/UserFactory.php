@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\ClassroomRole;
+use App\Enums\Gender;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -32,6 +33,10 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Cadastro completo: sem isso, alunos cairiam em "Completar cadastro".
+            'phone' => '55279'.fake()->numerify('########'),
+            'birth_date' => fake()->dateTimeBetween('-40 years', '-15 years')->format('Y-m-d'),
+            'gender' => fake()->randomElement(Gender::cases()),
         ];
     }
 
@@ -46,7 +51,8 @@ class UserFactory extends Factory
     }
 
     /**
-     * Aluno criado pelo professor: sem e-mail e sem senha (entra pelo link pessoal).
+     * Aluno criado pelo professor: sem e-mail e sem senha (entra pelo link
+     * pessoal) e com o cadastro ainda por completar.
      */
     public function managed(): static
     {
@@ -54,6 +60,8 @@ class UserFactory extends Factory
             'email' => null,
             'email_verified_at' => null,
             'password' => null,
+            'birth_date' => null,
+            'gender' => null,
         ]);
     }
 
