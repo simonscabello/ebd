@@ -82,12 +82,14 @@ class AppServiceProvider extends ServiceProvider
         // Atrás do proxy do Railway, garante links e redirects sempre em HTTPS.
         URL::forceHttps(app()->isProduction());
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(10)
+        // Senha com 6 caracteres no mínimo em qualquer ambiente. Em produção
+        // também precisa ter letras e números e não pode estar em vazamentos.
+        Password::defaults(fn (): Password => app()->isProduction()
+            ? Password::min(6)
                 ->letters()
                 ->numbers()
                 ->uncompromised()
-            : null,
+            : Password::min(6),
         );
     }
 
