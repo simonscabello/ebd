@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * Chamada e "Encerrar aula" (Modo Domingo).
+ * Chamada (Modo Domingo e página do domingo) e "Encerrar aula".
  */
 class AttendanceController extends Controller
 {
@@ -25,7 +25,9 @@ class AttendanceController extends Controller
 
         $data = $request->validate($this->attendanceRules());
 
-        $record->handle($meeting, $data['present'] ?? [], (int) ($data['visitors'] ?? 0), $request->user());
+        $visitors = isset($data['visitors']) ? (int) $data['visitors'] : null;
+
+        $record->handle($meeting, $data['present'] ?? [], $visitors, $request->user());
 
         return back();
     }
@@ -39,11 +41,11 @@ class AttendanceController extends Controller
         $leftover = $finish->handle($meeting, (bool) $data['continues'], $data['notes'] ?? null);
 
         $this->toast($data['continues']
-            ? 'Aula encerrada. A lição continua no próximo encontro.'
+            ? 'Aula encerrada. A lição continua no próximo domingo.'
             : 'Aula encerrada. Até domingo!');
 
         if ($leftover !== null && ($lesson = Lesson::query()->find($leftover)) !== null) {
-            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Ajuste na agenda da classe.", 'warning');
+            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Ajuste em Domingos.", 'warning');
         }
 
         return back();

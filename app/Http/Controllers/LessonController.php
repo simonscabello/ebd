@@ -41,11 +41,15 @@ class LessonController extends Controller
 
         $canManage = $request->user()?->can('update', $lesson) ?? false;
 
+        $back = $request->query('voltar');
+
         return Inertia::render('lessons/sunday', [
             'lesson' => $this->present($request, $lesson),
             'canManage' => $canManage,
             // Chamada e "encerrar aula": só para quem conduz a classe.
             'conduct' => $canManage ? $this->conduct($request, $lesson) : null,
+            // "Sair" volta para a gestão quando o Modo Domingo foi aberto de lá.
+            'backUrl' => $canManage && is_string($back) && str_starts_with($back, '/admin/') && ! str_contains($back, '//') ? $back : null,
         ]);
     }
 
@@ -76,16 +80,21 @@ class LessonController extends Controller
             return null;
         }
 
-        $present = $meeting->attendances()->pluck('user_id')->all();
+        $roster = $lesson->classroom->students()
+            ->orderBy('name')
+            ->get(['users.id', 'users.name'])
+            ->map(fn ($student) => ['id' => $student->id, 'name' => $student->name]);
 
         return [
             'meeting' => ClassMeetingResource::make($meeting)->withNotes()->resolve($request),
-            'can_take_attendance' => $meeting->held_on->toDateString() <= ChurchCalendar::today()->toDateString(),
-            'roster' => $lesson->classroom->students()
-                ->orderBy('name')
-                ->get(['users.id', 'users.name'])
-                ->map(fn ($student) => ['id' => $student->id, 'name' => $student->name]),
-            'present' => $present,
+            'can_take_attendance' => $meeting->held_on->toDateString() <= ChurchCalendar::todayString(),
+            'roster' => $roster,
+            // Só quem continua na classe: a chamada reenvia esta lista inteira.
+            'present' => $meeting->attendances()->pluck('user_id')
+                ->map(fn ($id) => (int) $id)
+                ->intersect($roster->pluck('id'))
+                ->values(),
+            'meeting_url' => route('admin.classrooms.meetings.show', [$lesson->classroom, $meeting]),
         ];
     }
 

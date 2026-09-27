@@ -1,6 +1,7 @@
 import { Check, Copy, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { whatsappUrl } from '@/lib/whatsapp';
 
 /**
  * Copia um texto pronto (ou abre o WhatsApp com ele). Útil para a mensagem
@@ -27,8 +28,7 @@ export function CopyWhatsAppButtons({
         }
     };
 
-    const digits = phone?.replace(/\D/g, '') ?? '';
-    const whatsapp = `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+    const whatsapp = whatsappUrl(phone, text);
 
     return (
         <div className="flex flex-wrap gap-2">

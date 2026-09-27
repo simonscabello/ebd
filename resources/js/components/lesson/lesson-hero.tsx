@@ -2,10 +2,12 @@ import { Link } from '@inertiajs/react';
 import { ArrowRight, BookOpen, KeyRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { KeyVerseText } from '@/components/lesson/key-verse';
-import type { BiblePassage } from '@/types';
+import type { BiblePassage, LessonStatus } from '@/types';
 
 type HeroLesson = {
     url: string;
+    /** Rascunho só chega aqui para professores: os alunos veem "em preparo". */
+    status?: LessonStatus;
     number: number | null;
     title: string;
     bible_reference: string | null;
@@ -31,6 +33,11 @@ export function LessonHero({
             <p className="text-sm font-medium opacity-90 first-letter:uppercase">
                 {eyebrow}
             </p>
+            {lesson.status === 'draft' && (
+                <p className="mt-2 inline-flex rounded-full bg-primary-foreground/15 px-2.5 py-0.5 text-xs font-semibold">
+                    Rascunho: só professores veem
+                </p>
+            )}
             {lesson.number && (
                 <p className="mt-3 text-sm font-semibold tracking-wide uppercase opacity-80">
                     Lição {lesson.number}

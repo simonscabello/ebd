@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
@@ -11,21 +11,18 @@ import { index as seriesIndex } from '@/routes/admin/series';
  * Área de gestão: mesma casca do app + atalhos entre as seções.
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
-    const { auth } = usePage().props;
     const { currentUrl } = useCurrentUrl();
 
     const items = [
         { title: 'Painel', href: dashboard.url(), exact: true },
+        { title: 'Classes', href: classroomsIndex.url() },
         { title: 'Lições', href: lessonsIndex.url() },
         { title: 'Séries', href: seriesIndex.url() },
-        ...(auth.user?.is_admin
-            ? [{ title: 'Classes', href: classroomsIndex.url() }]
-            : []),
     ];
 
     return (
         <div>
-            <div className="border-b border-border/70 bg-card/50">
+            <div className="border-b border-border/70 bg-card/50 print:hidden">
                 <nav
                     className="mx-auto flex max-w-4xl gap-1 overflow-x-auto px-4 py-2 sm:px-6"
                     aria-label="Gestão"

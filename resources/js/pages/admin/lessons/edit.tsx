@@ -18,6 +18,7 @@ import { LessonForm } from '@/components/admin/lesson-form';
 import type { MaterialTypeOption } from '@/components/admin/materials-manager';
 import { MaterialsManager } from '@/components/admin/materials-manager';
 import { ReadingsManager } from '@/components/admin/readings-manager';
+import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Breadcrumbs, Page, Section } from '@/components/page';
@@ -29,7 +30,6 @@ import {
     index as lessonsIndex,
     status as changeStatus,
 } from '@/routes/admin/lessons';
-import { cn } from '@/lib/utils';
 import type {
     ClassMeeting,
     Classroom,
@@ -64,8 +64,8 @@ type EditableLesson = {
     materials: LessonMaterial[];
     readings: LessonReading[];
     blocks: LessonBlock[];
-    meetings: ClassMeeting[];
-    agenda_url: string;
+    meetings: (ClassMeeting & { url: string })[];
+    meetings_url: string;
 };
 
 type Props = {
@@ -250,30 +250,26 @@ export default function EditLesson({
                         id="domingos"
                         title="Domingos desta lição"
                         icon={<CalendarCheck />}
-                        description="Uma lição pode ocupar mais de um domingo. As datas são definidas na agenda da classe."
+                        description="Uma lição pode ocupar mais de um domingo. As datas ficam em Domingos, na página da classe."
                     >
                         {lesson.meetings.length > 0 ? (
                             <ul className="divide-y rounded-2xl border bg-card">
                                 {lesson.meetings.map((meeting, index) => (
-                                    <li
-                                        key={meeting.id}
-                                        className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
-                                    >
-                                        <span className="first-letter:uppercase">
-                                            {meeting.date_label}
-                                            {lesson.meetings.length > 1 &&
-                                                ` · encontro ${index + 1} de ${lesson.meetings.length}`}
-                                        </span>
-                                        <span
-                                            className={cn(
-                                                'rounded-full px-2.5 py-0.5 text-xs font-medium',
-                                                meeting.status === 'held'
-                                                    ? 'bg-muted text-muted-foreground'
-                                                    : 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200',
-                                            )}
+                                    <li key={meeting.id}>
+                                        <Link
+                                            href={meeting.url}
+                                            className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-muted/50"
                                         >
-                                            {meeting.status_label}
-                                        </span>
+                                            <span className="first-letter:uppercase">
+                                                {meeting.date_label}
+                                                {lesson.meetings.length > 1 &&
+                                                    ` · domingo ${index + 1} de ${lesson.meetings.length}`}
+                                            </span>
+                                            <MeetingStatusBadge
+                                                status={meeting.status}
+                                                label={meeting.status_label}
+                                            />
+                                        </Link>
                                     </li>
                                 ))}
                             </ul>
@@ -283,8 +279,8 @@ export default function EditLesson({
                             </p>
                         )}
                         <Button asChild variant="outline" className="mt-3">
-                            <Link href={lesson.agenda_url}>
-                                <CalendarDays /> Abrir agenda da classe
+                            <Link href={lesson.meetings_url}>
+                                <CalendarDays /> Abrir Domingos
                             </Link>
                         </Button>
                     </Section>

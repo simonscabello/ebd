@@ -9,6 +9,7 @@ use App\Models\Lesson;
 use App\Models\Series;
 use App\Models\User;
 use App\Support\ChurchCalendar;
+use App\Support\Enrollment;
 use App\Support\StudyStreak;
 use Illuminate\Support\Facades\DB;
 
@@ -113,13 +114,20 @@ class AwardBadges
     }
 
     /**
-     * Presente em todos os encontros com chamada das lições da série (mínimo 4),
-     * sendo o último já no fim da série.
+     * Presente em todos os domingos com chamada das lições da série desde que
+     * entrou na classe (mínimo 4), sendo o último já no fim da série.
      */
     private function hasPerfectAttendance(User $user, Series $series): bool
     {
+        $since = Enrollment::sinceMap($series->classroom_id, [$user->id])[$user->id] ?? null;
+
+        if ($since === null) {
+            return false;
+        }
+
         $meetings = ClassMeeting::query()
             ->whereNotNull('attendance_taken_at')
+            ->whereDate('held_on', '>=', $since)
             ->whereHas('lesson', fn ($q) => $q->whereBelongsTo($series))
             ->pluck('id');
 

@@ -2,7 +2,7 @@ import { Head } from '@inertiajs/react';
 import { Printer } from 'lucide-react';
 import { Breadcrumbs, Page } from '@/components/page';
 import { dashboard } from '@/routes/admin';
-import { insights } from '@/routes/admin/classrooms';
+import { show as classroomPage } from '@/routes/admin/classrooms';
 import { Button } from '@/components/ui/button';
 import type { Classroom } from '@/types';
 
@@ -65,7 +65,7 @@ export default function SeriesReport({
                         { title: 'Gestão', href: dashboard.url() },
                         {
                             title: classroom.name,
-                            href: insights.url(classroom.slug),
+                            href: classroomPage.url(classroom.slug),
                         },
                         { title: 'Relatório' },
                     ]}

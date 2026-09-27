@@ -4,7 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Mcp\Presenter;
 use App\Models\ClassMeeting;
-use App\Queries\ClassroomInsightsQuery;
+use App\Queries\ClassroomOverviewQuery;
 use App\Queries\CurrentLessonQuery;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -18,9 +18,9 @@ class GetClassroomOverview extends EbdTool
 {
     protected string $name = 'get_classroom_overview';
 
-    protected string $title = 'Panorama da classe';
+    protected string $title = 'Resumo da classe';
 
-    protected string $description = 'Lição da semana, indicadores de presença e estudo em casa, últimos encontros e alunos que precisam de atenção (faltas seguidas, dias sem leitura).';
+    protected string $description = 'O mesmo Resumo da tela da classe: lição da semana, frequência no período (série atual ou últimos 3 meses), últimos domingos com chamada, domingos pendentes de confirmação, estudo em casa da lição atual, alunos que precisam de atenção (faltas seguidas, dias sem leitura) e aniversariantes do mês.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -29,14 +29,15 @@ class GetClassroomOverview extends EbdTool
         ];
     }
 
-    public function handle(Request $request, CurrentLessonQuery $current, ClassroomInsightsQuery $insights): Response
+    public function handle(Request $request, CurrentLessonQuery $current, ClassroomOverviewQuery $overview): Response
     {
         $user = $this->actor($request);
         $classroom = $this->resolveClassroom($user, $request->get('classroom'));
         $this->authorize($request, 'viewInsights', $classroom);
 
         $week = $current->for($classroom, $user);
-        $data = $insights->for($classroom);
+        $data = $overview->for($classroom, $user);
+        $stats = $data['stats'];
 
         return $this->json([
             'classroom' => Presenter::classroom($classroom),
@@ -47,12 +48,20 @@ class GetClassroomOverview extends EbdTool
                 'meeting_total' => $week->meetingTotal,
                 'cancelled_before' => $week->cancelledBefore->map(fn (ClassMeeting $m) => $m->held_on->toDateString())->all(),
             ] : null,
-            'kpis' => $data['kpis'],
-            'recent_meetings' => $data['meetings'],
-            'lessons_home_study' => $data['lessons'],
-            'students_needing_attention' => collect($data['students'])->where('at_risk', true)->values()->all(),
+            'kpis' => [
+                'students' => $stats['students'],
+                'frequency_rate' => $stats['frequency']['rate'],
+                'frequency_period' => $stats['period']['label'],
+                'home_study_rate' => $data['home_study']['rate'] ?? null,
+                'needing_attention' => count($data['attention']),
+            ],
+            'recent_meetings' => $data['recent'],
+            'pending_meetings' => $data['pending'],
+            'lessons_home_study' => $data['home_study'] !== null ? [$data['home_study']] : [],
+            'students_needing_attention' => $data['attention'],
+            'birthdays_this_month' => $data['birthdays'],
             'thresholds' => $data['thresholds'],
-            'insights_url' => route('admin.classrooms.insights', $classroom),
+            'classroom_url' => route('admin.classrooms.show', $classroom),
         ]);
     }
 }
