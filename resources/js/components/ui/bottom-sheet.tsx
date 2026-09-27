@@ -1,14 +1,22 @@
 import { Drawer } from 'flowbite';
 import type { DrawerInterface } from 'flowbite';
 import { X } from 'lucide-react';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+
+/** Duração da subida/descida (duration-200) com uma folga. */
+const EXIT_MS = 260;
 
 /**
  * Painel que sobe da parte de baixo da tela (Drawer do Flowbite, controlado
  * pelo React). O conteúdo continua montado quando fechado, então o estado
  * interno (ex.: a chamada) não se perde entre uma abertura e outra.
+ *
+ * m-0: dentro de um contêiner space-y-* o painel herdava margin-bottom e,
+ * mesmo "fora da tela", subia 32px; o cabeçalho ("Leitura ✕") aparecia por
+ * cima do menu inferior em Minha semana. Além disso, fechado ele termina a
+ * descida e fica invisível e inerte, sem depender de estar fora da tela.
  */
 export function BottomSheet({
     open,
@@ -31,6 +39,10 @@ export function BottomSheet({
     const opener = useRef<HTMLElement | null>(null);
     const onOpenChangeRef = useRef(onOpenChange);
     onOpenChangeRef.current = onOpenChange;
+    // O Flowbite troca as classes do painel na mão; o React reescreveria o
+    // atributo class inteiro. Por isso o "escondido" vai por style/inert.
+    const [exited, setExited] = useState(!open);
+    const concealed = !open && exited;
 
     useEffect(() => {
         if (!panel.current) {
@@ -65,14 +77,27 @@ export function BottomSheet({
             return;
         }
 
-        if (open && !instance.isVisible()) {
-            opener.current = document.activeElement as HTMLElement | null;
-            instance.show();
-            panel.current?.focus();
-        } else if (!open && instance.isVisible()) {
+        if (open) {
+            setExited(false);
+
+            if (!instance.isVisible()) {
+                opener.current = document.activeElement as HTMLElement | null;
+                instance.show();
+                panel.current?.focus();
+            }
+
+            return;
+        }
+
+        // Fechar pelo Esc ou tocando fora já passou pelo hide() do Flowbite.
+        if (instance.isVisible()) {
             instance.hide();
             opener.current?.focus();
         }
+
+        const timer = window.setTimeout(() => setExited(true), EXIT_MS);
+
+        return () => window.clearTimeout(timer);
     }, [open]);
 
     // Mantém o Tab dentro do painel enquanto ele está aberto.
@@ -109,9 +134,16 @@ export function BottomSheet({
             id={id}
             tabIndex={-1}
             onKeyDown={trapFocus}
+            onTransitionEnd={(event) => {
+                if (event.target === event.currentTarget && !open) {
+                    setExited(true);
+                }
+            }}
+            inert={!open}
+            style={concealed ? { visibility: 'hidden' } : undefined}
             aria-labelledby={`${id}-title`}
             className={cn(
-                'fixed z-50 flex max-h-[85svh] w-full translate-y-full flex-col rounded-t-3xl border-t bg-card shadow-2xl outline-none',
+                'fixed inset-x-0 bottom-0 z-50 m-0 flex max-h-[85svh] w-full translate-y-full flex-col rounded-t-3xl border-t bg-card shadow-2xl outline-none duration-200 ease-out motion-reduce:transition-none',
                 className,
             )}
         >

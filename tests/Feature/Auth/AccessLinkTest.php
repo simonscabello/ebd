@@ -87,6 +87,31 @@ class AccessLinkTest extends TestCase
         $this->assertSame(1, AccessLink::query()->sole()->use_count);
     }
 
+    /**
+     * A sessão dura 2 horas; depois disso é o cookie "lembrar de mim" que
+     * mantém o aluno do link logado. Sem senha, o Laravel recusava o cookie.
+     */
+    public function test_remember_cookie_keeps_link_student_logged_in_after_the_session_expires(): void
+    {
+        $student = User::factory()->managed()->studentOf($this->classroom)->create();
+        $token = $this->issue($student);
+
+        $response = $this->post('/entrar', ['token' => $token]);
+        $remember = collect($response->headers->getCookies())
+            ->first(fn ($cookie) => str_starts_with($cookie->getName(), 'remember_web_'));
+        $this->assertNotNull($remember);
+
+        // Sessão expirada: nada na sessão, só o cookie no aparelho.
+        Auth::forgetGuards();
+        $this->flushSession();
+
+        $this->withUnencryptedCookie($remember->getName(), (string) $remember->getValue())
+            ->get('/minha-semana')
+            ->assertOk();
+
+        $this->assertAuthenticatedAs($student);
+    }
+
     public function test_get_never_logs_in_so_link_previews_are_harmless(): void
     {
         $student = User::factory()->managed()->studentOf($this->classroom)->create();
