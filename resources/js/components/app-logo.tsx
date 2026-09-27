@@ -14,9 +14,9 @@ export function AppLogoMark({ className }: { className?: string }) {
 
 export default function AppLogo({ churchName }: { churchName?: string }) {
     return (
-        <span className="flex items-center gap-2.5">
+        <span className="flex min-w-0 items-center gap-2.5">
             <AppLogoMark />
-            <span className="flex flex-col leading-tight">
+            <span className="flex min-w-0 flex-col leading-tight">
                 <span className="text-[15px] font-semibold tracking-tight">
                     EBD
                 </span>

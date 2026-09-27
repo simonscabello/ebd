@@ -130,6 +130,17 @@ class User extends Authenticatable implements OAuthenticatable
     }
 
     /**
+     * Conta sem senha devolve '' em vez de null: o Laravel recusa o cookie
+     * "lembrar de mim" quando a senha não é string, e o aluno do link era
+     * deslogado quando a sessão expirava. Entrar por senha continua
+     * impossível, porque Hash::check() com hash vazio é sempre falso.
+     */
+    public function getAuthPassword(): string
+    {
+        return $this->password ?? '';
+    }
+
+    /**
      * @param  string  $token
      */
     public function sendPasswordResetNotification($token): void

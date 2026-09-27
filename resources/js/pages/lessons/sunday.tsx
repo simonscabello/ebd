@@ -230,7 +230,7 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
             {conduct && conducting && (
                 <>
                     {/* Barra do professor: chamada e encerramento sempre à mão. */}
-                    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-safe backdrop-blur">
+                    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-safe backdrop-blur after:absolute after:inset-x-0 after:top-full after:h-[50svh] after:bg-background">
                         <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-2 sm:px-6">
                             <Button
                                 type="button"

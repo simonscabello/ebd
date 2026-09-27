@@ -381,7 +381,7 @@ export function LessonForm({
                 className={cn(
                     'flex items-center justify-end gap-3',
                     (!editing || isDirty) &&
-                        'sticky bottom-20 z-10 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur md:bottom-0',
+                        'sticky bottom-(--app-bottom-nav) z-10 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur',
                 )}
             >
                 {editing && isDirty && (

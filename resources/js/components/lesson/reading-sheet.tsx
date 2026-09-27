@@ -1,4 +1,5 @@
 import { BookOpen } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { PassageVerses, verseCount } from '@/components/lesson/passage-text';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
@@ -19,17 +20,26 @@ export function ReadingSheet({
     onOpenChange: (open: boolean) => void;
     footer?: ReactNode;
 }) {
-    const passage = reading?.passage;
+    // Quem abre o leitor zera a leitura ao fechar. Guardamos a última para o
+    // painel descer com o texto, e não encolhido só no título.
+    const [lastReading, setLastReading] = useState(reading);
+
+    if (reading !== null && reading !== lastReading) {
+        setLastReading(reading);
+    }
+
+    const shown = reading ?? lastReading;
+    const passage = shown?.passage;
 
     return (
         <BottomSheet
             open={open}
             onOpenChange={onOpenChange}
-            title={reading?.reference ?? 'Leitura'}
+            title={shown?.reference ?? 'Leitura'}
             description={
-                reading
+                shown
                     ? [
-                          reading.weekday_label ?? 'Leitura',
+                          shown.weekday_label ?? 'Leitura',
                           passage ? verseCount(passage) : null,
                       ]
                           .filter(Boolean)
@@ -38,18 +48,18 @@ export function ReadingSheet({
             }
             className="max-h-[92svh]"
         >
-            {reading && (
+            {shown && (
                 <div className="pb-6">
-                    {reading.notes && (
+                    {shown.notes && (
                         <p className="mb-4 rounded-2xl bg-accent/60 px-4 py-3 text-sm text-pretty text-accent-foreground">
-                            {reading.notes}
+                            {shown.notes}
                         </p>
                     )}
                     {passage ? (
                         <PassageVerses passage={passage} size="reader" />
                     ) : (
                         <p className="text-muted-foreground">
-                            Abra sua Bíblia em {reading.reference}.
+                            Abra sua Bíblia em {shown.reference}.
                         </p>
                     )}
                     {footer && (

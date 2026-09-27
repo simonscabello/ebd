@@ -233,6 +233,22 @@
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
 }
 
+/*
+ * Altura do menu inferior do celular (lista de 3.75rem + pb-safe + borda).
+ * A partir de md o menu some e a altura vira zero.
+ */
+:root {
+    --app-bottom-nav: calc(
+        3.75rem + 0.5rem + 1px + env(safe-area-inset-bottom)
+    );
+}
+
+@media (width >= 48rem) {
+    :root {
+        --app-bottom-nav: 0px;
+    }
+}
+
 /* Texto longo das lições: serifada, linhas confortáveis, bom contraste. */
 @utility reading {
     @apply prose prose-lg max-w-none font-serif prose-stone dark:prose-invert;

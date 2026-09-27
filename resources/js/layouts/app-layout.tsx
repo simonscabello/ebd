@@ -11,7 +11,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 Pular para o conteúdo
             </a>
             <TopBar />
-            <main id="conteudo" className="flex-1 pb-28 md:pb-16">
+            <main
+                id="conteudo"
+                className="flex-1 pb-[calc(var(--app-bottom-nav)+2rem)] md:pb-16"
+            >
                 {children}
             </main>
             <BottomNav />

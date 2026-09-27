@@ -33,7 +33,14 @@ import {
 import { dashboard } from '@/routes/admin';
 import { UserAvatar } from '@/components/user-avatar';
 
-type Item = { title: string; href: string; icon: LucideIcon; match?: string };
+type Item = {
+    title: string;
+    /** Rótulo curto do menu inferior, quando o título não cabe numa linha. */
+    short?: string;
+    href: string;
+    icon: LucideIcon;
+    match?: string;
+};
 
 function useNavItems(): Item[] {
     const { auth } = usePage().props;
@@ -43,6 +50,7 @@ function useNavItems(): Item[] {
     if (auth.user?.is_student) {
         items.push({
             title: 'Minha semana',
+            short: 'Semana',
             href: myWeek.url(),
             icon: CalendarCheck,
             match: '/minha-semana',
@@ -91,11 +99,11 @@ export function TopBar() {
     const isActive = useIsActive();
 
     return (
-        <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+        <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 print:hidden">
             <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
                 <Link
                     href={home()}
-                    className="rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    className="min-w-0 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                     <AppLogo churchName={church.name} />
                 </Link>
@@ -185,6 +193,10 @@ function UserMenu() {
 
 /**
  * Navegação inferior no celular: alvo de toque grande e sempre ao alcance do polegar.
+ *
+ * Altura fixa (--app-bottom-nav) e rótulos numa linha só, mesmo com a fonte
+ * do sistema aumentada. O fundo continua abaixo do menu para nada da página
+ * aparecer por baixo dele.
  */
 export function BottomNav() {
     const items = useNavItems();
@@ -192,28 +204,31 @@ export function BottomNav() {
 
     return (
         <nav
-            className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-safe backdrop-blur md:hidden"
+            className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-safe backdrop-blur after:absolute after:inset-x-0 after:top-full after:h-[50svh] after:bg-background md:hidden print:hidden"
             aria-label="Principal"
         >
-            <ul className="mx-auto flex max-w-md items-stretch justify-around px-2 pt-1.5">
+            <ul className="mx-auto flex h-15 max-w-md items-stretch justify-around px-2 pt-1.5">
                 {items.map((item) => {
                     const active = isActive(item);
 
                     return (
-                        <li key={item.title} className="flex-1">
+                        <li key={item.title} className="flex min-w-0 flex-1">
                             <Link
                                 href={item.href}
                                 aria-current={active ? 'page' : undefined}
+                                aria-label={item.short ? item.title : undefined}
                                 className={cn(
-                                    'flex flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11px] font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                    'flex w-full min-w-0 flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 text-[11px] leading-none font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                     active && 'text-primary',
                                 )}
                             >
                                 <item.icon
-                                    className="size-[22px]"
+                                    className="size-[22px] shrink-0"
                                     strokeWidth={active ? 2.4 : 1.9}
                                 />
-                                {item.title}
+                                <span className="max-w-full truncate">
+                                    {item.short ?? item.title}
+                                </span>
                             </Link>
                         </li>
                     );
