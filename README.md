@@ -4,14 +4,14 @@ O lugar permanente e organizado dos estudos da EBD. O WhatsApp continua sendo o 
 
 O fluxo do produto:
 
-**Agenda da classe → preparação durante a semana → aula no domingo → evolução da classe → biblioteca**
+**Domingos da classe → preparação durante a semana → aula no domingo → resumo da classe → biblioteca**
 
 - **Início**: responde "o que eu preciso estudar para o próximo domingo?" (lição do próximo encontro, "encontro 2 de 2", aviso de domingo sem EBD, leitura do dia e materiais).
 - **Lição** (`/licoes/{slug}`): no formato da revista (número, versículo-chave, alvo, estudo em I/II/III) e além dela: contexto, teologia, curiosidades, conceitos e anotações pessoais. Lições públicas abrem **sem login**.
 - **Minha semana** (`/minha-semana`): leituras da semana (cada dia pode ser marcado como lido a qualquer momento: adiantar ou pôr em dia), curiosidade do dia, "Prepare-se para domingo", sequência de dias e selos. O aluno entra por um **link pessoal** enviado no WhatsApp, sem senha.
 - **Modo Domingo** (`/licoes/{slug}/domingo`): para conduzir ou acompanhar a aula; o professor vê roteiro, notas de precisão, "se houver tempo", faz a chamada e encerra a aula (lição concluída ou continua).
 - **Biblioteca** (`/biblioteca`): busca por título, conteúdo, série e texto bíblico, com filtros por classe, série e ano.
-- **Gestão** (`/admin`): agenda da classe (planejar trimestre, domingos sem EBD), lições e blocos de aprofundamento, alunos e links de acesso, evolução da classe e relatório do trimestre.
+- **Gestão** (`/admin`): cada classe tem Resumo (este domingo, pendências, quem precisa de atenção, aniversariantes e os números da classe), Domingos (planejar trimestre, domingos sem EBD e a página de cada domingo com chamada e "onde paramos") e Alunos (links de acesso e cadastro); além de lições, blocos de aprofundamento e relatório da série.
 
 > Decisões de arquitetura, modelagem e trade-offs estão em [`docs/arquitetura.md`](docs/arquitetura.md).
 
@@ -267,12 +267,12 @@ O app tem um servidor [MCP](https://modelcontextprotocol.io) em `/mcp` para que 
 
 **Conectar no Claude:** _Configurações → Conectores → Adicionar conector personalizado_, com a URL `https://ebd.up.railway.app/mcp`. O Claude abre o login do EBD e a tela "Conectar Claude"; depois de permitir, o conector fica disponível no navegador e no app do celular. No Claude Code: `claude mcp add --transport http ebd https://ebd.up.railway.app/mcp`.
 
-| Grupo            | Ferramentas                                                                                                                         |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Consultas        | `list_classrooms`, `get_classroom_overview`, `list_lessons`, `get_lesson`, `list_meetings`, `list_students`, `get_student_progress` |
-| Lições           | `save_lesson_draft`, `save_lesson_block`, `save_lesson_reading`, `save_lesson_material`, `remove_lesson_item`                       |
-| Agenda e chamada | `plan_meetings`, `save_meeting`, `record_attendance`, `finish_meeting`, `cancel_meeting`                                            |
-| Alunos           | `add_managed_student`, `update_student`, `move_student`                                                                             |
+| Grupo              | Ferramentas                                                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Consultas          | `list_classrooms`, `get_classroom_overview`, `list_lessons`, `get_lesson`, `list_meetings`, `list_students`, `get_student_progress` |
+| Lições             | `save_lesson_draft`, `save_lesson_block`, `save_lesson_reading`, `save_lesson_material`, `remove_lesson_item`                       |
+| Domingos e chamada | `plan_meetings`, `save_meeting`, `record_attendance`, `finish_meeting`, `cancel_meeting`                                            |
+| Alunos             | `add_managed_student`, `update_student`, `move_student`                                                                             |
 
 - **Fica de fora de propósito:** publicar lição (avisa a classe inteira), editar lição publicada, apagar lição, série, encontro ou membro, gerar ou revogar link de acesso, criar classe e definir professores. Isso continua só no app.
 - **Histórico:** toda alteração feita por um agente fica em `audit_logs` (quem, qual aplicativo, ferramenta, argumentos, antes e depois). Registros com mais de um ano são apagados pelo `model:prune` agendado.

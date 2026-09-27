@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Lessons\SyncLessonSchedule;
 use App\Actions\Meetings\CancelMeeting;
 use App\Actions\Meetings\ContinueLessonNextMeeting;
 use App\Concerns\MeetingValidationRules;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * Ações rápidas da agenda: sem EBD, continua no próximo, realizado.
+ * Ações do domingo: sem EBD (e desfazer), continua no próximo, teve aula.
  */
 class MeetingStatusController extends Controller
 {
@@ -41,7 +42,7 @@ class MeetingStatusController extends Controller
 
         $leftover = $continue->handle($meeting);
 
-        $this->toast('A lição continua no próximo encontro.');
+        $this->toast('A lição continua no próximo domingo.');
         $this->warnLeftover($leftover);
 
         return back();
@@ -52,14 +53,34 @@ class MeetingStatusController extends Controller
         Gate::authorize('update', $meeting);
 
         if ($meeting->held_on->toDateString() > ChurchCalendar::today()->toDateString()) {
-            $this->toast('Este encontro ainda não aconteceu.', 'error');
+            $this->toast('Este domingo ainda não aconteceu.', 'error');
 
             return back();
         }
 
         $meeting->update(['status' => MeetingStatus::Held]);
 
-        $this->toast('Encontro marcado como realizado.');
+        $this->toast('Domingo marcado como realizado.');
+
+        return back();
+    }
+
+    /**
+     * Desfaz o "sem EBD": o domingo volta a ser planejado, sem lição (ela foi
+     * empurrada ou ficou sem data no cancelamento) e sem o motivo.
+     */
+    public function restore(ClassMeeting $meeting, SyncLessonSchedule $sync): RedirectResponse
+    {
+        Gate::authorize('update', $meeting);
+
+        if (! $meeting->isCancelled()) {
+            return back();
+        }
+
+        $meeting->update(['status' => MeetingStatus::Planned, 'title' => null]);
+        $sync->handle($meeting->classroom_id);
+
+        $this->toast('O domingo voltou para a agenda. Escolha a lição do dia.');
 
         return back();
     }
@@ -73,7 +94,7 @@ class MeetingStatusController extends Controller
         $lesson = Lesson::query()->find($lessonId);
 
         if ($lesson !== null) {
-            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Adicione um domingo na agenda.", 'warning');
+            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Adicione um domingo em Domingos.", 'warning');
         }
     }
 }

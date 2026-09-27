@@ -12,6 +12,7 @@ use App\Http\Controllers\MyProgressController;
 use App\Http\Controllers\MyWeekController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReadingCheckinController;
+use App\Models\Classroom;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -85,18 +86,29 @@ Route::middleware(['auth', 'can:access-admin'])
             ->names('classrooms')
             ->except(['show', 'destroy']);
 
-        Route::get('classes/{classroom}/agenda', [Admin\ClassMeetingController::class, 'index'])->name('classrooms.meetings.index');
-        Route::post('classes/{classroom}/agenda', [Admin\ClassMeetingController::class, 'store'])->name('classrooms.meetings.store');
-        Route::post('classes/{classroom}/agenda/planejar', [Admin\ClassMeetingController::class, 'plan'])->name('classrooms.meetings.plan');
+        // Página da classe (Resumo). Depois do resource, para "classes/criar" continuar valendo.
+        Route::get('classes/{classroom}', Admin\ClassroomOverviewController::class)->name('classrooms.show');
+
+        Route::get('classes/{classroom}/domingos', [Admin\ClassMeetingController::class, 'index'])->name('classrooms.meetings.index');
+        Route::post('classes/{classroom}/domingos', [Admin\ClassMeetingController::class, 'store'])->name('classrooms.meetings.store');
+        Route::post('classes/{classroom}/domingos/planejar', [Admin\ClassMeetingController::class, 'plan'])->name('classrooms.meetings.plan');
+        Route::get('classes/{classroom}/domingos/{meeting}', [Admin\ClassMeetingController::class, 'show'])
+            ->scopeBindings()
+            ->name('classrooms.meetings.show');
         Route::put('encontros/{meeting}', [Admin\ClassMeetingController::class, 'update'])->name('meetings.update');
         Route::delete('encontros/{meeting}', [Admin\ClassMeetingController::class, 'destroy'])->name('meetings.destroy');
         Route::post('encontros/{meeting}/cancelar', [Admin\MeetingStatusController::class, 'cancel'])->name('meetings.cancel');
+        Route::post('encontros/{meeting}/restaurar', [Admin\MeetingStatusController::class, 'restore'])->name('meetings.restore');
         Route::post('encontros/{meeting}/continuar', [Admin\MeetingStatusController::class, 'continue'])->name('meetings.continue');
         Route::post('encontros/{meeting}/realizado', [Admin\MeetingStatusController::class, 'held'])->name('meetings.held');
         Route::put('encontros/{meeting}/chamada', [Admin\AttendanceController::class, 'update'])->name('meetings.attendance.update');
         Route::post('encontros/{meeting}/encerrar', [Admin\AttendanceController::class, 'finish'])->name('meetings.finish');
 
-        Route::get('classes/{classroom}/evolucao', Admin\ClassroomInsightsController::class)->name('classrooms.insights');
+        // Endereços antigos (atalhos salvos no app instalado). Só GET: Route::redirect
+        // aceitaria qualquer verbo e engoliria envios de formulário.
+        Route::get('classes/{classroom}/agenda', fn (Classroom $classroom) => redirect()->route('admin.classrooms.meetings.index', $classroom, 301));
+        Route::get('classes/{classroom}/evolucao', fn (Classroom $classroom) => redirect()->route('admin.classrooms.show', $classroom, 301));
+
         Route::get('classes/{classroom}/alunos/{user}', Admin\StudentProgressController::class)->name('classrooms.students.show');
         Route::get('series/{series}/relatorio', Admin\SeriesReportController::class)->name('series.report');
 

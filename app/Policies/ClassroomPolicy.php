@@ -7,12 +7,13 @@ use App\Models\User;
 
 class ClassroomPolicy
 {
-    /** Cadastro de classes é tarefa da administração geral. */
+    /** Lista de classes: cada professor vê as suas; a administração, todas. */
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->canAccessAdmin();
     }
 
+    /** Cadastro de classes é tarefa da administração geral. */
     public function create(User $user): bool
     {
         return $user->isAdmin();

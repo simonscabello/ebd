@@ -14,7 +14,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
- * Chamada no Modo Domingo, encerrar aula e evolução da classe.
+ * Chamada no Modo Domingo, encerrar aula e o Resumo da classe.
  */
 class AttendanceAndInsightsTest extends TestCase
 {
@@ -116,7 +116,7 @@ class AttendanceAndInsightsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('conduct', null));
     }
 
-    public function test_insights_respect_join_dates_and_flag_students_at_risk(): void
+    public function test_overview_respects_join_dates_and_flags_students_needing_attention(): void
     {
         $ana = $this->student('Ana', '2026-08-01');
         $bia = $this->student('Bia', '2026-08-01');
@@ -130,34 +130,30 @@ class AttendanceAndInsightsTest extends TestCase
 
         DB::table('reading_checkins')->insert(['user_id' => $ana->id, 'lesson_id' => $lesson->id, 'weekday' => 5, 'read_on' => '2026-09-25', 'created_at' => now()]);
 
-        $this->actingAs($this->teacher)->get('/admin/classes/adultos/evolucao')
+        $this->actingAs($this->teacher)->get('/admin/classes/adultos')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('admin/classrooms/insights')
-                ->where('insights.kpis.students', 3)
-                ->where('insights.meetings.0.present', 1)
-                ->where('insights.meetings.0.enrolled', 2)
-                ->where('insights.meetings.0.rate', 50)
-                ->where('insights.kpis.at_risk', 1)
-                ->where('insights.students.0.name', 'Ana')
-                ->where('insights.students.0.at_risk', false)
-                ->where('insights.students.1.name', 'Bia')
-                ->where('insights.students.1.at_risk', true)
-                ->where('insights.students.1.missed_in_a_row', 2)
-                ->where('insights.students.2.name', 'Caio')
-                ->where('insights.students.2.is_new', true)
-                ->where('insights.students.2.at_risk', false));
+                ->component('admin/classrooms/show')
+                ->where('overview.stats.students', 3)
+                ->where('overview.week', null)
+                ->where('overview.last_sunday.held_on', '2026-09-20')
+                ->where('overview.last_sunday.present', 1)
+                ->where('overview.last_sunday.expected', 2)
+                ->where('overview.last_sunday.rate', 50)
+                ->has('overview.attention', 1)
+                ->where('overview.attention.0.name', 'Bia')
+                ->where('overview.attention.0.missed_in_a_row', 2));
     }
 
-    public function test_insights_and_student_pages_are_restricted(): void
+    public function test_overview_and_student_pages_are_restricted(): void
     {
         $ana = $this->student('Ana');
         $outsiderTeacher = User::factory()->teacherOf(Classroom::factory()->create())->create();
         $notMember = User::factory()->create();
 
-        $this->actingAs($outsiderTeacher)->get('/admin/classes/adultos/evolucao')->assertForbidden();
+        $this->actingAs($outsiderTeacher)->get('/admin/classes/adultos')->assertForbidden();
         $this->actingAs($outsiderTeacher)->get("/admin/classes/adultos/alunos/{$ana->id}")->assertForbidden();
-        $this->actingAs($ana)->get('/admin/classes/adultos/evolucao')->assertForbidden();
+        $this->actingAs($ana)->get('/admin/classes/adultos')->assertForbidden();
 
         $this->actingAs($this->teacher)->get("/admin/classes/adultos/alunos/{$notMember->id}")->assertNotFound();
         $this->actingAs($this->teacher)->get("/admin/classes/adultos/alunos/{$ana->id}")

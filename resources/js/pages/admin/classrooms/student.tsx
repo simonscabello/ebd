@@ -1,13 +1,11 @@
 import { Head } from '@inertiajs/react';
 import { Award, History, KeyRound, Lock } from 'lucide-react';
+import { ClassroomHeader } from '@/components/admin/classroom-header';
 import { Page, PageHeader, Section } from '@/components/page';
 import { BadgeShelf } from '@/components/progress/badge-shelf';
 import { StreakFlame } from '@/components/progress/streak-flame';
 import { LessonProgressList } from '@/pages/my-progress';
 import type { Progress } from '@/pages/my-progress';
-import { dashboard } from '@/routes/admin';
-import { insights } from '@/routes/admin/classrooms';
-import { index as agendaIndex } from '@/routes/admin/classrooms/meetings';
 import type { Classroom } from '@/types';
 
 type Props = {
@@ -32,19 +30,12 @@ export default function StudentProgress({
         <>
             <Head title={`${student.name} · ${classroom.name}`} />
             <Page>
+                <ClassroomHeader
+                    classroom={classroom}
+                    active="alunos"
+                    crumbs={[{ title: student.name }]}
+                />
                 <PageHeader
-                    breadcrumbs={[
-                        { title: 'Gestão', href: dashboard.url() },
-                        {
-                            title: classroom.name,
-                            href: agendaIndex.url(classroom.slug),
-                        },
-                        {
-                            title: 'Evolução',
-                            href: insights.url(classroom.slug),
-                        },
-                        { title: student.name },
-                    ]}
                     title={student.name}
                     description={
                         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">

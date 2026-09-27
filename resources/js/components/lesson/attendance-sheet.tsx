@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { update } from '@/routes/admin/meetings/attendance';
 
-export type Roster = { id: number; name: string }[];
+export type Roster = {
+    id: number;
+    name: string;
+    /** Entrou na classe depois deste domingo: não conta como falta. */
+    joined_after?: boolean;
+}[];
 
 /**
  * Chamada: toque no nome de quem está presente. Salva sozinha (a lista
@@ -16,6 +21,7 @@ export function AttendanceSheet({
     initialPresent,
     initialVisitors,
     onChange,
+    reloadOnly = ['conduct'],
 }: {
     meetingId: number;
     roster: Roster;
@@ -23,6 +29,8 @@ export function AttendanceSheet({
     initialVisitors: number;
     /** Avisa quantas pessoas estão marcadas (para o resumo fora do painel). */
     onChange?: (present: number) => void;
+    /** Props recarregadas depois de salvar (precisam existir na página). */
+    reloadOnly?: string[];
 }) {
     const [present, setPresent] = useState<number[]>(initialPresent);
     const [visitors, setVisitors] = useState(initialVisitors);
@@ -48,7 +56,7 @@ export function AttendanceSheet({
                 {
                     preserveScroll: true,
                     preserveState: true,
-                    only: ['conduct'],
+                    only: reloadOnly,
                     onSuccess: () => setStatus('saved'),
                     onError: () => setStatus('error'),
                 },
@@ -56,6 +64,8 @@ export function AttendanceSheet({
         }, 800);
 
         return () => clearTimeout(timer);
+        // reloadOnly é fixo por página; não reenvia a chamada se mudar.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [present, visitors, meetingId]);
 
     const toggle = (id: number) => {
@@ -72,12 +82,17 @@ export function AttendanceSheet({
         setVisitors((v) => Math.max(0, v + delta));
     };
 
+    // Quem entrou na classe depois do domingo só conta se foi marcado.
+    const expected = roster.filter(
+        (student) => !student.joined_after || present.includes(student.id),
+    ).length;
+
     return (
         <section>
             <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="flex items-center gap-2 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
                     <Users className="size-4" /> Presentes · {present.length}/
-                    {roster.length}
+                    {expected}
                 </h2>
                 <span
                     className={cn(
@@ -124,7 +139,14 @@ export function AttendanceSheet({
                                             <Check className="size-4" />
                                         )}
                                     </span>
-                                    {student.name}
+                                    <span className="min-w-0">
+                                        {student.name}
+                                        {student.joined_after && (
+                                            <span className="block text-[0.8em] text-muted-foreground">
+                                                entrou depois deste domingo
+                                            </span>
+                                        )}
+                                    </span>
                                 </button>
                             </li>
                         );

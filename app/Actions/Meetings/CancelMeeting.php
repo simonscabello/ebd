@@ -35,7 +35,7 @@ class CancelMeeting
             $meeting->update([
                 'status' => MeetingStatus::Cancelled,
                 'lesson_id' => null,
-                'title' => filled($reason) ? $reason : null,
+                'title' => filled($reason) ? $reason : $meeting->title,
             ]);
 
             $leftover = null;

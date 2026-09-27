@@ -20,7 +20,7 @@ class ListMeetings extends EbdTool
 
     protected string $title = 'Agenda da classe';
 
-    protected string $description = 'Mostra a agenda da classe: cada domingo, a lição que cai nele, situação (planned, held, cancelled), visitantes e, se pedido, quem esteve presente. Sem datas, mostra das últimas 6 semanas em diante.';
+    protected string $description = 'Mostra os domingos da classe: cada domingo, a lição que cai nele, situação (planned, held, cancelled), visitantes e, se pedido, quem esteve presente. Sem datas, mostra das últimas 6 semanas em diante. Cada domingo tem página própria na gestão (Domingos), onde a chamada pode ser corrigida.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -69,7 +69,7 @@ class ListMeetings extends EbdTool
                     ? $m->attendances->map(fn ($a) => $names->get($a->user_id, "#{$a->user_id}"))->sort()->values()->all()
                     : null,
             ))->all(),
-            'agenda_url' => route('admin.classrooms.meetings.index', $classroom),
+            'meetings_url' => route('admin.classrooms.meetings.index', $classroom),
         ]);
     }
 }

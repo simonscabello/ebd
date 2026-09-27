@@ -9,11 +9,13 @@ use App\Models\Lesson;
 use App\Models\Series;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
- * Agenda da classe: domingos, lições em cada um, "sem EBD" e "continua".
+ * Domingos da classe: a lista, a página de cada domingo, a lição em cada um,
+ * "sem EBD" (e desfazer) e "continua".
  */
 class MeetingManagementTest extends TestCase
 {
@@ -56,7 +58,7 @@ class MeetingManagementTest extends TestCase
         Lesson::factory()->forSeries($series)->number(1)->create(['title' => 'L1']);
         Lesson::factory()->forSeries($series)->number(3)->create(['title' => 'L3']);
 
-        $this->actingAs($this->teacher)->post('/admin/classes/adultos/agenda/planejar', [
+        $this->actingAs($this->teacher)->post('/admin/classes/adultos/domingos/planejar', [
             'from' => '2026-09-24',
             'to' => '2026-10-25',
             'series_id' => $series->id,
@@ -67,7 +69,7 @@ class MeetingManagementTest extends TestCase
         $this->assertSame('2026-09-27', Lesson::query()->where('title', 'L1')->sole()->scheduled_for?->toDateString());
 
         // Planejar de novo não duplica domingos nem lições.
-        $this->actingAs($this->teacher)->post('/admin/classes/adultos/agenda/planejar', [
+        $this->actingAs($this->teacher)->post('/admin/classes/adultos/domingos/planejar', [
             'from' => '2026-09-24', 'to' => '2026-10-25', 'series_id' => $series->id,
         ]);
         $this->assertCount(5, $this->agenda());
@@ -79,11 +81,11 @@ class MeetingManagementTest extends TestCase
         $foreign = Lesson::factory()->create();
 
         $this->actingAs($this->teacher)
-            ->post('/admin/classes/adultos/agenda', ['held_on' => '2026-09-27'])
+            ->post('/admin/classes/adultos/domingos', ['held_on' => '2026-09-27'])
             ->assertSessionHasErrors('held_on');
 
         $this->actingAs($this->teacher)
-            ->post('/admin/classes/adultos/agenda', ['held_on' => '2026-10-04', 'lesson_id' => $foreign->id])
+            ->post('/admin/classes/adultos/domingos', ['held_on' => '2026-10-04', 'lesson_id' => $foreign->id])
             ->assertSessionHasErrors('lesson_id');
     }
 
@@ -171,26 +173,115 @@ class MeetingManagementTest extends TestCase
         $outsider = User::factory()->teacherOf(Classroom::factory()->create())->create();
         $meeting = ClassMeeting::factory()->for($this->classroom)->create();
 
-        $this->actingAs($outsider)->get('/admin/classes/adultos/agenda')->assertForbidden();
-        $this->actingAs($outsider)->post('/admin/classes/adultos/agenda', ['held_on' => '2026-10-04'])->assertForbidden();
+        $this->actingAs($outsider)->get('/admin/classes/adultos/domingos')->assertForbidden();
+        $this->actingAs($outsider)->get("/admin/classes/adultos/domingos/{$meeting->id}")->assertForbidden();
+        $this->actingAs($outsider)->post('/admin/classes/adultos/domingos', ['held_on' => '2026-10-04'])->assertForbidden();
         $this->actingAs($outsider)->post("/admin/encontros/{$meeting->id}/cancelar")->assertForbidden();
         $this->actingAs($outsider)->delete("/admin/encontros/{$meeting->id}")->assertForbidden();
     }
 
-    public function test_agenda_page_lists_meetings_with_notes_and_weekly_message(): void
+    public function test_sundays_page_lists_upcoming_and_past_with_attendance_summary(): void
     {
-        $lesson = Lesson::factory()->for($this->classroom)->published()->number(11)->on('2026-09-27')->create([
-            'title' => 'É Necessário',
-            'bible_reference' => 'Jo 9.1-41',
-        ]);
-        ClassMeeting::query()->where('lesson_id', $lesson->id)->update(['notes' => 'Paramos no II.2']);
+        $past = Lesson::factory()->for($this->classroom)->published()->number(10)->on('2026-09-20')->create(['title' => 'Temor']);
+        Lesson::factory()->for($this->classroom)->published()->number(11)->on('2026-09-27')->create(['title' => 'É Necessário']);
+        $ana = User::factory()->studentOf($this->classroom)->create(['name' => 'Ana']);
+        User::factory()->studentOf($this->classroom)->create(['name' => 'Bia']);
+        $this->classroom->members()->updateExistingPivot($ana->id, ['created_at' => '2026-08-01']);
+        DB::table('classroom_user')->where('classroom_id', $this->classroom->id)->update(['created_at' => '2026-08-01']);
 
-        $this->actingAs($this->teacher)->get('/admin/classes/adultos/agenda')
+        $meeting = ClassMeeting::query()->where('lesson_id', $past->id)->sole();
+        $this->actingAs($this->teacher)->put("/admin/encontros/{$meeting->id}/chamada", ['present' => [$ana->id], 'visitors' => 2]);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/adultos/domingos')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('admin/classrooms/agenda')
-                ->where('meetings.0.notes', 'Paramos no II.2')
-                ->where('meetings.0.lesson.display_title', 'Lição 11 — É Necessário')
-                ->where('weeklyMessage', fn (string $text) => str_contains($text, 'Lição 11 — É Necessário') && str_contains($text, 'Jo 9.1-41')));
+                ->component('admin/classrooms/meetings/index')
+                ->where('upcoming.0.lesson.display_title', 'Lição 11 — É Necessário')
+                ->where('past.0.held_on', '2026-09-20')
+                ->where('past.0.summary', ['present' => 1, 'expected' => 2, 'visitors' => 2, 'rate' => 50]));
+    }
+
+    public function test_sunday_page_shows_lesson_attendance_and_where_we_stopped(): void
+    {
+        $lesson = Lesson::factory()->for($this->classroom)->published()->number(11)->on('2026-09-20')->create(['title' => 'É Necessário']);
+        $meeting = ClassMeeting::query()->where('lesson_id', $lesson->id)->sole();
+        $meeting->update(['notes' => 'Paramos no II.2']);
+        $ana = User::factory()->studentOf($this->classroom)->create(['name' => 'Ana']);
+
+        $this->actingAs($this->teacher)->get("/admin/classes/adultos/domingos/{$meeting->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('admin/classrooms/meetings/show')
+                ->where('meeting.notes', 'Paramos no II.2')
+                ->where('meeting.can_take_attendance', true)
+                ->where('attendance.roster.0.name', 'Ana')
+                ->where('summary', null));
+
+        // Chamada feita depois do dia, pela página do domingo.
+        $this->actingAs($this->teacher)->put("/admin/encontros/{$meeting->id}/chamada", ['present' => [$ana->id]])->assertSessionHasNoErrors();
+        $this->assertSame(MeetingStatus::Held, $meeting->refresh()->status);
+    }
+
+    public function test_sunday_of_another_classroom_is_not_found_under_this_one(): void
+    {
+        $other = Classroom::factory()->create(['slug' => 'jovens']);
+        $foreign = ClassMeeting::factory()->for($other)->on('2026-09-27')->create();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get("/admin/classes/adultos/domingos/{$foreign->id}")
+            ->assertNotFound();
+    }
+
+    public function test_attendance_on_a_sunday_without_lesson_marks_it_as_held(): void
+    {
+        $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-09-20')->create(['title' => 'Culto especial']);
+        $student = User::factory()->studentOf($this->classroom)->create();
+
+        $this->actingAs($this->teacher)
+            ->put("/admin/encontros/{$meeting->id}/chamada", ['present' => [$student->id]])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(MeetingStatus::Held, $meeting->refresh()->status);
+        $this->assertTrue($meeting->hasAttendance());
+    }
+
+    public function test_cancelled_sunday_can_be_restored(): void
+    {
+        $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-10-04')->create();
+
+        $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/cancelar", ['reason' => 'Culto de Missões', 'shift' => false]);
+        $this->assertSame(MeetingStatus::Cancelled, $meeting->refresh()->status);
+
+        $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/restaurar")->assertSessionHasNoErrors();
+
+        $meeting->refresh();
+        $this->assertSame(MeetingStatus::Planned, $meeting->status);
+        $this->assertNull($meeting->title);
+    }
+
+    public function test_cancelling_without_reason_keeps_the_event_title(): void
+    {
+        $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-10-04')->create(['title' => 'Revisão do trimestre']);
+
+        $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/cancelar", ['shift' => false]);
+
+        $this->assertSame('Revisão do trimestre', $meeting->refresh()->title);
+    }
+
+    public function test_deleting_a_sunday_goes_back_to_the_list(): void
+    {
+        $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-10-04')->create();
+
+        $this->actingAs($this->teacher)
+            ->delete("/admin/encontros/{$meeting->id}")
+            ->assertRedirect('/admin/classes/adultos/domingos');
+
+        $this->assertModelMissing($meeting);
+    }
+
+    public function test_old_agenda_and_evolution_addresses_redirect(): void
+    {
+        $this->actingAs($this->teacher)->get('/admin/classes/adultos/agenda')->assertRedirect('/admin/classes/adultos/domingos')->assertStatus(301);
+        $this->actingAs($this->teacher)->get('/admin/classes/adultos/evolucao')->assertRedirect('/admin/classes/adultos')->assertStatus(301);
     }
 }

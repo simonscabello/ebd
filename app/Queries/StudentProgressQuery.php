@@ -9,6 +9,7 @@ use App\Models\Lesson;
 use App\Models\User;
 use App\Models\UserBadge;
 use App\Support\ChurchCalendar;
+use App\Support\Enrollment;
 use App\Support\StudyStreak;
 use Illuminate\Support\Facades\DB;
 
@@ -48,11 +49,15 @@ class StudentProgressQuery
             ->selectRaw('lesson_id, COUNT(DISTINCT weekday) AS days')
             ->pluck('days', 'lesson_id');
 
+        // Só os domingos desde que o aluno conta na classe (ver Enrollment).
+        $since = Enrollment::sinceMap($classroom->id, [$user->id])[$user->id] ?? null;
+
         $attendance = DB::table('class_meetings')
             ->leftJoin('attendances', fn ($join) => $join
                 ->on('attendances.class_meeting_id', '=', 'class_meetings.id')
                 ->where('attendances.user_id', $user->id))
             ->whereIn('class_meetings.lesson_id', $ids)
+            ->when($since, fn ($query, string $date) => $query->whereDate('class_meetings.held_on', '>=', $date))
             ->whereNotNull('class_meetings.attendance_taken_at')
             ->where('class_meetings.status', MeetingStatus::Held->value)
             ->groupBy('class_meetings.lesson_id')

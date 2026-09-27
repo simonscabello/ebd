@@ -21,6 +21,7 @@ use App\Http\Resources\LessonMaterialResource;
 use App\Http\Resources\LessonReadingResource;
 use App\Http\Resources\LessonResource;
 use App\Http\Resources\SeriesResource;
+use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
@@ -135,8 +136,11 @@ class LessonController extends Controller
                 'materials' => LessonMaterialResource::collection($lesson->materials),
                 'readings' => LessonReadingResource::collection($lesson->readings),
                 'blocks' => LessonBlockResource::editable($lesson->blocks, $request),
-                'meetings' => ClassMeetingResource::collection($lesson->meetings),
-                'agenda_url' => route('admin.classrooms.meetings.index', $lesson->classroom),
+                'meetings' => $lesson->meetings->map(fn (ClassMeeting $meeting) => [
+                    ...ClassMeetingResource::make($meeting)->resolve($request),
+                    'url' => route('admin.classrooms.meetings.show', [$lesson->classroom, $meeting]),
+                ]),
+                'meetings_url' => route('admin.classrooms.meetings.index', $lesson->classroom),
             ],
             'series' => SeriesResource::collection($lesson->classroom->series()->orderByDesc('starts_on')->orderBy('title')->get()),
             'authors' => $lesson->classroom->members()

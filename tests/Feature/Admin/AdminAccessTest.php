@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class AdminAccessTest extends TestCase
@@ -34,10 +35,19 @@ class AdminAccessTest extends TestCase
 
     public function test_only_admins_manage_classrooms(): void
     {
-        $teacher = User::factory()->teacherOf(Classroom::factory()->create())->create();
+        $classroom = Classroom::factory()->create();
+        $teacher = User::factory()->teacherOf($classroom)->create();
+        Classroom::factory()->create();
 
-        $this->actingAs($teacher)->get('/admin/classes')->assertForbidden();
+        // Professor vê só as próprias classes; com uma só, vai direto para ela.
+        $this->actingAs($teacher)->get('/admin/classes')->assertRedirect("/admin/classes/{$classroom->slug}");
+        $this->actingAs($teacher)->get('/admin/classes/criar')->assertForbidden();
         $this->actingAs($teacher)->post('/admin/classes', ['name' => 'Casais'])->assertForbidden();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get('/admin/classes')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('admin/classrooms/index')->has('classrooms', 2)->where('canCreate', true));
 
         $this->actingAs(User::factory()->admin()->create())
             ->post('/admin/classes', ['name' => 'Casais', 'is_active' => true])

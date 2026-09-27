@@ -131,6 +131,22 @@ export type ClassMeeting = {
 
 export type LessonStatus = 'draft' | 'published';
 
+/** Lição no seletor dos domingos. */
+export type LessonOption = {
+    id: number;
+    label: string;
+    status: LessonStatus;
+    series_id: number | null;
+};
+
+/** Presentes, esperados (alunos que contavam) e visitantes de um domingo. */
+export type SundaySummary = {
+    present: number;
+    expected: number;
+    visitors: number;
+    rate: number | null;
+};
+
 export type Lesson = {
     id: number;
     title: string;

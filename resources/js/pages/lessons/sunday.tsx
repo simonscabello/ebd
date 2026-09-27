@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Flag, Minus, Plus, Users, X } from 'lucide-react';
+import { CalendarClock, Flag, Minus, Plus, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Roster } from '@/components/lesson/attendance-sheet';
 import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
@@ -10,6 +10,7 @@ import { RevistaHeader } from '@/components/lesson/revista-header';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { index as meetingsIndex } from '@/routes/admin/classrooms/meetings';
 import { show } from '@/routes/lessons';
 import type { ClassMeeting, Lesson } from '@/types';
 
@@ -22,7 +23,11 @@ type Props = {
         can_take_attendance: boolean;
         roster: Roster;
         present: number[];
+        /** Página do domingo na gestão. */
+        meeting_url: string;
     } | null;
+    /** Aberto a partir da gestão: "Sair" volta para lá. */
+    backUrl: string | null;
 };
 
 const SCALES = ['text-base', 'text-lg', 'text-xl', 'text-2xl'] as const;
@@ -44,7 +49,12 @@ function readScale(): number {
  * a aula no notebook, tablet ou celular. Sem navegação do app e com fonte
  * ajustável (lembrada neste aparelho).
  */
-export default function SundayMode({ lesson, canManage, conduct }: Props) {
+export default function SundayMode({
+    lesson,
+    canManage,
+    conduct,
+    backUrl,
+}: Props) {
     const [scale, setScale] = useState(1);
     const [attendanceOpen, setAttendanceOpen] = useState(false);
     const [presentCount, setPresentCount] = useState(
@@ -86,7 +96,7 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
             <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 backdrop-blur">
                 <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
                     <Link
-                        href={show(lesson.slug)}
+                        href={backUrl ?? show(lesson.slug)}
                         className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
                         <X className="size-4" /> Sair
@@ -128,6 +138,42 @@ export default function SundayMode({ lesson, canManage, conduct }: Props) {
                     SCALES[scale],
                 )}
             >
+                {canManage && !conducting && (
+                    <p className="flex gap-3 rounded-2xl border bg-card p-4 text-[0.85em]">
+                        <CalendarClock className="mt-0.5 size-5 shrink-0 text-primary" />
+                        {conduct ? (
+                            <span>
+                                A chamada abre no dia do domingo (
+                                {conduct.meeting.date_short}).{' '}
+                                <Link
+                                    href={conduct.meeting_url}
+                                    className="font-medium text-primary hover:underline"
+                                >
+                                    Ver o domingo
+                                </Link>
+                            </span>
+                        ) : (
+                            <span>
+                                Esta lição ainda não está em nenhum domingo.
+                                Para fazer a chamada, escolha o domingo dela em{' '}
+                                {lesson.classroom ? (
+                                    <Link
+                                        href={meetingsIndex(
+                                            lesson.classroom.slug,
+                                        )}
+                                        className="font-medium text-primary hover:underline"
+                                    >
+                                        Domingos
+                                    </Link>
+                                ) : (
+                                    'Domingos'
+                                )}
+                                .
+                            </span>
+                        )}
+                    </p>
+                )}
+
                 <header>
                     {lesson.series && (
                         <p className="text-[0.8em] font-medium text-primary">

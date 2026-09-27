@@ -2,7 +2,6 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     BellOff,
     BellRing,
-    ChartLine,
     KeyRound,
     Link2,
     ShieldOff,
@@ -12,15 +11,13 @@ import {
 import { useState } from 'react';
 import type { IssuedLink } from '@/components/admin/access-link-dialog';
 import { AccessLinkDialog } from '@/components/admin/access-link-dialog';
+import { ClassroomHeader } from '@/components/admin/classroom-header';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
 import { Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
-import { dashboard } from '@/routes/admin';
-import { insights } from '@/routes/admin/classrooms';
-import { index as agendaIndex } from '@/routes/admin/classrooms/meetings';
 import { destroy, store } from '@/routes/admin/classrooms/members';
 import {
     destroy as revokeLink,
@@ -268,26 +265,12 @@ export default function ClassroomMembers({
 
     return (
         <>
-            <Head title={`Membros · ${classroom.name}`} />
+            <Head title={`Alunos · ${classroom.name}`} />
             <Page>
+                <ClassroomHeader classroom={classroom} active="alunos" />
                 <PageHeader
-                    breadcrumbs={[
-                        { title: 'Gestão', href: dashboard.url() },
-                        {
-                            title: classroom.name,
-                            href: agendaIndex.url(classroom.slug),
-                        },
-                        { title: 'Membros' },
-                    ]}
-                    title="Membros"
+                    title="Alunos"
                     description="Alunos entram pelo link pessoal e, no primeiro acesso, completam o cadastro com e-mail e senha."
-                    actions={
-                        <Button asChild variant="outline">
-                            <Link href={insights(classroom.slug)}>
-                                <ChartLine /> Evolução
-                            </Link>
-                        </Button>
-                    }
                 />
 
                 <form

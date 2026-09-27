@@ -17,9 +17,9 @@ Request ─▶ Form Request (validação) ─▶ Controller (fino) ─▶ Policy
 ```
 
 - **Actions** (`app/Actions`) concentram as regras: `CreateLesson`, `UpdateLesson`, `ChangeLessonStatus`, `GenerateLessonSlug`, `StoreLessonMaterial`, `ReorderLessonItems`, `AddClassroomMember`… Uma classe, um método `handle()`, injetável por container. CRUD trivial sem regra (editar uma leitura, por exemplo) fica no controller com `$model->update($request->validated())`.
-- **Queries** (`app/Queries`) para leituras com regra: `NextLessonQuery` (home) e `LibrarySearch` (busca).
+- **Queries** (`app/Queries`) para leituras com regra: `CurrentLessonQuery` (lição da semana), `StudyWeekQuery`, `AttendanceBookQuery`, `HomeStudyQuery`, `ClassroomOverviewQuery` (gestão da classe) e `LibrarySearch` (busca).
 - **Resources** (`app/Http/Resources`) definem o formato dos dados enviados às páginas. São os mesmos que uma API REST devolveria.
-- **Sem repository pattern**: o Eloquent já é a camada de persistência; escopos (`Lesson::visibleTo()`, `upcoming()`) cobrem a reutilização de consultas.
+- **Sem repository pattern**: o Eloquent já é a camada de persistência; escopos (`Lesson::visibleTo()`, `ClassMeeting::active()`) cobrem a reutilização de consultas.
 - **DTOs** não foram criados: os Form Requests já entregam arrays validados e as Actions documentam o que esperam.
 
 ## Modelagem
@@ -69,7 +69,7 @@ Não guardamos o texto na lição de propósito: trocar a versão bíblica (reim
 
 A revista tem ~18 lições, mas há domingos sem EBD e lições que ocupam dois domingos porque a conversa rendeu. Por isso a data **não** é da lição: é do encontro.
 
-- **Agenda da classe** (`/admin/classes/{classe}/agenda`): "Planejar trimestre" cria um encontro por domingo e distribui as lições da série pela numeração da revista; "Sem EBD" cancela o domingo e (opcionalmente) empurra as lições; "Continua no próximo" repete a lição no domingo seguinte e empurra as demais (`ShiftPlannedLessons`). Se uma lição sobra no fim, o professor é avisado.
+- **Domingos da classe** (`/admin/classes/{classe}/domingos`): "Planejar trimestre" cria um domingo por semana e distribui as lições da série pela numeração da revista; "Sem EBD" cancela o domingo e (opcionalmente) empurra as lições, e pode ser desfeito ("Voltar a ter EBD"); "Continua no próximo" repete a lição no domingo seguinte e empurra as demais (`ShiftPlannedLessons`). Se uma lição sobra no fim, o professor é avisado. Cada domingo tem página própria (`/domingos/{id}`) com a lição do dia, a chamada (feita ou corrigida a qualquer momento depois do dia, inclusive em domingo sem lição) e "onde paramos".
 - **Lição da semana** (`CurrentLessonQuery`): a do próximo encontro não cancelado (hoje incluído). Mostra "encontro 2 de 2", avisa domingos sem EBD no caminho e, sem encontros futuros, cai para o último realizado. Lição ainda em rascunho aparece como "em preparação".
 - `lessons.scheduled_for` é mantido por `SyncLessonSchedule` (primeiro encontro ativo) só para a biblioteca e listagens.
 
@@ -81,7 +81,7 @@ draft ──publicar──▶ published
   └────despublicar─────┘
 ```
 
-"Concluída" deixou de ser status: vem dos encontros realizados. Publicar não exige data. A primeira publicação dispara `LessonPublished` (ainda sem listeners: é o gancho para notificações).
+"Concluída" deixou de ser status: vem dos encontros realizados. Publicar não exige data. A primeira publicação dispara `LessonPublished`, que avisa a classe por notificação (`NotifyClassroomOfLessonPublished`).
 
 A migração `2026_09_23_001000_backfill_meetings_and_simplify_lesson_status` converteu os dados antigos: cada lição com data virou um encontro (realizado se estava concluída ou já passou), `completed` virou `published` e as notas do professor viraram um bloco `teacher_note`.
 
@@ -146,9 +146,28 @@ Ficou de fora de propósito: sincronizar a tela do professor com os alunos em te
 - **Selos** (`AwardBadges`), concedidos no momento da ação, sem scheduler: semana completa (leituras de segunda a sábado de uma lição), 7 e 30 dias seguidos, leitor fiel e presença em todos os domingos do trimestre. São pessoais: **não há ranking**.
 - **Sequência** (`StudyStreak`): dias (`read_on`) em que marcou leitura ou teve presença no domingo; continua viva se o último dia foi ontem.
 
-## Evolução da classe
+## Gestão da classe
 
-`ClassroomInsightsQuery` alimenta o painel `/admin/classes/{classe}/evolucao`: presença por domingo, estudo em casa por lição e **alunos que precisam de atenção** (`EBD_RISK_MISSED_MEETINGS` faltas seguidas ou `EBD_RISK_INACTIVE_DAYS` dias sem leitura; quem entrou há menos de 14 dias fica de fora). Os denominadores respeitam a data de entrada do aluno na classe. `SeriesReportQuery` gera o relatório do trimestre, pensado para impressão. Tudo é calculado na leitura, sem tabelas de agregação: o volume de uma classe de EBD é pequeno.
+A gestão é organizada em torno da classe (`/admin/classes/{classe}`), com abas **Resumo · Domingos · Alunos**. O Painel (`/admin`) mostra cada classe com o que vem neste domingo e os domingos pendentes; professores veem só as próprias classes (com uma só, "Classes" vai direto para ela).
+
+- **Resumo** (`ClassroomOverviewQuery`, também usado pela ferramenta `get_classroom_overview` do MCP): este domingo ("Hoje" ou "Próximo domingo", com Modo Domingo, chamada e mensagem da semana), último domingo com "onde paramos", domingos pendentes, alunos que precisam de atenção (com WhatsApp), aniversariantes do mês e os números da classe.
+- **Vocabulário:** Domingo (Planejado, Realizado, Sem EBD); Chamada (o ato e a lista); Presentes (contagem); Frequência (taxa); Estudo em casa; Onde paramos (a anotação do domingo); Alunos (nunca "Membros").
+
+### Uma regra para cada número
+
+Tudo sai do **livro de chamada** (`AttendanceBookQuery` → `AttendanceBook`) e de `HomeStudyQuery`, calculado na leitura, sem tabelas de agregação: o volume de uma classe de EBD é pequeno.
+
+- **Início do aluno na classe** (`Enrollment::sinceMap`): o menor entre o dia seguinte à entrada (no fuso da igreja) e a primeira presença na classe. Quem é cadastrado durante a aula de domingo só conta naquele domingo se estiver na chamada; uma chamada corrigida depois antecipa o início.
+- **Frequência do aluno:** presenças ÷ domingos com chamada desde o início. **Frequência da classe:** Σ presentes ÷ Σ esperados. Visitantes ficam fora da taxa. Domingos sem chamada ou sem EBD não entram.
+- **Faltas seguidas:** domingos com chamada mais recentes sem presença, só a partir do início do aluno.
+- **Estudo em casa (lição):** alunos que contavam no domingo da lição e marcaram alguma leitura ÷ esses alunos; média de dias = dias marcados ÷ leitores.
+- **Precisa de atenção** (`StudentsNeedingAttention`): `EBD_RISK_MISSED_MEETINGS` faltas seguidas ou `EBD_RISK_INACTIVE_DAYS` dias sem leitura nas lições da classe. Quem entrou há menos de 14 dias fica de fora, e quem já leu o plano inteiro da lição atual não conta como "sem leitura" (uma lição de dois domingos tem uma semana só de leituras).
+- **Pendência:** domingo passado que continua "Planejado".
+- **Período** (`Period`): a série da lição da semana (datas da série ou, sem elas, do primeiro ao último domingo das lições dela); sem série, os últimos 3 meses.
+
+Só os alunos atuais entram nos números. Quem sai da classe continua na chamada dos domingos em que esteve (a chamada só sincroniza a lista dos alunos atuais), mas some das contas; ver "Débitos".
+
+`SeriesReportQuery` ainda gera o relatório da série para impressão.
 
 ## Autenticação e autorização
 
@@ -174,7 +193,7 @@ Servidor MCP com o pacote oficial `laravel/mcp` (`app/Mcp`, rota em `routes/ai.p
 - **Nomes, não ids.** O agente conversa com a pessoa: classes são achadas por slug ou nome, alunos por nome sem acento. Quando o nome é ambíguo, o erro lista os candidatos com id para o agente perguntar.
 - **Só rascunho.** Nenhuma ferramenta publica nem edita lição publicada (há um teste que procura `ChangeLessonStatus` em `app/Mcp`). Materiais com arquivo continuam só no app.
 - **Chamada sem surpresa.** `record_attendance` exige `mode`: `add` soma aos presentes, `set` troca a lista (a Action sincroniza a lista inteira). A resposta traz presentes e ausentes para a pessoa conferir.
-- **Link de acesso não passa pelo agente.** O link em claro só existe uma vez, na tela de Membros; gerar outro revogaria o anterior sem ninguém ver o novo. Por isso o MCP cadastra o aluno sem link.
+- **Link de acesso não passa pelo agente.** O link em claro só existe uma vez, na tela de Alunos; gerar outro revogaria o anterior sem ninguém ver o novo. Por isso o MCP cadastra o aluno sem link.
 - **Auditoria.** `audit_logs` guarda quem, por qual aplicativo (cliente OAuth), a ferramenta, os argumentos (textos longos viram tamanho + hash), o antes e o depois, e as tentativas negadas. Serve para conferir e desfazer; o app não lê a tabela.
 - **Tela de consentimento em Blade** (`resources/views/mcp/authorize.blade.php`). Como o Fortify devolve para `/oauth/authorize` numa navegação do Inertia, o middleware `RequireFullPageVisit` transforma essa volta em carregamento de página inteira.
 
@@ -209,10 +228,10 @@ A aplicação roda com `php artisan serve` (com `PHP_CLI_SERVER_WORKERS`). É ad
 - Upload de áudio grande passa pela aplicação; em produção com S3/R2 o ideal é upload direto com URL pré-assinada.
 - `Content-Range` não é suportado no stream local (áudio longo não permite "pular" no disco local; no S3 funciona).
 - Busca não indexa títulos de materiais.
-- Notificações (push/WhatsApp) ainda não existem: a "mensagem da semana" na agenda é copiada e colada no grupo. `LessonPublished` é o gancho.
+- A "mensagem da semana" (Resumo da classe) é copiada e colada no grupo do WhatsApp: não há envio automático para grupos.
 - Não há importação automática dos PDFs do NotebookLM para blocos: o conteúdo é colado em Markdown (os PDFs podem ser anexados como material, marcando "só professor" quando for o caso).
 - Aluno removido da classe mantém seus registros, mas sai das listas e dos denominadores.
-- Colisões de data na migração antiga (duas lições da mesma classe no mesmo dia) ficaram só com uma no encontro; a outra aparece sem data e é ajustada pela agenda.
+- Colisões de data na migração antiga (duas lições da mesma classe no mesmo dia) ficaram só com uma no encontro; a outra aparece sem data e é ajustada em Domingos.
 
 ## Notificações push
 

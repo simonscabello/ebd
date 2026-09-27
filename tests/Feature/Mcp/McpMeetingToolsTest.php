@@ -90,7 +90,7 @@ class McpMeetingToolsTest extends TestCase
         ClassMeeting::factory()->for($this->classroom)->on('2026-10-04')->create();
 
         EbdServer::actingAs($this->teacher)->tool(RecordAttendanceTool::class, ['classroom' => 'jovens', 'meeting' => '2026-10-04', 'mode' => 'add', 'present' => ['Ana']])
-            ->assertHasErrors(['só pode ser feita no dia do encontro']);
+            ->assertHasErrors(['só pode ser feita no dia do domingo']);
     }
 
     public function test_plan_meetings_creates_sundays_and_distributes_the_series(): void

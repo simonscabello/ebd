@@ -26,6 +26,34 @@ class ChurchCalendar
     }
 
     /**
+     * Hoje como Y-m-d. Datas do banco (held_on, read_on) são comparadas assim,
+     * como texto, nunca como instantes: meia-noite UTC não é meia-noite aqui.
+     */
+    public static function todayString(): string
+    {
+        return self::today()->toDateString();
+    }
+
+    /**
+     * Dias de calendário entre duas datas (negativo se $to vem antes).
+     */
+    public static function daysBetween(string|\DateTimeInterface $from, string|\DateTimeInterface $to): int
+    {
+        $day = fn (string|\DateTimeInterface $date) => CarbonImmutable::parse(
+            is_string($date) ? substr($date, 0, 10) : $date->format('Y-m-d'),
+            'UTC',
+        );
+
+        return (int) $day($from)->diffInDays($day($to), false);
+    }
+
+    /**
+     * Data de entrada do aluno na classe no fuso da igreja: o created_at do
+     * vínculo é gravado em UTC. Use com o fuso como binding (?).
+     */
+    public const JOINED_ON_SQL = "((classroom_user.created_at AT TIME ZONE 'UTC') AT TIME ZONE ?)::date";
+
+    /**
      * Próximo domingo (hoje, se hoje for domingo).
      */
     public static function nextSunday(): CarbonImmutable
