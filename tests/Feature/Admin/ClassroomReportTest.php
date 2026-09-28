@@ -92,6 +92,25 @@ class ClassroomReportTest extends TestCase
                 ->where('byGender.2.label', 'Não informado'));
     }
 
+    public function test_before_the_new_series_starts_the_numbers_stay_on_the_previous_one(): void
+    {
+        $old = Series::factory()->for($this->classroom)->create(['title' => 'Milagres', 'starts_on' => '2026-07-01', 'ends_on' => '2026-09-30']);
+        $new = Series::factory()->for($this->classroom)->create(['title' => 'Parábolas', 'starts_on' => '2026-10-01', 'ends_on' => null]);
+        $ana = $this->student('Ana', '2026-08-01', Gender::Female);
+        $this->lessonOn($old, '2026-09-27', [$ana]);
+        Lesson::factory()->forSeries($new)->published()->on('2026-10-04')->create();
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens/relatorio')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('selected', "serie:{$old->id}")
+                ->has('sundays', 1));
+
+        $this->actingAs($this->teacher)->get("/admin/classes/jovens/alunos/{$ana->id}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('stats.period.label', 'Milagres')
+                ->where('stats.frequency.rate', 100));
+    }
+
     public function test_a_series_can_be_chosen_and_the_last_months_are_available(): void
     {
         $old = Series::factory()->for($this->classroom)->create(['title' => 'Antiga', 'starts_on' => '2026-06-01', 'ends_on' => '2026-08-31']);

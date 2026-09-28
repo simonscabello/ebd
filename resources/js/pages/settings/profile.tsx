@@ -7,6 +7,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { todayOnDevice } from '@/lib/dates';
 import { formatPhone } from '@/lib/phone';
 import { account } from '@/routes';
 import type { Auth } from '@/types';
@@ -28,7 +29,7 @@ type Props = {
 
 export default function Profile({ profile, isStudent, genders }: Props) {
     const { auth } = usePage<PageProps>().props;
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = todayOnDevice();
 
     return (
         <>

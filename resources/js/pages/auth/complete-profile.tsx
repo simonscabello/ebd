@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { todayOnDevice } from '@/lib/dates';
 import { formatPhone } from '@/lib/phone';
 import { store } from '@/routes/onboarding';
 
@@ -30,7 +31,7 @@ export default function CompleteProfile({
     passwordRules,
     genders,
 }: Props) {
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = todayOnDevice();
 
     return (
         <>
