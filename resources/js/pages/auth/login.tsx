@@ -93,6 +93,12 @@ export default function Login({ status, canResetPassword }: Props) {
                             </Button>
                         </div>
 
+                        <p className="rounded-xl bg-muted/60 px-3 py-2.5 text-center text-sm text-muted-foreground">
+                            Entrava pelo link do professor e ainda não criou
+                            senha? Não crie outra conta: peça um link novo ao
+                            seu professor pelo WhatsApp.
+                        </p>
+
                         <div className="space-y-2 text-center text-sm text-muted-foreground">
                             {features.registration && (
                                 <p>
