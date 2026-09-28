@@ -105,6 +105,17 @@ class ClassroomOverviewTest extends TestCase
                 ->where('overview.attention.0.reasons', ['ainda não marcou leitura']));
     }
 
+    public function test_a_lesson_without_reading_plan_still_flags_who_is_not_reading(): void
+    {
+        Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create();
+        $this->student('Parado');
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('overview.attention', 1)
+                ->where('overview.attention.0.reasons', ['ainda não marcou leitura']));
+    }
+
     public function test_new_students_are_not_flagged(): void
     {
         $this->student('Novato', '2026-09-20');

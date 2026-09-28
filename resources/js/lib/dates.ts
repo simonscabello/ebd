@@ -60,3 +60,8 @@ export function relativeDay(date: string, today: string): string {
         'day',
     );
 }
+
+/** Hoje no aparelho (Y-m-d), para limitar campos de data como o nascimento. */
+export function todayOnDevice(): string {
+    return new Date().toLocaleDateString('en-CA');
+}

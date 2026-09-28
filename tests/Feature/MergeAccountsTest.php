@@ -54,7 +54,7 @@ class MergeAccountsTest extends TestCase
     public function test_dry_run_changes_nothing_and_staff_is_refused(): void
     {
         $classroom = Classroom::factory()->create();
-        $student = User::factory()->studentOf($classroom)->create();
+        $student = User::factory()->managed()->studentOf($classroom)->create();
         $other = User::factory()->create(['email' => 'outra@example.com']);
         $teacher = User::factory()->teacherOf($classroom)->create();
 
@@ -62,5 +62,17 @@ class MergeAccountsTest extends TestCase
         $this->assertSame('outra@example.com', $other->fresh()->email);
 
         $this->artisan('ebd:merge-accounts', ['keep' => $student->id, 'duplicate' => $teacher->id])->assertFailed();
+    }
+
+    public function test_two_accounts_with_passwords_are_refused(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $student = User::factory()->studentOf($classroom)->create(['email' => 'uma@example.com']);
+        $other = User::factory()->create(['email' => 'outra@example.com']);
+
+        $this->artisan('ebd:merge-accounts', ['keep' => $student->id, 'duplicate' => $other->id])->assertFailed();
+
+        $this->assertSame('outra@example.com', $other->fresh()->email);
+        $this->assertNotNull($other->fresh()->password);
     }
 }

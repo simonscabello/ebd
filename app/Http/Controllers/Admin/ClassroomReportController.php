@@ -86,7 +86,8 @@ class ClassroomReportController extends Controller
 
     /**
      * ?serie=… escolhe a série; ?periodo=3m, os últimos 3 meses. Sem nada, a
-     * série da lição da semana; senão a que está em andamento; senão a última.
+     * série da lição da semana (ou a anterior, se ela ainda não começou); senão
+     * a que está em andamento; senão a última.
      *
      * @param  Collection<int, Series>  $series
      */
@@ -101,9 +102,10 @@ class ClassroomReportController extends Controller
         }
 
         $today = ChurchCalendar::todayString();
-        $weekSeriesId = $current->for($classroom, $request->user())->lesson?->series_id;
+        $weekSeries = $current->for($classroom, $request->user())->lesson?->series;
+        $weekSeries = $weekSeries !== null ? Period::started($weekSeries) : null;
 
-        return $series->firstWhere('id', $weekSeriesId)
+        return $series->firstWhere('id', $weekSeries?->id)
             ?? $series->first(fn (Series $s) => $s->starts_on !== null && $s->starts_on->toDateString() <= $today && ($s->ends_on === null || $s->ends_on->toDateString() >= $today))
             ?? $series->first();
     }

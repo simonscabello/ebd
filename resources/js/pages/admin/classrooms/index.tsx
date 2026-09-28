@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { ChevronRight, Plus } from 'lucide-react';
 import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
+import { plural } from '@/lib/utils';
 import { create, edit, show } from '@/routes/admin/classrooms';
 import type { Classroom } from '@/types';
 
@@ -10,9 +11,6 @@ type Row = Classroom & {
     lessons_count: number;
     series_count: number;
 };
-
-const plural = (count: number, one: string, many: string) =>
-    `${count} ${count === 1 ? one : many}`;
 
 /**
  * Classes: cada professor vê as suas; a administração vê todas e cadastra.

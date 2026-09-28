@@ -58,7 +58,34 @@ final readonly class Period
      */
     public static function current(?Series $series): self
     {
+        $series = $series !== null ? self::started($series) : null;
+
         return $series !== null ? self::forSeries($series) : self::lastMonths(3);
+    }
+
+    /**
+     * A série que já começou. Na semana antes do primeiro domingo de uma série
+     * nova, os números continuam na anterior (a do último domingo com lição de
+     * outra série); sem anterior, null.
+     */
+    public static function started(Series $series): ?Series
+    {
+        $today = ChurchCalendar::todayString();
+
+        if (self::forSeries($series)->from <= $today) {
+            return $series;
+        }
+
+        return ClassMeeting::query()
+            ->active()
+            ->where('classroom_id', $series->classroom_id)
+            ->whereDate('held_on', '<=', $today)
+            ->whereHas('lesson', fn ($query) => $query->whereNotNull('series_id')->where('series_id', '!=', $series->id))
+            ->with('lesson.series')
+            ->latest('held_on')
+            ->first()
+            ?->lesson
+            ?->series;
     }
 
     public function contains(string $date): bool

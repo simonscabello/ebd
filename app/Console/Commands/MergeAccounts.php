@@ -57,6 +57,13 @@ class MergeAccounts extends Command
             $this->components->twoColumnDetail("  {$table}", (string) DB::table($table)->where('user_id', $duplicate->id)->count());
         }
 
+        // Só um login sobrevive: com duas senhas, o e-mail da conta vazia deixaria de funcionar.
+        if ($keep->getRawOriginal('password') !== null && $duplicate->getRawOriginal('password') !== null) {
+            $this->components->error('As duas contas têm senha. Combine com a pessoa qual login fica e bloqueie a outra antes de juntar.');
+
+            return self::FAILURE;
+        }
+
         if ($this->option('dry-run')) {
             $this->components->info('Nada foi alterado (--dry-run).');
 

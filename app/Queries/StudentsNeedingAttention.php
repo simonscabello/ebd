@@ -41,6 +41,7 @@ class StudentsNeedingAttention
             }
 
             $finishedPlan = $currentStudy !== null
+                && $currentStudy['readings_total'] > 0
                 && ($currentStudy['days'][$student->id] ?? 0) >= $currentStudy['readings_total'];
             $inactiveDays = ChurchCalendar::daysBetween($lastRead ?? $student->joined_on, $today);
 

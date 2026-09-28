@@ -22,6 +22,7 @@ import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { dateTile, dayMonth, longDate, relativeDay } from '@/lib/dates';
+import { plural } from '@/lib/utils';
 import { birthdayMessage, missYouMessage } from '@/lib/whatsapp';
 import { edit, report, show as classroomPage } from '@/routes/admin/classrooms';
 import {
@@ -122,9 +123,6 @@ type Props = {
     overview: Overview;
     canEdit: boolean;
 };
-
-const plural = (count: number, one: string, many: string) =>
-    `${count} ${count === 1 ? one : many}`;
 
 /**
  * Resumo da classe: o que fazer agora (este domingo, pendências, quem precisa
