@@ -1,4 +1,4 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head } from '@inertiajs/react';
 import { Lock } from 'lucide-react';
 import type { GenderOption } from '@/components/gender-field';
 import { GenderField } from '@/components/gender-field';
@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { formatPhone } from '@/lib/phone';
-import { logout } from '@/routes';
 import { store } from '@/routes/onboarding';
 
 type Props = {
@@ -181,16 +180,6 @@ export default function CompleteProfile({
                             classe: servem para os aniversários e os relatórios
                             da EBD.
                         </p>
-
-                        <div className="text-center text-sm">
-                            <Link
-                                href={logout()}
-                                as="button"
-                                className="text-muted-foreground underline-offset-4 hover:underline"
-                            >
-                                Sair
-                            </Link>
-                        </div>
                     </>
                 )}
             </Form>
