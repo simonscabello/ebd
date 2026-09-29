@@ -24,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // O service worker renova a inscrição de push sem o token CSRF da página.
+        $middleware->validateCsrfTokens(except: ['notificacoes/renovacao']);
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

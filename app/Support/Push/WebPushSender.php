@@ -72,6 +72,13 @@ final class WebPushSender implements PushSender
             PushSubscription::query()->whereIn('endpoint', $expired)->delete();
         }
 
+        Log::info('Push enviado.', [
+            'title' => $message->title,
+            'devices' => $subscriptions->count(),
+            'delivered' => $delivered,
+            'expired_removed' => count($expired),
+        ]);
+
         return $delivered;
     }
 }

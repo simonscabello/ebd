@@ -248,12 +248,12 @@ Formatos aceitos nas referências: `Lucas 5:12-16`, `Lc 5.12-16`, `Sl 23`, `Gn 1
 
 Lembretes no celular pelo PWA (Web Push), sempre **por classe**:
 
-| Quando                | Quem recebe                               | Conteúdo                                                      |
-| --------------------- | ----------------------------------------- | ------------------------------------------------------------- |
-| Todo dia às 9h        | membros com aparelho inscrito             | leitura de hoje da lição da semana (ou "releia o texto base") |
-| Todo dia às 20h       | idem, só quem ainda não marcou a leitura  | "Ainda dá tempo"                                              |
-| Sábado às 8h          | membros da classe com encontro no domingo | "Amanhã tem EBD!" com a lição                                 |
-| Ao publicar uma lição | todos os membros da classe                | "Nova lição: …"                                               |
+| Quando                | Quem recebe                               | Conteúdo                                                       |
+| --------------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| Todo dia às 9h        | membros com aparelho inscrito             | leitura de hoje da lição da semana (ou "releia o texto base")  |
+| Todo dia às 20h       | idem                                      | "Ainda dá tempo" ou, para quem já leu, lembrete para relembrar |
+| Sábado às 8h          | membros da classe com encontro no domingo | "Amanhã tem EBD!" com a lição                                  |
+| Ao publicar uma lição | todos os membros da classe                | "Nova lição: …"                                                |
 
 Horários no fuso da igreja (`EBD_TIMEZONE`), definidos em `routes/console.php`. Os comandos `ebd:remind-readings {morning|evening}` e `ebd:remind-lesson` podem ser rodados à mão para testar.
 

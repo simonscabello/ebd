@@ -6,8 +6,10 @@ use App\Models\PushSubscription;
 use App\Models\User;
 use App\Support\Push\PushMessage;
 use App\Support\Push\PushSender;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 
 /**
@@ -16,27 +18,74 @@ use Illuminate\Support\Str;
  */
 class PushSubscriptionController extends Controller
 {
+    private const RULES = [
+        'endpoint' => ['required', 'string', 'url', 'max:500'],
+        'keys.p256dh' => ['required', 'string', 'max:255'],
+        'keys.auth' => ['required', 'string', 'max:255'],
+        'content_encoding' => ['nullable', 'string', 'in:aes128gcm,aesgcm'],
+    ];
+
     public function store(Request $request): RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
 
+        self::save($request, $user->id, $request->validate(self::RULES));
+
+        return back();
+    }
+
+    /**
+     * Chave pública VAPID, para o service worker se inscrever de novo sem a página.
+     */
+    public function key(): JsonResponse
+    {
+        return response()->json(['public_key' => config('ebd.push.public_key') ?: null]);
+    }
+
+    /**
+     * O navegador trocou a inscrição do aparelho (pushsubscriptionchange). A
+     * nova fica com o dono da antiga ou, se o navegador não informou a antiga,
+     * com quem está logado. Sem dono conhecido, não há o que fazer.
+     */
+    public function renew(Request $request): Response
+    {
         $data = $request->validate([
-            'endpoint' => ['required', 'string', 'url', 'max:500'],
-            'keys.p256dh' => ['required', 'string', 'max:255'],
-            'keys.auth' => ['required', 'string', 'max:255'],
-            'content_encoding' => ['nullable', 'string', 'in:aes128gcm,aesgcm'],
+            ...self::RULES,
+            'old_endpoint' => ['nullable', 'string', 'max:500'],
         ]);
 
+        $old = filled($data['old_endpoint'] ?? null)
+            ? PushSubscription::query()->where('endpoint', $data['old_endpoint'])->first()
+            : null;
+
+        $userId = $old->user_id ?? $request->user()?->id;
+
+        if ($userId === null) {
+            return response()->noContent();
+        }
+
+        self::save($request, $userId, $data);
+
+        if ($old !== null && $old->endpoint !== $data['endpoint']) {
+            $old->delete();
+        }
+
+        return response()->noContent();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private static function save(Request $request, int $userId, array $data): void
+    {
         PushSubscription::query()->updateOrCreate(['endpoint' => $data['endpoint']], [
-            'user_id' => $user->id,
+            'user_id' => $userId,
             'public_key' => $data['keys']['p256dh'],
             'auth_token' => $data['keys']['auth'],
             'content_encoding' => $data['content_encoding'] ?? 'aes128gcm',
             'user_agent' => Str::limit((string) $request->userAgent(), 250, ''),
         ]);
-
-        return back();
     }
 
     /**
