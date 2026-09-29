@@ -46,6 +46,17 @@ Route::middleware(['auth', 'throttle:engagement'])->group(function () {
     Route::post('notificacoes/teste', [PushSubscriptionController::class, 'test'])->name('push.test');
 });
 
+/*
+| Chamadas do service worker quando o navegador troca a inscrição de push
+| (pushsubscriptionchange). Sem CSRF: o SW não tem o token da página. A
+| inscrição antiga identifica o aparelho; sem ela, vale a sessão (cookie
+| SameSite=Lax, que não vai em POST de outro site).
+*/
+Route::middleware('throttle:engagement')->group(function () {
+    Route::get('notificacoes/chave', [PushSubscriptionController::class, 'key'])->name('push.key');
+    Route::post('notificacoes/renovacao', [PushSubscriptionController::class, 'renew'])->name('push.renew');
+});
+
 Route::get('materiais/{material}/arquivo', MaterialFileController::class)
     ->middleware('throttle:downloads')
     ->name('materials.file');

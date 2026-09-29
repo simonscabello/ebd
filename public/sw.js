@@ -107,6 +107,72 @@ self.addEventListener('push', (event) => {
     );
 });
 
+/*
+ * O navegador pode trocar (ou expirar) a inscrição sozinho. Sem isto o
+ * aparelho para de receber lembretes em silêncio e o botão aparece desligado.
+ * Inscreve de novo e avisa o servidor, que liga a nova ao dono da antiga.
+ */
+self.addEventListener('pushsubscriptionchange', (event) => {
+    event.waitUntil(
+        renewSubscription(event.oldSubscription, event.newSubscription),
+    );
+});
+
+async function renewSubscription(oldSubscription, newSubscription) {
+    let subscription = newSubscription;
+
+    if (!subscription) {
+        const key =
+            (oldSubscription &&
+                oldSubscription.options &&
+                oldSubscription.options.applicationServerKey) ||
+            (await fetchPublicKey());
+
+        if (!key) {
+            return;
+        }
+
+        subscription = await self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: key,
+        });
+    }
+
+    const json = subscription.toJSON();
+    const encodings =
+        self.PushManager && self.PushManager.supportedContentEncodings;
+
+    await fetch('/notificacoes/renovacao', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+        },
+        body: JSON.stringify({
+            old_endpoint: oldSubscription ? oldSubscription.endpoint : null,
+            endpoint: subscription.endpoint,
+            keys: json.keys,
+            content_encoding:
+                encodings && !encodings.includes('aes128gcm')
+                    ? 'aesgcm'
+                    : 'aes128gcm',
+        }),
+    });
+}
+
+async function fetchPublicKey() {
+    try {
+        const response = await fetch('/notificacoes/chave', {
+            headers: { Accept: 'application/json' },
+        });
+
+        return response.ok ? (await response.json()).public_key : null;
+    } catch {
+        return null;
+    }
+}
+
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
