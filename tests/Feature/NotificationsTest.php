@@ -93,17 +93,25 @@ class NotificationsTest extends TestCase
         $this->assertCount(1, $this->push->sentTo($this->teacher));
     }
 
-    public function test_evening_reminder_skips_who_already_read_today(): void
+    public function test_evening_reminder_goes_to_everyone_with_a_different_message_for_who_already_read(): void
     {
         $lesson = $this->lessonOfTheWeek();
         LessonReading::factory()->for($lesson)->create(['weekday' => 3, 'reference' => 'Salmo 99']);
         ReadingCheckin::query()->forceCreate(['user_id' => $this->ana->id, 'lesson_id' => $lesson->id, 'weekday' => 3, 'read_on' => '2026-09-23']);
 
-        $this->artisan('ebd:remind-readings', ['slot' => 'evening'])->assertSuccessful();
+        $sent = app(SendReadingReminders::class)->handle(ReminderSlot::Evening);
 
-        $this->assertCount(0, $this->push->sentTo($this->ana));
+        // Ana (dois aparelhos, já leu), Bia e o professor.
+        $this->assertSame(4, $sent);
+
+        $ana = $this->push->sentTo($this->ana);
+        $this->assertCount(2, $ana);
+        $this->assertSame('Leitura de hoje: Salmo 99', $ana->first()->title);
+        $this->assertSame('Você já leu hoje. Que tal relembrar o texto antes de dormir?', $ana->first()->body);
+        $this->assertSame("reading:{$lesson->id}:3", $ana->first()->tag);
+
         $this->assertSame('Ainda dá tempo: Salmo 99', $this->push->sentTo($this->bia)->first()->title);
-        $this->assertCount(1, $this->push->sentTo($this->teacher));
+        $this->assertSame('Ainda dá tempo: Salmo 99', $this->push->sentTo($this->teacher)->first()->title);
     }
 
     public function test_without_a_reading_plan_weekdays_remind_the_base_text(): void

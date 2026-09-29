@@ -21,7 +21,8 @@ use Illuminate\Support\Collection;
  *
  * Segue a mesma regra de "Minha semana": a leitura de hoje é a do plano da
  * lição da semana; sem plano, de segunda a sábado é reler o texto base. À
- * noite só recebe quem ainda não marcou a leitura de hoje. Sem lição da semana
+ * noite todos recebem: quem ainda não marcou a leitura de hoje ganha o "ainda
+ * dá tempo"; quem já marcou, um lembrete para relembrar. Sem lição da semana
  * (ou lição ainda em rascunho) não há lembrete.
  */
 final class SendReadingReminders
@@ -70,16 +71,27 @@ final class SendReadingReminders
                     ->pluck('user_id')
                     ->all();
 
-                $recipients = $recipients->reject(fn (User $user) => in_array($user->id, $done, true));
+                [$read, $recipients] = $recipients->partition(fn (User $user) => in_array($user->id, $done, true));
+
+                $sent += $this->send($read, $this->alreadyReadMessage($classroom, $lesson, $reading));
             }
 
-            $sent += $this->sender->send(
-                $recipients->flatMap->pushSubscriptions->values(),
-                $this->message($slot, $classroom, $lesson, $reading),
-            );
+            $sent += $this->send($recipients, $this->message($slot, $classroom, $lesson, $reading));
         }
 
         return $sent;
+    }
+
+    /**
+     * @param  Collection<int, User>  $users
+     */
+    private function send(Collection $users, PushMessage $message): int
+    {
+        if ($users->isEmpty()) {
+            return 0;
+        }
+
+        return $this->sender->send($users->flatMap->pushSubscriptions->values(), $message);
     }
 
     /**
@@ -121,6 +133,21 @@ final class SendReadingReminders
         }
 
         return ['reference' => $lesson->bible_reference, 'notes' => 'Releia o texto base da lição.'];
+    }
+
+    /**
+     * Noite, para quem já marcou a leitura de hoje.
+     *
+     * @param  array{reference: string, notes: string|null}  $reading
+     */
+    private function alreadyReadMessage(Classroom $classroom, Lesson $lesson, array $reading): PushMessage
+    {
+        return new PushMessage(
+            title: "Leitura de hoje: {$reading['reference']}",
+            body: 'Você já leu hoje. Que tal relembrar o texto antes de dormir?',
+            url: route('my-week', ['classe' => $classroom->slug]),
+            tag: "reading:{$lesson->id}:".ChurchCalendar::today()->dayOfWeekIso,
+        );
     }
 
     /**
