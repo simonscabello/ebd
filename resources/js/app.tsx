@@ -53,6 +53,23 @@ void createInertiaApp({
     },
 });
 
+// Depois de um deploy, uma aba aberta com o build antigo tenta baixar chunks
+// que não existem mais. Recarrega (uma vez por sessão) para pegar o novo.
+window.addEventListener('vite:preloadError', (event) => {
+    try {
+        if (sessionStorage.getItem('ebd.preload-reload') === '1') {
+            return;
+        }
+
+        sessionStorage.setItem('ebd.preload-reload', '1');
+    } catch {
+        return;
+    }
+
+    event.preventDefault();
+    window.location.reload();
+});
+
 // Aplica tema claro/escuro no carregamento.
 initializeTheme();
 

@@ -24,6 +24,9 @@ export function dismissSplash(): void {
     }
 
     dismissed = true;
+    // Avisa o vigia da splash que o app montou (não mostrar "Tentar de novo").
+    splash.dataset.ready = '1';
+    delete splash.dataset.stuck;
 
     const elapsed = performance.now() - Number(splash.dataset.shownAt ?? 0);
 
