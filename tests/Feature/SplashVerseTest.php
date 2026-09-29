@@ -36,6 +36,14 @@ class SplashVerseTest extends TestCase
             ->assertSee(SplashVerse::FALLBACK);
     }
 
+    public function test_offers_a_retry_when_the_app_does_not_load(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('class="splash__retry"', false)
+            ->assertSee('Tentar de novo');
+    }
+
     public function test_shows_the_verse_text_with_its_reference(): void
     {
         foreach (SplashVerse::REFERENCES as $reference) {

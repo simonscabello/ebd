@@ -125,6 +125,41 @@
         animation-delay: 400ms;
     }
 
+    /* O app não montou (JS não carregou ou quebrou): oferece recarregar. */
+    .splash__stuck {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        max-width: 19rem;
+        font-size: 0.875rem;
+        color: var(--muted-foreground, #6b635a);
+    }
+
+    .splash__stuck p {
+        margin: 0;
+    }
+
+    .splash__retry {
+        appearance: none;
+        border: 0;
+        border-radius: 999px;
+        padding: 0.7rem 1.4rem;
+        font: inherit;
+        font-weight: 600;
+        color: #fff;
+        background: var(--primary, #2f5f53);
+        cursor: pointer;
+    }
+
+    .splash[data-stuck] .splash__stuck {
+        display: flex;
+    }
+
+    .splash[data-stuck] .splash__bar {
+        display: none;
+    }
+
     @keyframes splash-in {
         from {
             opacity: 0;
@@ -178,6 +213,10 @@
         <span class="splash__bar" aria-hidden="true"></span>
         <span class="splash__name">Escola Bíblica Dominical</span>
         <span class="splash__sr">Carregando…</span>
+        <div class="splash__stuck">
+            <p>O app está demorando para abrir. Verifique a internet e tente de novo.</p>
+            <button type="button" class="splash__retry">Tentar de novo</button>
+        </div>
     </div>
 </div>
 
@@ -199,6 +238,63 @@
         // Tocou antes de o app montar: não segura depois.
         splash.addEventListener('click', function () {
             splash.dataset.skipped = '1';
+        });
+
+        // Sem isto, se o JavaScript do app não carregar (rede ruim, cache do
+        // service worker corrompido, erro no bundle) a pessoa fica presa para
+        // sempre na tela de abertura. Mostramos um botão para recarregar.
+        var STUCK_AFTER_MS = 12000;
+
+        function mounted() {
+            return splash.dataset.ready === '1' || !splash.isConnected;
+        }
+
+        function showStuck() {
+            if (!mounted()) {
+                splash.dataset.stuck = '1';
+            }
+        }
+
+        window.setTimeout(showStuck, STUCK_AFTER_MS);
+
+        // Falha ao baixar um JS/CSS do build: não adianta esperar.
+        window.addEventListener('error', function (event) {
+            var target = event.target;
+
+            if (
+                target &&
+                (target.tagName === 'SCRIPT' || target.tagName === 'LINK') &&
+                /\/build\//.test(target.src || target.href || '')
+            ) {
+                showStuck();
+            }
+        }, true);
+
+        splash.querySelector('.splash__retry').addEventListener('click', function (event) {
+            event.stopPropagation();
+            event.currentTarget.disabled = true;
+
+            // Limpa o cache do service worker antes de recarregar, caso algum
+            // arquivo guardado esteja corrompido. O service worker em si fica
+            // (desregistrar apagaria a inscrição dos lembretes push) e a
+            // sessão (cookies) continua.
+            var cleanup = Promise.resolve();
+
+            try {
+                if (window.caches) {
+                    cleanup = caches.keys().then(function (keys) {
+                        return Promise.all(keys.map(function (key) {
+                            return caches.delete(key);
+                        }));
+                    });
+                }
+            } catch (e) {
+                // Segue para o reload mesmo assim.
+            }
+
+            cleanup.catch(function () {}).then(function () {
+                window.location.reload();
+            });
         });
     })();
 </script>

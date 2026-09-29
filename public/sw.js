@@ -8,7 +8,7 @@
  * - Push: mostra a notificação enviada pelo servidor e, ao tocar, abre a
  *   página indicada (reaproveitando uma janela do app, se houver).
  */
-const VERSION = 'ebd-v3';
+const VERSION = 'ebd-v4';
 const STATIC_CACHE = `${VERSION}-static`;
 const PRECACHE = [
     '/offline.html',
