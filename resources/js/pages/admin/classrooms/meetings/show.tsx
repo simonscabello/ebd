@@ -21,6 +21,7 @@ import { ClassroomHeader } from '@/components/admin/classroom-header';
 import { CancelMeetingDialog } from '@/components/admin/meetings/cancel-meeting-dialog';
 import { EditMeetingDialog } from '@/components/admin/meetings/edit-meeting-dialog';
 import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
+import { AutosaveStatus } from '@/components/autosave-status';
 import { useConfirm } from '@/components/confirm-dialog';
 import type { Roster } from '@/components/lesson/attendance-sheet';
 import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
@@ -28,6 +29,7 @@ import { Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
+import { useAutosave } from '@/hooks/use-autosave';
 import { dayMonth, longDate } from '@/lib/dates';
 import { show } from '@/routes/admin/classrooms/meetings';
 import { edit as editLesson } from '@/routes/admin/lessons';
@@ -38,6 +40,7 @@ import {
     restore,
     update,
 } from '@/routes/admin/meetings';
+import { update as updateNotes } from '@/routes/admin/meetings/notes';
 import { sunday } from '@/routes/lessons';
 import type {
     ClassMeeting,
@@ -437,37 +440,39 @@ function LessonPicker({
 }
 
 function NotesForm({ meeting }: { meeting: Meeting }) {
-    const form = useForm({
-        held_on: meeting.held_on,
-        notes: meeting.notes ?? '',
-    });
+    const initial = meeting.notes ?? '';
+    const [notes, setNotes] = useState(initial);
+    const { status, retry } = useAutosave(notes, initial, (value, callbacks) =>
+        router.put(
+            updateNotes.url(meeting.id),
+            { notes: value },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['meeting'],
+                ...callbacks,
+            },
+        ),
+    );
 
     return (
-        <form
-            noValidate
-            onSubmit={(event) => {
-                event.preventDefault();
-                form.put(update.url(meeting.id), { preserveScroll: true });
-            }}
-            className="space-y-2"
-        >
+        <div className="space-y-2">
             <Textarea
-                value={form.data.notes}
-                onChange={(event) => form.setData('notes', event.target.value)}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
                 rows={3}
                 placeholder="Ex.: paramos no tópico 3; retomar a pergunta sobre Pedro."
                 aria-label="Onde paramos"
+                aria-describedby="meeting-notes-status"
                 maxLength={5000}
             />
-            <div className="flex justify-end">
-                <Button
-                    type="submit"
-                    size="sm"
-                    disabled={!form.isDirty || form.processing}
-                >
-                    Salvar anotação
-                </Button>
-            </div>
-        </form>
+            <p
+                id="meeting-notes-status"
+                className="min-h-4 text-xs text-muted-foreground"
+                aria-live="polite"
+            >
+                <AutosaveStatus status={status} onRetry={retry} />
+            </p>
+        </div>
     );
 }

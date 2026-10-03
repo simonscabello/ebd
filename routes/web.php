@@ -108,6 +108,7 @@ Route::middleware(['auth', 'can:access-admin'])
             ->scopeBindings()
             ->name('classrooms.meetings.show');
         Route::put('encontros/{meeting}', [Admin\ClassMeetingController::class, 'update'])->name('meetings.update');
+        Route::put('encontros/{meeting}/anotacao', [Admin\MeetingNoteController::class, 'update'])->name('meetings.notes.update');
         Route::delete('encontros/{meeting}', [Admin\ClassMeetingController::class, 'destroy'])->name('meetings.destroy');
         Route::post('encontros/{meeting}/cancelar', [Admin\MeetingStatusController::class, 'cancel'])->name('meetings.cancel');
         Route::post('encontros/{meeting}/restaurar', [Admin\MeetingStatusController::class, 'restore'])->name('meetings.restore');

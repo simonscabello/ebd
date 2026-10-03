@@ -1,11 +1,10 @@
 import { router } from '@inertiajs/react';
-import { AlertCircle, Check, Lock } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { Spinner } from '@/components/ui/spinner';
+import { Lock } from 'lucide-react';
+import { useState } from 'react';
+import { AutosaveStatus } from '@/components/autosave-status';
 import { Textarea } from '@/components/ui/textarea';
+import { useAutosave } from '@/hooks/use-autosave';
 import { update } from '@/routes/lessons/note';
-
-type Status = 'idle' | 'saving' | 'saved' | 'error';
 
 /**
  * Anotação pessoal na lição, salva automaticamente. Só a própria pessoa vê.
@@ -18,44 +17,27 @@ export function PersonalNote({
     initial: string | null;
 }) {
     const [body, setBody] = useState(initial ?? '');
-    const [status, setStatus] = useState<Status>('idle');
-    const [attempt, setAttempt] = useState(0);
-    const last = useRef(initial ?? '');
-
-    useEffect(() => {
-        if (body === last.current) {
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            setStatus('saving');
+    const { status, retry } = useAutosave(
+        body,
+        initial ?? '',
+        (value, callbacks) =>
             router.put(
                 update.url(lessonSlug),
-                { body },
+                { body: value },
                 {
                     preserveScroll: true,
                     preserveState: true,
                     only: ['study'],
-                    onSuccess: () => {
-                        last.current = body;
-                        setStatus('saved');
-                    },
-                    onError: () => setStatus('error'),
+                    ...callbacks,
                 },
-            );
-        }, 1200);
-
-        return () => clearTimeout(timer);
-    }, [body, lessonSlug, attempt]);
+            ),
+    );
 
     return (
         <div className="space-y-2">
             <Textarea
                 value={body}
-                onChange={(event) => {
-                    setBody(event.target.value);
-                    setStatus('idle');
-                }}
+                onChange={(event) => setBody(event.target.value)}
                 rows={5}
                 maxLength={20000}
                 placeholder="O que Deus falou com você nesta lição? Dúvidas para levar no domingo…"
@@ -71,29 +53,7 @@ export function PersonalNote({
                 <span className="inline-flex items-center gap-1.5">
                     <Lock className="size-3.5" /> Só você vê esta anotação.
                 </span>
-                {status === 'saving' && (
-                    <span className="inline-flex items-center gap-1">
-                        <Spinner className="size-3.5" /> Salvando…
-                    </span>
-                )}
-                {status === 'saved' && (
-                    <span className="inline-flex items-center gap-1 text-success-foreground">
-                        <Check className="size-3.5" /> Salvo
-                    </span>
-                )}
-                {status === 'error' && (
-                    <span className="inline-flex items-center gap-1 text-destructive">
-                        <AlertCircle className="size-3.5" /> Não foi possível
-                        salvar.
-                        <button
-                            type="button"
-                            onClick={() => setAttempt((n) => n + 1)}
-                            className="font-medium underline underline-offset-2"
-                        >
-                            Tentar de novo
-                        </button>
-                    </span>
-                )}
+                <AutosaveStatus status={status} onRetry={retry} />
             </p>
         </div>
     );
