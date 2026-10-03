@@ -266,10 +266,9 @@ export default function MeetingPage({
                                 icon={<StickyNote />}
                                 description="Só professores veem. Ajuda a preparar o próximo domingo."
                             >
-                                <NotesForm
-                                    key={meeting.notes ?? ''}
-                                    meeting={meeting}
-                                />
+                                {/* Pelo id, não pelo texto: o salvamento automático
+                                    recarrega o domingo e não pode remontar o campo. */}
+                                <NotesForm key={meeting.id} meeting={meeting} />
                             </Section>
                         )}
 
