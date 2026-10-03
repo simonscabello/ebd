@@ -79,7 +79,7 @@ export function StudentNotes({
                             form.processing || form.data.body.trim() === ''
                         }
                     >
-                        Guardar anotação
+                        Salvar anotação
                     </Button>
                 </div>
             </form>

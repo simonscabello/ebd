@@ -138,7 +138,7 @@ export default function Account({ classrooms }: Props) {
                             description={
                                 user.has_password
                                     ? 'Você precisa da senha atual'
-                                    : 'Hoje você entra pelo link pessoal'
+                                    : 'Hoje você entra pelo link de acesso'
                             }
                         />
                     </SettingsCard>

@@ -20,7 +20,7 @@ class ListStudents extends EbdTool
 
     protected string $title = 'Alunos da classe';
 
-    protected string $description = 'Lista os alunos e professores da classe, com id, telefone e se a conta é gerenciada (sem senha, entra por link pessoal). Use os ids para registrar presença sem ambiguidade.';
+    protected string $description = 'Lista os alunos e professores da classe, com id, telefone e se a conta é gerenciada (sem senha, entra por link de acesso). Use os ids para registrar presença sem ambiguidade.';
 
     public function schema(JsonSchema $schema): array
     {

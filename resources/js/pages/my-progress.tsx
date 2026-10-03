@@ -9,6 +9,7 @@ import { BadgeShelf } from '@/components/progress/badge-shelf';
 import type { Streak } from '@/components/progress/streak-flame';
 import { StreakFlame } from '@/components/progress/streak-flame';
 import { show } from '@/routes/lessons';
+import { plural } from '@/lib/utils';
 import type { Classroom } from '@/types';
 
 export type LessonProgress = {
@@ -114,13 +115,20 @@ export function LessonProgressList({
                     <div className="grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-2">
                         <Meter
                             icon={<BookOpen className="size-3.5" />}
-                            label={`Leitura: ${lesson.days_read}/${lesson.readings_total} dias`}
-                            value={lesson.days_read / lesson.readings_total}
+                            label={readingLabel(
+                                lesson.days_read,
+                                lesson.readings_total,
+                            )}
+                            value={
+                                lesson.readings_total > 0
+                                    ? lesson.days_read / lesson.readings_total
+                                    : Math.min(lesson.days_read, 1)
+                            }
                         />
                         {lesson.meetings > 0 && (
                             <Meter
                                 icon={<CalendarCheck className="size-3.5" />}
-                                label={`Presença: ${lesson.present}/${lesson.meetings}`}
+                                label={`Presença: ${lesson.present} de ${plural(lesson.meetings, 'domingo', 'domingos')}`}
                                 value={lesson.present / lesson.meetings}
                             />
                         )}
@@ -129,6 +137,17 @@ export function LessonProgressList({
             ))}
         </ul>
     );
+}
+
+/** "Leitura: 3 de 6 dias"; sem plano de leitura, só os dias lidos. */
+function readingLabel(read: number, total: number): string {
+    if (total === 0) {
+        return read > 0
+            ? `Leitura: ${plural(read, 'dia', 'dias')}`
+            : 'Sem plano de leitura';
+    }
+
+    return `Leitura: ${read} de ${plural(total, 'dia', 'dias')}`;
 }
 
 function Meter({

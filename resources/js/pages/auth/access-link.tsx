@@ -54,7 +54,7 @@ export default function AccessLink({ currentUser }: Props) {
                 onError: (errors) => {
                     setError(
                         errors.token ??
-                            'Não foi possível entrar. Peça um novo link ao seu professor.',
+                            'Não foi possível entrar. Peça um novo link de acesso ao seu professor.',
                     );
                 },
                 onFinish: () => setProcessing(false),
@@ -120,7 +120,7 @@ export default function AccessLink({ currentUser }: Props) {
                         </p>
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="access-link">Seu link pessoal</Label>
+                        <Label htmlFor="access-link">Seu link de acesso</Label>
                         <Input
                             id="access-link"
                             value={pasted}

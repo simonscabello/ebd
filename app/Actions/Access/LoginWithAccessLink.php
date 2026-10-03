@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  */
 class LoginWithAccessLink
 {
-    public const INVALID = 'Este link não é mais válido. Se você já criou sua senha, entre com e-mail e senha; se não, peça um novo link ao seu professor.';
+    public const INVALID = 'Este link não é mais válido. Se você já criou sua senha, entre com e-mail e senha; se não, peça um novo link de acesso ao seu professor.';
 
     public function handle(string $token): User
     {

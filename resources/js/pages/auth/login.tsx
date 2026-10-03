@@ -95,8 +95,8 @@ export default function Login({ status, canResetPassword }: Props) {
                         </div>
 
                         <p className="rounded-xl bg-muted/60 px-3 py-2.5 text-center text-sm text-muted-foreground">
-                            Entrava pelo link do professor e ainda não criou
-                            senha? Não crie outra conta: peça um link novo ao
+                            Entrava pelo link de acesso e ainda não criou senha?
+                            Não crie outra conta: peça um novo link de acesso ao
                             seu professor pelo WhatsApp.
                         </p>
 

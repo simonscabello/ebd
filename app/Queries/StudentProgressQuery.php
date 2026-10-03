@@ -29,7 +29,7 @@ class StudentProgressQuery
      *     streak: array{current: int, best: int, today_done: bool},
      *     badges: Collection<int, array{badge: value-of<Badge>, label: string, description: string, emoji: string, series: string|null, awarded_at: string}>,
      *     available_badges: list<array{badge: value-of<Badge>, label: string, description: string, emoji: string}>,
-     *     lessons: Collection<int, array{id: int, slug: string, display_title: string, date_short: string|null, days_read: int, readings_total: positive-int, meetings: int, present: int}>,
+     *     lessons: Collection<int, array{id: int, slug: string, display_title: string, date_short: string|null, days_read: int, readings_total: int, meetings: int, present: int}>,
      * }
      */
     public function for(User $user, Classroom $classroom, int $limit = 12): array
@@ -103,7 +103,7 @@ class StudentProgressQuery
                         ? ChurchCalendar::formatShort(new \DateTimeImmutable((string) $lesson->getAttribute('last_meeting_on')))
                         : null,
                     'days_read' => (int) ($daysRead[$lesson->id] ?? 0),
-                    'readings_total' => max((int) $lesson->getAttribute('readings_count'), 1),
+                    'readings_total' => (int) $lesson->getAttribute('readings_count'),
                     'meetings' => $presence ? (int) $presence->meetings : 0,
                     'present' => $presence ? (int) $presence->present : 0,
                 ];

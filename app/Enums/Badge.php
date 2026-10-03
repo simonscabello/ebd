@@ -30,8 +30,8 @@ enum Badge: string
             self::FirstFullWeek => 'Leu as leituras de segunda a sábado de uma lição.',
             self::Streak7 => 'Uma semana inteira sem deixar de ler.',
             self::Streak30 => 'Um mês de leitura diária. Que constância!',
-            self::FaithfulReader => 'Estudou durante a semana em quase todas as lições do trimestre.',
-            self::PerfectAttendance => 'Esteve em todos os encontros do trimestre.',
+            self::FaithfulReader => 'Estudou durante a semana em quase todas as lições da série.',
+            self::PerfectAttendance => 'Esteve em todos os domingos da série.',
         };
     }
 
