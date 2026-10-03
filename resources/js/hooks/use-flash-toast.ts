@@ -23,7 +23,20 @@ export function useFlashToast(): void {
                 return;
             }
 
-            toast[data.type](data.message);
+            const { action } = data;
+
+            toast[data.type](
+                data.message,
+                action
+                    ? {
+                          duration: 10000,
+                          action: {
+                              label: action.label,
+                              onClick: () => router.post(action.url),
+                          },
+                      }
+                    : undefined,
+            );
         });
     }, []);
 }

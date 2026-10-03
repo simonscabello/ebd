@@ -8,6 +8,7 @@ use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Inertia\Support\SessionKey;
 use Tests\TestCase;
 
 class ClassroomMemberTest extends TestCase
@@ -102,5 +103,55 @@ class ClassroomMemberTest extends TestCase
         $this->assertTrue($user->isMemberOf($adultos));
         $this->assertTrue($user->canAccessAdmin());
         $this->assertSame([$jovens->id], $user->manageableClassroomIds());
+    }
+
+    /**
+     * Remove o aluno e devolve a URL do "Desfazer" que veio no toast.
+     */
+    private function removeAndGetUndoUrl(User $teacher, Classroom $classroom, User $student): string
+    {
+        $response = $this->actingAs($teacher)->delete("/admin/classes/{$classroom->slug}/membros/{$student->id}");
+
+        $toast = session(SessionKey::FLASH_DATA)['toast'];
+        $this->assertSame('Desfazer', $toast['action']['label']);
+        $response->assertRedirect();
+
+        return $toast['action']['url'];
+    }
+
+    public function test_undo_brings_the_student_back_with_the_original_join_date(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $teacher = User::factory()->teacherOf($classroom)->create();
+        $student = User::factory()->studentOf($classroom)->create();
+        DB::table('classroom_user')->where('user_id', $student->id)->update(['created_at' => '2026-03-01 12:00:00']);
+
+        $url = $this->removeAndGetUndoUrl($teacher, $classroom, $student);
+        $this->assertFalse($student->flushClassroomRoles()->isMemberOf($classroom));
+
+        $this->actingAs($teacher)->post($url)
+            ->assertRedirect("/admin/classes/{$classroom->slug}/alunos/{$student->id}");
+
+        $this->assertSame(ClassroomRole::Student, $student->flushClassroomRoles()->roleIn($classroom));
+        $this->assertSame(
+            '2026-03-01 12:00:00',
+            (string) DB::table('classroom_user')->where('user_id', $student->id)->value('created_at'),
+        );
+    }
+
+    public function test_undo_link_expires_and_cannot_be_tampered_with(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $teacher = User::factory()->teacherOf($classroom)->create();
+        $student = User::factory()->studentOf($classroom)->create();
+
+        $url = $this->removeAndGetUndoUrl($teacher, $classroom, $student);
+
+        $this->actingAs($teacher)->post(str_replace('role=student', 'role=teacher', $url))->assertForbidden();
+
+        $this->travel(3)->minutes();
+        $this->actingAs($teacher)->post($url)->assertForbidden();
+
+        $this->assertFalse($student->flushClassroomRoles()->isMemberOf($classroom));
     }
 }

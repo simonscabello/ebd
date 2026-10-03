@@ -139,6 +139,9 @@ Route::middleware(['auth', 'can:access-admin'])
         // Vínculos (adicionar por e-mail, remover da classe) e link pessoal.
         Route::post('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'store'])->name('classrooms.members.store');
         Route::delete('classes/{classroom}/membros/{user}', [Admin\ClassroomMemberController::class, 'destroy'])->name('classrooms.members.destroy');
+        Route::post('classes/{classroom}/membros/{user}/restaurar', [Admin\ClassroomMemberController::class, 'restore'])
+            ->middleware('signed')
+            ->name('classrooms.members.restore');
         Route::post('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'issue'])->name('classrooms.members.link.store');
         Route::delete('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'revoke'])->name('classrooms.members.link.destroy');
 

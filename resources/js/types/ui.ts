@@ -11,6 +11,8 @@ export type AppVariant = 'header' | 'sidebar';
 export type FlashToast = {
     type: 'success' | 'info' | 'warning' | 'error';
     message: string;
+    /** Botão no toast (ex.: Desfazer); a URL recebe um POST. */
+    action?: { label: string; url: string };
 };
 
 export type AuthLayoutProps = {
