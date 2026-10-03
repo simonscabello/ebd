@@ -231,4 +231,29 @@ class EngagementTest extends TestCase
                 ->where('progress.lessons.0.present', 1)
                 ->where('progress.lessons.0.meetings', 1));
     }
+
+    public function test_meu_progresso_shows_how_far_each_badge_is(): void
+    {
+        $past = Lesson::factory()->for($this->classroom)->published()->on('2026-09-20')->create(['title' => 'Passada']);
+        $this->checkIn($past, 1, '2026-09-21');
+        $this->checkIn($past, 2, '2026-09-22');
+        $this->checkIn($past, 3, '2026-09-23');
+
+        $this->actingAs($this->student)->get('/meu-progresso')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('progress.available_badges.0.badge', Badge::FirstFullWeek->value)
+                ->where('progress.available_badges.0.progress', ['current' => 3, 'target' => 6])
+                ->where('progress.available_badges.1.progress', ['current' => 3, 'target' => 7])
+                ->where('progress.available_badges.2.progress', ['current' => 3, 'target' => 30])
+                // Lição avulsa: sem série, os selos por série ficam sem número.
+                ->where('progress.available_badges.3.progress', null));
+    }
+
+    public function test_lesson_without_reading_plan_has_zero_total(): void
+    {
+        Lesson::factory()->for($this->classroom)->published()->on('2026-09-20')->create(['title' => 'Sem plano']);
+
+        $this->actingAs($this->student)->get('/meu-progresso')
+            ->assertInertia(fn (Assert $page) => $page->where('progress.lessons.0.readings_total', 0));
+    }
 }
