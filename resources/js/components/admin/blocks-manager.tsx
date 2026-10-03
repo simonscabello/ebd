@@ -3,13 +3,13 @@ import { Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
 import { useConfirm } from '@/components/confirm-dialog';
+import { MarkdownEditor } from '@/components/admin/markdown-editor';
 import { UnsavedHint } from '@/components/admin/unsaved-hint';
 import { Field } from '@/components/form-field';
 import { BlockIcon } from '@/components/lesson/block-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
-import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { cn } from '@/lib/utils';
 import { destroy, store, update } from '@/routes/admin/lessons/blocks';
@@ -300,15 +300,13 @@ function BlockEditor({
                 label="Conteúdo"
                 htmlFor={`${prefix}-body`}
                 error={errors.body}
-                hint="Aceita Markdown (### subtítulo, **negrito**, *itálico*, listas)."
+                hint="Use a barra para títulos, negrito e listas; confira em “Prévia”."
             >
-                <Textarea
+                <MarkdownEditor
                     id={`${prefix}-body`}
                     value={data.body}
-                    onChange={(event) => setData('body', event.target.value)}
+                    onChange={(value) => setData('body', value)}
                     rows={block ? 10 : 6}
-                    className="font-mono text-sm"
-                    required
                 />
             </Field>
 

@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { Globe, Lock, Save } from 'lucide-react';
 import { BiblePreview } from '@/components/admin/bible-preview';
+import { MarkdownEditor } from '@/components/admin/markdown-editor';
 import { Field } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -283,23 +284,13 @@ export function LessonForm({
                 label="Estudo principal"
                 htmlFor="content"
                 error={errors.content}
-                hint={
-                    <>
-                        Siga a revista: introdução, <code>## I. …</code>,{' '}
-                        <code>### 1. …</code> e conclusão. Aceita Markdown (
-                        <code>**negrito**</code>, <code>*itálico*</code>,{' '}
-                        <code>&gt; citação</code>, listas). Os títulos viram os
-                        tópicos do Modo Domingo. Roteiro, contexto, curiosidades
-                        e conceitos entram como blocos, mais abaixo.
-                    </>
-                }
+                hint="Siga a revista: introdução, tópicos (I, II, III…) e conclusão. Os títulos de tópico viram o roteiro do Modo Domingo; veja como fica em “Prévia”. Roteiro, contexto, curiosidades e conceitos entram como blocos, mais abaixo."
             >
-                <Textarea
+                <MarkdownEditor
                     id="content"
                     value={data.content}
-                    onChange={(event) => setData('content', event.target.value)}
+                    onChange={(value) => setData('content', value)}
                     rows={14}
-                    className="font-mono text-sm"
                 />
             </Field>
 
