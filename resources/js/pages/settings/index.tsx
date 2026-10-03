@@ -1,5 +1,6 @@
 import { Head, usePage } from '@inertiajs/react';
 import {
+    CircleHelp,
     CalendarCheck,
     IdCard,
     LockKeyhole,
@@ -18,7 +19,7 @@ import {
     SettingsRow,
 } from '@/components/settings/settings-list';
 import { Badge } from '@/components/ui/badge';
-import { home, install, logout, myWeek } from '@/routes';
+import { help, home, install, logout, myWeek } from '@/routes';
 import { dashboard } from '@/routes/admin';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
@@ -154,6 +155,12 @@ export default function Account({ classrooms }: Props) {
                 </SettingsGroup>
 
                 <SettingsCard>
+                    <SettingsRow
+                        href={help.url()}
+                        icon={<CircleHelp />}
+                        title="Como funciona"
+                        description="Ajuda rápida sobre o app"
+                    />
                     <SettingsRow
                         href={install.url()}
                         icon={<Smartphone />}

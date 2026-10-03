@@ -9,6 +9,7 @@ import {
     Presentation,
     Users,
 } from 'lucide-react';
+import { HelpHint } from '@/components/admin/help-hint';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
@@ -92,6 +93,8 @@ export default function AdminDashboard({
                         </>
                     }
                 />
+
+                <HelpHint />
 
                 <div className="space-y-10">
                     {classrooms.length > 0 && (

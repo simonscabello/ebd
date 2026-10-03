@@ -76,6 +76,9 @@ Route::middleware('auth')->group(function () {
 // Tutorial para instalar o app (PWA) no Android e no iPhone.
 Route::inertia('instalar', 'install')->name('install');
 
+// "Como funciona": ajuda para alunos e professores.
+Route::inertia('ajuda', 'help')->name('help');
+
 Route::get('biblioteca', LibraryController::class)
     ->middleware('throttle:library')
     ->name('library');
