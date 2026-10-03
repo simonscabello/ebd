@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { BiblePreview } from '@/components/admin/bible-preview';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
 import { useConfirm } from '@/components/confirm-dialog';
+import { UnsavedHint } from '@/components/admin/unsaved-hint';
 import { Field } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { destroy, store, update } from '@/routes/admin/lessons/readings';
 import type { LessonReading, Option } from '@/types';
 
@@ -147,6 +149,12 @@ function ReadingEditor({
         reference: reading?.reference ?? '',
         notes: reading?.notes ?? '',
     });
+    const unsaved =
+        form.isDirty &&
+        (reading !== undefined ||
+            Boolean(form.data.reference || form.data.notes));
+
+    useUnsavedChangesGuard(unsaved && !form.processing);
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -238,7 +246,8 @@ function ReadingEditor({
                     className="min-h-16"
                 />
             </Field>
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center justify-end gap-2">
+                {unsaved && <UnsavedHint />}
                 {onDone && (
                     <Button type="button" variant="ghost" onClick={onDone}>
                         Cancelar

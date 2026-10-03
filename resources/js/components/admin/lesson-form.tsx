@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { cn } from '@/lib/utils';
 import { store, update } from '@/routes/admin/lessons';
 import type { Classroom, Option, Series } from '@/types';
@@ -53,6 +54,8 @@ export function LessonForm({
     const editing = lessonId !== undefined;
     const form = useForm<LessonFormData>(initial);
     const { data, setData, errors, processing, isDirty } = form;
+
+    useUnsavedChangesGuard(isDirty && !processing);
 
     const availableSeries = series.filter(
         (item) =>

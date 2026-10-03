@@ -3,12 +3,14 @@ import { Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
 import { useConfirm } from '@/components/confirm-dialog';
+import { UnsavedHint } from '@/components/admin/unsaved-hint';
 import { Field } from '@/components/form-field';
 import { BlockIcon } from '@/components/lesson/block-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { cn } from '@/lib/utils';
 import { destroy, store, update } from '@/routes/admin/lessons/blocks';
 import type { Audience, LessonBlock, LessonBlockKind, Option } from '@/types';
@@ -170,6 +172,12 @@ function BlockEditor({
     });
     const { data, setData, errors, processing } = form;
     const prefix = block ? `block-${block.id}` : 'block-new';
+    // No bloco novo, trocar só o tipo não conta como alteração.
+    const unsaved =
+        form.isDirty &&
+        (block !== undefined || Boolean(data.title || data.body));
+
+    useUnsavedChangesGuard(unsaved && !processing);
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -332,7 +340,8 @@ function BlockEditor({
                 </Field>
             )}
 
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center justify-end gap-2">
+                {unsaved && <UnsavedHint />}
                 {onDone && (
                     <Button type="button" variant="ghost" onClick={onDone}>
                         Cancelar
