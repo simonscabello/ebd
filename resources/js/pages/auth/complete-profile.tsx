@@ -37,6 +37,7 @@ export default function CompleteProfile({
         <>
             <Head title="Complete seu cadastro" />
             <Form
+                noValidate
                 {...store.form()}
                 resetOnError={['password', 'password_confirmation']}
                 disableWhileProcessing

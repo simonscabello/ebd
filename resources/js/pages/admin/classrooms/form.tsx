@@ -50,6 +50,7 @@ export default function ClassroomForm({
                     title={classroom ? 'Editar classe' : 'Nova classe'}
                 />
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.submit(
@@ -196,6 +197,7 @@ function Teachers({
                 </ul>
             )}
             <form
+                noValidate
                 onSubmit={(event) => {
                     event.preventDefault();
                     form.post(addMember.url(classroom.slug), {

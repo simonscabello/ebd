@@ -375,6 +375,7 @@ function LessonPicker({
 
     return (
         <form
+            noValidate
             onSubmit={(event) => {
                 event.preventDefault();
                 form.transform((values) => ({
@@ -424,6 +425,7 @@ function NotesForm({ meeting }: { meeting: Meeting }) {
 
     return (
         <form
+            noValidate
             onSubmit={(event) => {
                 event.preventDefault();
                 form.put(update.url(meeting.id), { preserveScroll: true });

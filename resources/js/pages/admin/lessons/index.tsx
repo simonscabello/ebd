@@ -62,6 +62,7 @@ export default function AdminLessonsIndex({
                 />
 
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         visit({});

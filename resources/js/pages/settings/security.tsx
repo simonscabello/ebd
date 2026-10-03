@@ -30,6 +30,7 @@ export default function Security(props: Props) {
 
             <div className="space-y-6">
                 <Form
+                    noValidate
                     {...SecurityController.update.form()}
                     options={{
                         preserveScroll: true,

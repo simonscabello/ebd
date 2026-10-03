@@ -30,6 +30,7 @@ export default function Login({ status, canResetPassword }: Props) {
             )}
 
             <Form
+                noValidate
                 {...store.form()}
                 resetOnSuccess={['password']}
                 className="flex flex-col gap-6"

@@ -205,6 +205,7 @@ function BlockEditor({
 
     return (
         <form
+            noValidate
             onSubmit={submit}
             className={
                 block

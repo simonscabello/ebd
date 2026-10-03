@@ -47,6 +47,7 @@ export function PlanMeetingsDialog({
             </DialogTrigger>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.transform((values) => ({

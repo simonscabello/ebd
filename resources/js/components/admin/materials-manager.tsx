@@ -8,6 +8,7 @@ import { Field } from '@/components/form-field';
 import { MaterialIcon } from '@/components/lesson/material-card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { FileInput } from '@/components/ui/file-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -222,6 +223,7 @@ function MaterialEditor({
 
     return (
         <form
+            noValidate
             onSubmit={submit}
             className={
                 material
@@ -295,15 +297,12 @@ function MaterialEditor({
                     error={errors.file}
                     hint={`Formatos: ${type.accept.replaceAll('.', '').replaceAll(',', ', ')}. Até ${type.max_mb} MB.${type.value === 'audio' ? ' Ou informe um link abaixo.' : ''}`}
                 >
-                    <Input
+                    <FileInput
                         id={`${prefix}-file`}
-                        type="file"
                         accept={type.accept}
-                        onChange={(event) =>
-                            setData('file', event.target.files?.[0] ?? null)
-                        }
-                        required={!material && type.requires_upload}
-                        className="h-auto py-2"
+                        file={data.file}
+                        onFileChange={(file) => setData('file', file)}
+                        aria-invalid={errors.file ? true : undefined}
                     />
                     {progress && (
                         <progress

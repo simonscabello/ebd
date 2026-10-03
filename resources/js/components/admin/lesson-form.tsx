@@ -88,7 +88,7 @@ export function LessonForm({
     };
 
     return (
-        <form onSubmit={submit} className="space-y-6">
+        <form noValidate onSubmit={submit} className="space-y-6">
             {!editing && classrooms && (
                 <Field
                     label="Classe"

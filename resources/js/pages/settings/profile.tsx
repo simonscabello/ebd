@@ -43,6 +43,7 @@ export default function Profile({ profile, isStudent, genders }: Props) {
 
             <div className="space-y-6">
                 <Form
+                    noValidate
                     {...ProfileController.update.form()}
                     options={{
                         preserveScroll: true,

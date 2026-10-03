@@ -41,6 +41,7 @@ export function MoveStudentDialog({
             </DialogTrigger>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.post(

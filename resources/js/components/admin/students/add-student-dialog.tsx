@@ -69,6 +69,7 @@ export function AddStudentDialog({
             </DialogTrigger>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         submit(false);

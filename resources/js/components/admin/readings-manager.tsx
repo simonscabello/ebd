@@ -178,6 +178,7 @@ function ReadingEditor({
 
     return (
         <form
+            noValidate
             onSubmit={submit}
             className={
                 reading

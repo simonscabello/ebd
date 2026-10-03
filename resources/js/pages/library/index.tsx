@@ -88,6 +88,7 @@ export default function LibraryIndex({
                 />
 
                 <form
+                    noValidate
                     role="search"
                     onSubmit={(event) => {
                         event.preventDefault();

@@ -33,6 +33,7 @@ export function EditMeetingDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.transform((values) => ({

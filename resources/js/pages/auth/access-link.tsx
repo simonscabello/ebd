@@ -93,6 +93,7 @@ export default function AccessLink({ currentUser }: Props) {
             <>
                 <Head title="Entrar com meu link" />
                 <form
+                    noValidate
                     className="flex flex-col gap-4"
                     onSubmit={(event) => {
                         event.preventDefault();
