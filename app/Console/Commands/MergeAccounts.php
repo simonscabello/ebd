@@ -123,7 +123,7 @@ class MergeAccounts extends Command
 
         $keep->refresh();
 
-        $this->components->info("Contas juntadas. {$keep->name} entra com ".($keep->email ?? 'o link pessoal').'.');
+        $this->components->info("Contas juntadas. {$keep->name} entra com ".($keep->email ?? 'o link de acesso').'.');
 
         return self::SUCCESS;
     }

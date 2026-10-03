@@ -67,7 +67,7 @@ export default function SeriesForm({
                     }
                 />
 
-                <form onSubmit={submit} className="space-y-6">
+                <form noValidate onSubmit={submit} className="space-y-6">
                     {!series && (
                         <Field
                             label="Classe"

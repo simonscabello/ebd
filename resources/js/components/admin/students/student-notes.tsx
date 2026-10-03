@@ -40,6 +40,7 @@ export function StudentNotes({
     return (
         <div className="space-y-4">
             <form
+                noValidate
                 onSubmit={(event) => {
                     event.preventDefault();
                     form.post(
@@ -78,7 +79,7 @@ export function StudentNotes({
                             form.processing || form.data.body.trim() === ''
                         }
                     >
-                        Guardar anotação
+                        Salvar anotação
                     </Button>
                 </div>
             </form>
@@ -141,6 +142,7 @@ function NoteItem({ note }: { note: StudentNote }) {
             </p>
             {editing ? (
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.put(update.url(note.id), {

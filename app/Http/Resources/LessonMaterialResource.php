@@ -35,7 +35,9 @@ class LessonMaterialResource extends JsonResource
                 'name' => $this->original_name,
                 'extension' => strtoupper(pathinfo((string) $this->original_name, PATHINFO_EXTENSION)),
                 'mime_type' => $this->mime_type,
-                'size' => $this->size_bytes ? Number::fileSize($this->size_bytes, precision: 1) : null,
+                'size' => $this->size_bytes
+                    ? Number::withLocale('pt_BR', fn () => Number::fileSize($this->size_bytes, maxPrecision: 1))
+                    : null,
                 'open_url' => route('materials.file', $this->resource),
                 'download_url' => route('materials.file', [$this->resource, 'download' => 1]),
             ] : null,

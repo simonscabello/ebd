@@ -57,6 +57,7 @@ export function EditStudentDialog({
             </DialogTrigger>
             <DialogContent>
                 <Form
+                    noValidate
                     {...update.form({
                         classroom: classroom.slug,
                         user: student.id,

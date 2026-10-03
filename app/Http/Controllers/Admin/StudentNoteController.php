@@ -35,7 +35,7 @@ class StudentNoteController extends Controller
         $note->author_id = $request->user()->id;
         $note->save();
 
-        $this->toast('Anotação guardada.');
+        $this->toast('Anotação salva.');
 
         return back();
     }

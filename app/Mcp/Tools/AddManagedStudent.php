@@ -21,7 +21,7 @@ class AddManagedStudent extends EbdTool
 
     protected string $title = 'Cadastrar aluno';
 
-    protected string $description = 'Cadastra um aluno na classe, sem e-mail nem senha (conta gerenciada pelo professor). O link pessoal de acesso é gerado e enviado pela pessoa na tela de Membros (members_url). Se já houver aluno com nome parecido, a ferramenta recusa: confirme com a pessoa e repita com confirm_duplicate.';
+    protected string $description = 'Cadastra um aluno na classe, sem e-mail nem senha (conta gerenciada pelo professor). O link de acesso é gerado e enviado pela pessoa na tela de Membros (members_url). Se já houver aluno com nome parecido, a ferramenta recusa: confirme com a pessoa e repita com confirm_duplicate.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -61,7 +61,7 @@ class AddManagedStudent extends EbdTool
 
         return $this->json([
             'student' => Presenter::student($student),
-            'message' => 'Aluno cadastrado. Para ele entrar no app, gere e envie o link pessoal na tela Alunos: '.route('admin.classrooms.students.index', $classroom),
+            'message' => 'Aluno cadastrado. Para ele entrar no app, gere e envie o link de acesso na tela Alunos: '.route('admin.classrooms.students.index', $classroom),
             'students_url' => route('admin.classrooms.students.index', $classroom),
         ]);
     }

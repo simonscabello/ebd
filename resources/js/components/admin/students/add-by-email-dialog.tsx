@@ -32,6 +32,7 @@ export function AddByEmailDialog({ classroom }: { classroom: Classroom }) {
             </DialogTrigger>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.submit(store(classroom.slug), {

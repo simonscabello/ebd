@@ -11,7 +11,10 @@ use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 
 class ClassroomMemberController extends Controller
 {
@@ -36,6 +39,13 @@ class ClassroomMemberController extends Controller
             Gate::authorize('assignTeachers', $classroom);
         }
 
+        // Guardados para o "Desfazer": o papel e a data de entrada, que conta
+        // na frequência (ver Enrollment).
+        $membership = DB::table('classroom_user')
+            ->where('classroom_id', $classroom->id)
+            ->where('user_id', $user->id)
+            ->first(['role', 'created_at']);
+
         $classroom->members()->detach($user->id);
         $user->flushClassroomRoles();
 
@@ -47,10 +57,55 @@ class ClassroomMemberController extends Controller
             $revoke->handle($user);
         }
 
-        $this->toast("{$user->name} foi removido(a) da classe.");
+        $this->toast("{$user->name} foi removido(a) da classe.", action: $membership ? [
+            'label' => 'Desfazer',
+            'url' => URL::temporarySignedRoute('admin.classrooms.members.restore', now()->addMinutes(2), [
+                'classroom' => $classroom,
+                'user' => $user,
+                'role' => $membership->role,
+                'since' => Carbon::parse($membership->created_at)->getTimestamp(),
+            ]),
+        ] : null);
 
         // Professor sai pela edição da classe; aluno, pela ficha, que deixa de
         // existir: nesse caso volta para a lista de Alunos.
         return $wasTeacher ? back() : to_route('admin.classrooms.students.index', $classroom);
+    }
+
+    /**
+     * "Desfazer" do toast de remoção: devolve a pessoa à classe com o papel e
+     * a data de entrada de antes. O link assinado vale por 2 minutos. Links
+     * de acesso revogados na remoção continuam revogados.
+     */
+    public function restore(Request $request, Classroom $classroom, User $user): RedirectResponse
+    {
+        Gate::authorize('manageMembers', $classroom);
+
+        $role = ClassroomRole::from((string) $request->query('role'));
+
+        if ($role === ClassroomRole::Teacher) {
+            Gate::authorize('assignTeachers', $classroom);
+        }
+
+        if ($user->isMemberOf($classroom->id)) {
+            $this->toast("{$user->name} já está na classe.", 'info');
+
+            return back();
+        }
+
+        $classroom->members()->attach($user->id, [
+            'role' => $role->value,
+            'created_at' => Carbon::createFromTimestamp((int) $request->query('since')),
+            'updated_at' => now(),
+        ]);
+        $user->flushClassroomRoles();
+
+        $this->toast($user->isManaged()
+            ? "{$user->name} voltou para a classe. Envie um novo link de acesso."
+            : "{$user->name} voltou para a classe.");
+
+        return $role === ClassroomRole::Teacher
+            ? back()
+            : to_route('admin.classrooms.students.show', [$classroom, $user]);
     }
 }

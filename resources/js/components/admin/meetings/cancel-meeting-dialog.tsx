@@ -35,6 +35,7 @@ export function CancelMeetingDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.post(cancel.url(meeting.id), {

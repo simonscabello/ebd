@@ -18,7 +18,7 @@ import { plan } from '@/routes/admin/classrooms/meetings';
 import type { Classroom, Series } from '@/types';
 
 /**
- * "Planejar trimestre": cria os domingos do período e distribui as lições da
+ * "Planejar série": cria os domingos do período e distribui as lições da
  * série pela numeração da revista, sem mexer no que já está na agenda.
  */
 export function PlanMeetingsDialog({
@@ -42,11 +42,12 @@ export function PlanMeetingsDialog({
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline">
-                    <Wand2 /> Planejar trimestre
+                    <Wand2 /> Planejar série
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.transform((values) => ({
@@ -61,7 +62,7 @@ export function PlanMeetingsDialog({
                     className="space-y-4"
                 >
                     <DialogHeader>
-                        <DialogTitle>Planejar trimestre</DialogTitle>
+                        <DialogTitle>Planejar série</DialogTitle>
                         <DialogDescription>
                             Cria um domingo para cada semana do período e
                             distribui as lições da série (pela numeração da

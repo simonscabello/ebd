@@ -55,13 +55,13 @@ export function AccessCard({
         const ok = await confirm(
             student.has_password
                 ? {
-                      title: `Gerar um link de recuperação para ${student.name}?`,
+                      title: `Gerar um novo link de acesso para ${student.name}?`,
                       description:
                           'Use quando a pessoa esqueceu a senha. Ao abrir o link, a senha atual deixa de valer e ela cria outra.',
                       confirmLabel: 'Gerar link',
                   }
                 : {
-                      title: `Gerar ${access.link ? 'um novo link' : 'o link'} para ${student.name}?`,
+                      title: `Gerar ${access.link ? 'um novo link de acesso' : 'o link de acesso'} para ${student.name}?`,
                       description: access.link
                           ? 'O link atual deixa de funcionar.'
                           : 'Você envia o link pelo WhatsApp; a pessoa entra e completa o cadastro.',
@@ -90,7 +90,7 @@ export function AccessCard({
             await confirm({
                 title: `Bloquear o acesso de ${student.name}?`,
                 description:
-                    'Todos os aparelhos conectados saem da conta. Para voltar, gere um novo link.',
+                    'Todos os aparelhos conectados saem da conta. Para voltar, gere um novo link de acesso.',
                 confirmLabel: 'Bloquear',
                 destructive: true,
             })
@@ -147,10 +147,10 @@ export function AccessCard({
                 <Button size="sm" variant="outline" onClick={generate}>
                     <Link2 />
                     {student.has_password
-                        ? 'Link de recuperação'
+                        ? 'Novo link de acesso'
                         : access.link
-                          ? 'Novo link'
-                          : 'Gerar link'}
+                          ? 'Novo link de acesso'
+                          : 'Gerar link de acesso'}
                 </Button>
                 {access.link && (
                     <Button size="sm" variant="ghost" onClick={block}>

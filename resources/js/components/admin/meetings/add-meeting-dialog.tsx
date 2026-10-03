@@ -46,6 +46,7 @@ export function AddMeetingDialog({
             </DialogTrigger>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.transform((values) => ({
@@ -113,7 +114,7 @@ export function AddMeetingDialog({
                         label="Título (opcional)"
                         htmlFor="meeting-title"
                         error={form.errors.title}
-                        hint="Para domingos especiais, ex.: Revisão do trimestre."
+                        hint="Para domingos especiais, ex.: Revisão da série."
                     >
                         <Input
                             id="meeting-title"

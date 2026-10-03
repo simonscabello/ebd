@@ -15,7 +15,7 @@ import { LessonHero } from '@/components/lesson/lesson-hero';
 import { TodayReadingCard } from '@/components/lesson/today-reading-card';
 import { RemindersBanner } from '@/components/reminders-banner';
 import { EmptyState, Page } from '@/components/page';
-import { cn } from '@/lib/utils';
+import { cn, plural } from '@/lib/utils';
 import { home, library, login, myWeek } from '@/routes';
 import { show, sunday } from '@/routes/lessons';
 import type { ClassMeeting, Classroom, Lesson, Series } from '@/types';
@@ -132,25 +132,20 @@ export default function Home({
                     </p>
                 ))}
 
-                {isStudent && nextLesson && (
-                    <Link
-                        href={myWeek({
-                            query: classroom ? { classe: classroom.slug } : {},
-                        })}
-                        className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-accent/60 px-4 py-3 font-medium text-accent-foreground hover:bg-accent"
-                    >
-                        <span>
-                            Minha semana: leitura de hoje, curiosidade do dia e
-                            preparação para domingo
-                        </span>
-                        <ArrowRight className="size-4 shrink-0" />
-                    </Link>
-                )}
-
                 {nextLesson ? (
                     <NextLesson
                         lesson={nextLesson}
                         todayReadingDone={todayReadingDone}
+                        // Aluno: leitura de hoje e "Leituras" levam à Minha semana.
+                        weekHref={
+                            isStudent
+                                ? myWeek.url({
+                                      query: classroom
+                                          ? { classe: classroom.slug }
+                                          : {},
+                                  })
+                                : undefined
+                        }
                         meeting={meeting}
                         position={
                             meetingTotal > 1
@@ -222,7 +217,7 @@ export default function Home({
                 {!auth.user && (
                     <p className="mt-10 rounded-2xl bg-muted/70 p-4 text-sm text-muted-foreground">
                         Faz parte de uma classe? Peça ao seu professor o seu
-                        link pessoal: com ele você marca as leituras, faz
+                        link de acesso: com ele você marca as leituras, faz
                         anotações e acompanha seu progresso. Já tem senha?{' '}
                         <Link
                             href={login()}
@@ -267,8 +262,10 @@ function NextLesson({
     meeting,
     position,
     todayReadingDone,
+    weekHref,
 }: {
     lesson: Lesson;
+    weekHref?: string;
     meeting: ClassMeeting | null;
     position: string | null;
     todayReadingDone: boolean;
@@ -299,7 +296,7 @@ function NextLesson({
                 <TodayReadingCard
                     reading={todayReading}
                     done={todayReadingDone}
-                    href={`${lessonUrl}#leituras`}
+                    href={weekHref ?? `${lessonUrl}#leituras`}
                 />
             )}
 
@@ -314,17 +311,17 @@ function NextLesson({
                     title="Lição"
                     detail={
                         primary
-                            ? `${primary.file?.extension ?? 'PDF'}${primary.file?.size ? ` · ${primary.file.size}` : ''}`
+                            ? `Abrir o ${primary.file?.extension || 'PDF'}`
                             : 'Ler o estudo'
                     }
                 />
                 <StudyTile
-                    href={`${lessonUrl}#leituras`}
+                    href={weekHref ?? `${lessonUrl}#leituras`}
                     icon={<CalendarDays />}
                     title="Leituras"
                     detail={
                         readings.length
-                            ? `${readings.length} na semana`
+                            ? `${plural(readings.length, 'leitura', 'leituras')} na semana`
                             : 'Texto base'
                     }
                 />
@@ -334,7 +331,7 @@ function NextLesson({
                     title="Material complementar"
                     detail={
                         complementary.length
-                            ? `${complementary.length} ${complementary.length === 1 ? 'item' : 'itens'}`
+                            ? plural(complementary.length, 'item', 'itens')
                             : 'Nenhum ainda'
                     }
                 />

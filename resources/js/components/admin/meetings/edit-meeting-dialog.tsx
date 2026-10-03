@@ -33,6 +33,7 @@ export function EditMeetingDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.transform((values) => ({
@@ -71,7 +72,7 @@ export function EditMeetingDialog({
                         label="Título (opcional)"
                         htmlFor="edit-meeting-title"
                         error={form.errors.title}
-                        hint="Para domingos especiais, ex.: Revisão do trimestre."
+                        hint="Para domingos especiais, ex.: Revisão da série."
                     >
                         <Input
                             id="edit-meeting-title"

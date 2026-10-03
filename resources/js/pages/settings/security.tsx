@@ -30,6 +30,7 @@ export default function Security(props: Props) {
 
             <div className="space-y-6">
                 <Form
+                    noValidate
                     {...SecurityController.update.form()}
                     options={{
                         preserveScroll: true,
@@ -74,7 +75,7 @@ export default function Security(props: Props) {
                                 </div>
                             ) : (
                                 <p className="rounded-xl bg-muted/70 p-3 text-sm text-muted-foreground">
-                                    Você entra pelo link pessoal. Se quiser,
+                                    Você entra pelo link de acesso. Se quiser,
                                     crie uma senha para entrar também com e-mail
                                     (cadastre o e-mail no perfil antes).
                                 </p>

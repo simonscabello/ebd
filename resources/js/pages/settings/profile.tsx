@@ -43,6 +43,7 @@ export default function Profile({ profile, isStudent, genders }: Props) {
 
             <div className="space-y-6">
                 <Form
+                    noValidate
                     {...ProfileController.update.form()}
                     options={{
                         preserveScroll: true,
@@ -86,7 +87,7 @@ export default function Profile({ profile, isStudent, genders }: Props) {
 
                                 {!auth.user?.has_password && (
                                     <p className="text-xs text-muted-foreground">
-                                        Opcional. Você entra pelo link pessoal
+                                        Opcional. Você entra pelo link de acesso
                                         enviado pelo professor. Cadastre um
                                         e-mail se quiser criar uma senha.
                                     </p>

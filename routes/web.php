@@ -76,6 +76,9 @@ Route::middleware('auth')->group(function () {
 // Tutorial para instalar o app (PWA) no Android e no iPhone.
 Route::inertia('instalar', 'install')->name('install');
 
+// "Como funciona": ajuda para alunos e professores.
+Route::inertia('ajuda', 'help')->name('help');
+
 Route::get('biblioteca', LibraryController::class)
     ->middleware('throttle:library')
     ->name('library');
@@ -92,6 +95,7 @@ Route::middleware(['auth', 'can:access-admin'])
     ->group(function () {
         Route::get('/', Admin\DashboardController::class)->name('dashboard');
         Route::get('biblia/previa', Admin\BiblePreviewController::class)->name('bible.preview');
+        Route::post('markdown/previa', Admin\MarkdownPreviewController::class)->name('markdown.preview');
 
         Route::resource('classes', Admin\ClassroomController::class)
             ->parameters(['classes' => 'classroom'])
@@ -108,6 +112,7 @@ Route::middleware(['auth', 'can:access-admin'])
             ->scopeBindings()
             ->name('classrooms.meetings.show');
         Route::put('encontros/{meeting}', [Admin\ClassMeetingController::class, 'update'])->name('meetings.update');
+        Route::put('encontros/{meeting}/anotacao', [Admin\MeetingNoteController::class, 'update'])->name('meetings.notes.update');
         Route::delete('encontros/{meeting}', [Admin\ClassMeetingController::class, 'destroy'])->name('meetings.destroy');
         Route::post('encontros/{meeting}/cancelar', [Admin\MeetingStatusController::class, 'cancel'])->name('meetings.cancel');
         Route::post('encontros/{meeting}/restaurar', [Admin\MeetingStatusController::class, 'restore'])->name('meetings.restore');
@@ -134,6 +139,9 @@ Route::middleware(['auth', 'can:access-admin'])
         // Vínculos (adicionar por e-mail, remover da classe) e link pessoal.
         Route::post('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'store'])->name('classrooms.members.store');
         Route::delete('classes/{classroom}/membros/{user}', [Admin\ClassroomMemberController::class, 'destroy'])->name('classrooms.members.destroy');
+        Route::post('classes/{classroom}/membros/{user}/restaurar', [Admin\ClassroomMemberController::class, 'restore'])
+            ->middleware('signed')
+            ->name('classrooms.members.restore');
         Route::post('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'issue'])->name('classrooms.members.link.store');
         Route::delete('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'revoke'])->name('classrooms.members.link.destroy');
 

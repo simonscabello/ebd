@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { Globe, Lock, Save } from 'lucide-react';
 import { BiblePreview } from '@/components/admin/bible-preview';
+import { MarkdownEditor } from '@/components/admin/markdown-editor';
 import { Field } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { cn } from '@/lib/utils';
 import { store, update } from '@/routes/admin/lessons';
 import type { Classroom, Option, Series } from '@/types';
@@ -54,6 +56,8 @@ export function LessonForm({
     const form = useForm<LessonFormData>(initial);
     const { data, setData, errors, processing, isDirty } = form;
 
+    useUnsavedChangesGuard(isDirty && !processing);
+
     const availableSeries = series.filter(
         (item) =>
             data.classroom_id === null ||
@@ -85,7 +89,7 @@ export function LessonForm({
     };
 
     return (
-        <form onSubmit={submit} className="space-y-6">
+        <form noValidate onSubmit={submit} className="space-y-6">
             {!editing && classrooms && (
                 <Field
                     label="Classe"
@@ -280,23 +284,13 @@ export function LessonForm({
                 label="Estudo principal"
                 htmlFor="content"
                 error={errors.content}
-                hint={
-                    <>
-                        Siga a revista: introdução, <code>## I. …</code>,{' '}
-                        <code>### 1. …</code> e conclusão. Aceita Markdown (
-                        <code>**negrito**</code>, <code>*itálico*</code>,{' '}
-                        <code>&gt; citação</code>, listas). Os títulos viram os
-                        tópicos do Modo Domingo. Roteiro, contexto, curiosidades
-                        e conceitos entram como blocos, mais abaixo.
-                    </>
-                }
+                hint="Siga a revista: introdução, tópicos (I, II, III…) e conclusão. Os títulos de tópico viram o roteiro do Modo Domingo; veja como fica em “Prévia”. Roteiro, contexto, curiosidades e conceitos entram como blocos, mais abaixo."
             >
-                <Textarea
+                <MarkdownEditor
                     id="content"
                     value={data.content}
-                    onChange={(event) => setData('content', event.target.value)}
+                    onChange={(value) => setData('content', value)}
                     rows={14}
-                    className="font-mono text-sm"
                 />
             </Field>
 

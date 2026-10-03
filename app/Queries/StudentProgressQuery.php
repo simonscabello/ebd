@@ -2,10 +2,12 @@
 
 namespace App\Queries;
 
+use App\Actions\Engagement\AwardBadges;
 use App\Enums\Badge;
 use App\Enums\MeetingStatus;
 use App\Models\Classroom;
 use App\Models\Lesson;
+use App\Models\Series;
 use App\Models\User;
 use App\Models\UserBadge;
 use App\Support\ChurchCalendar;
@@ -22,14 +24,15 @@ class StudentProgressQuery
 {
     public function __construct(
         private readonly StudyStreak $streak,
+        private readonly AwardBadges $badges,
     ) {}
 
     /**
      * @return array{
      *     streak: array{current: int, best: int, today_done: bool},
      *     badges: Collection<int, array{badge: value-of<Badge>, label: string, description: string, emoji: string, series: string|null, awarded_at: string}>,
-     *     available_badges: list<array{badge: value-of<Badge>, label: string, description: string, emoji: string}>,
-     *     lessons: Collection<int, array{id: int, slug: string, display_title: string, date_short: string|null, days_read: int, readings_total: positive-int, meetings: int, present: int}>,
+     *     available_badges: list<array{badge: value-of<Badge>, label: string, description: string, emoji: string, progress: array{current: int, target: int}|null}>,
+     *     lessons: Collection<int, array{id: int, slug: string, display_title: string, date_short: string|null, days_read: int, readings_total: int, meetings: int, present: int}>,
      * }
      */
     public function for(User $user, Classroom $classroom, int $limit = 12): array
@@ -71,6 +74,10 @@ class StudentProgressQuery
             ->get()
             ->keyBy('lesson_id');
 
+        // Selos por série: a série da lição dada mais recentemente.
+        $series = Series::query()->find($lessons->first()?->series_id);
+        $progress = $this->badges->progress($user, $series);
+
         return [
             'streak' => $this->streak->for($user),
             'badges' => UserBadge::query()
@@ -91,6 +98,7 @@ class StudentProgressQuery
                 'label' => $b->label(),
                 'description' => $b->description(),
                 'emoji' => $b->emoji(),
+                'progress' => $progress[$b->value] ?? null,
             ], Badge::cases()),
             'lessons' => $lessons->map(function (Lesson $lesson) use ($daysRead, $attendance) {
                 $presence = $attendance->get($lesson->id);
@@ -103,7 +111,7 @@ class StudentProgressQuery
                         ? ChurchCalendar::formatShort(new \DateTimeImmutable((string) $lesson->getAttribute('last_meeting_on')))
                         : null,
                     'days_read' => (int) ($daysRead[$lesson->id] ?? 0),
-                    'readings_total' => max((int) $lesson->getAttribute('readings_count'), 1),
+                    'readings_total' => (int) $lesson->getAttribute('readings_count'),
                     'meetings' => $presence ? (int) $presence->meetings : 0,
                     'present' => $presence ? (int) $presence->present : 0,
                 ];

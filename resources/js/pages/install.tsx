@@ -142,7 +142,7 @@ export default function Install() {
                         </Steps>
                         <p className="text-sm text-muted-foreground">
                             No Android o app usa o mesmo login do Chrome: se
-                            você já entrou pelo link do professor, continua
+                            você já entrou pelo link de acesso, continua
                             conectado.
                         </p>
                     </div>
@@ -174,7 +174,7 @@ export default function Install() {
                             <Step n={5} icon={<KeyRound />}>
                                 O iPhone não leva o login do Safari para o app.
                                 Se pedir para entrar,{' '}
-                                <strong>copie o link pessoal</strong> que o
+                                <strong>copie o link de acesso</strong> que o
                                 professor mandou no WhatsApp (toque e segure no
                                 link → Copiar) e cole em{' '}
                                 <Link

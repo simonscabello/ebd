@@ -60,7 +60,7 @@ class StudentAccessController extends Controller
         $url = $issue->handle($user, $classroom, $request->user());
 
         $this->flashLink($user, $url);
-        $this->toast('Novo link gerado. O link anterior deixou de funcionar.');
+        $this->toast('Novo link de acesso gerado. O anterior deixou de funcionar.');
 
         return back();
     }
@@ -88,7 +88,7 @@ class StudentAccessController extends Controller
             'name' => $user->name,
             'phone' => $user->phone,
             'url' => $url,
-            'message' => "Olá, {$user->name}! Este é o seu link pessoal da EBD. Toque para entrar (não compartilhe):\n{$url}",
+            'message' => "Olá, {$user->name}! Este é o seu link de acesso à EBD. Toque para entrar (não compartilhe):\n{$url}",
         ]);
     }
 }

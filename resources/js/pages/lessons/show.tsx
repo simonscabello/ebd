@@ -4,6 +4,8 @@ import {
     BookOpenText,
     BookText,
     CalendarDays,
+    ChevronDown,
+    ChevronUp,
     KeyRound,
     Layers,
     Library,
@@ -15,6 +17,7 @@ import {
     PenLine,
     Presentation,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { BiblePassage } from '@/components/lesson/bible-passage';
 import { countdownLabel } from '@/components/lesson/countdown';
 import {
@@ -62,6 +65,36 @@ export default function LessonShow({
 
     const materials = lesson.materials ?? [];
     const readings = lesson.readings ?? [];
+    // As leituras também estão na Minha semana: aqui ficam recolhidas na de
+    // hoje (ou na próxima por ler), e abrem inteiras pelo botão ou por #leituras.
+    const collapsible = readings.length > 2;
+    const featuredReading =
+        readings.find((r) => r.is_today) ??
+        readings.find(
+            (r) =>
+                r.weekday !== null &&
+                !(study?.checked_weekdays ?? []).includes(r.weekday),
+        ) ??
+        null;
+    const readingsDone = readings.filter(
+        (r) =>
+            r.weekday !== null &&
+            (study?.checked_weekdays ?? []).includes(r.weekday),
+    ).length;
+    const [readingsExpanded, setReadingsExpanded] = useState(false);
+
+    useEffect(() => {
+        const expandOnHash = () => {
+            if (window.location.hash === '#leituras') {
+                setReadingsExpanded(true);
+            }
+        };
+
+        expandOnHash();
+        window.addEventListener('hashchange', expandOnHash);
+
+        return () => window.removeEventListener('hashchange', expandOnHash);
+    }, []);
     const { deepen, curiosities, concepts, other } = groupStudentBlocks(
         lesson.blocks ?? [],
     );
@@ -242,8 +275,24 @@ export default function LessonShow({
                             icon={<CalendarDays />}
                             description="Um pouco por dia até domingo."
                         >
+                            {!readingsExpanded && collapsible && (
+                                <p className="mb-3 text-sm text-muted-foreground">
+                                    {study
+                                        ? `${readingsDone} de ${readings.length} leituras feitas.`
+                                        : `${readings.length} leituras, uma por dia.`}{' '}
+                                    {featuredReading
+                                        ? featuredReading.is_today
+                                            ? 'A de hoje:'
+                                            : 'A próxima:'
+                                        : ''}
+                                </p>
+                            )}
                             <ReadingPlan
-                                readings={readings}
+                                readings={
+                                    readingsExpanded || !collapsible
+                                        ? readings
+                                        : [featuredReading ?? readings[0]]
+                                }
                                 tracking={
                                     study
                                         ? {
@@ -269,13 +318,35 @@ export default function LessonShow({
                                         : undefined
                                 }
                             />
+                            {collapsible && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-3"
+                                    aria-expanded={readingsExpanded}
+                                    onClick={() =>
+                                        setReadingsExpanded((open) => !open)
+                                    }
+                                >
+                                    {readingsExpanded ? (
+                                        <>
+                                            <ChevronUp /> Mostrar menos
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ChevronDown /> Ver as{' '}
+                                            {readings.length} leituras
+                                        </>
+                                    )}
+                                </Button>
+                            )}
                             {!study && !auth.user && (
                                 <p className="mt-4 flex items-center gap-3 rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">
                                     <KeyRound className="size-4 shrink-0 text-primary" />
                                     <span>
                                         Membro da classe? Entre com o seu link
-                                        pessoal para marcar as leituras e fazer
-                                        anotações.{' '}
+                                        de acesso para marcar as leituras e
+                                        fazer anotações.{' '}
                                         <Link
                                             href={login()}
                                             className="font-medium text-primary underline-offset-4 hover:underline"

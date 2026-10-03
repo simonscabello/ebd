@@ -3,6 +3,7 @@ import { CalendarPlus, ChevronRight, StickyNote } from 'lucide-react';
 import { ClassroomHeader } from '@/components/admin/classroom-header';
 import { AddMeetingDialog } from '@/components/admin/meetings/add-meeting-dialog';
 import { PlanMeetingsDialog } from '@/components/admin/meetings/plan-meetings-dialog';
+import { StatusBadge } from '@/components/admin/status-badge';
 import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { dateTile, monthYear } from '@/lib/dates';
@@ -88,8 +89,8 @@ export default function ClassroomMeetings({
                         icon={<CalendarPlus />}
                         title="Nenhum domingo na agenda"
                     >
-                        Use “Planejar trimestre” para criar os domingos e
-                        distribuir as lições da revista.
+                        Use “Planejar série” para criar os domingos e distribuir
+                        as lições da revista.
                     </EmptyState>
                 ) : (
                     <div className="space-y-10">
@@ -97,8 +98,7 @@ export default function ClassroomMeetings({
                             {upcoming.length === 0 ? (
                                 <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
                                     Nenhum domingo planejado daqui para frente.
-                                    Use “Planejar trimestre” ou “Adicionar
-                                    domingo”.
+                                    Use “Planejar série” ou “Adicionar domingo”.
                                 </p>
                             ) : (
                                 <MeetingList
@@ -229,7 +229,9 @@ function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
                             domingo {row.position.index} de {row.position.total}
                         </span>
                     )}
-                    {row.lesson?.status === 'draft' && <span>rascunho</span>}
+                    {row.lesson?.status === 'draft' && (
+                        <StatusBadge status="draft" label="Lição em rascunho" />
+                    )}
                     {row.has_notes && (
                         <StickyNote
                             className="size-3.5"

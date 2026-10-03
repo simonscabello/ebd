@@ -10,7 +10,11 @@ import type {
     MatrixStudent,
     MatrixSunday,
 } from '@/components/admin/attendance-matrix';
-import { AttendanceMatrix } from '@/components/admin/attendance-matrix';
+import {
+    AbsentMark,
+    AttendanceMatrix,
+    PresentMark,
+} from '@/components/admin/attendance-matrix';
 import { ClassroomHeader } from '@/components/admin/classroom-header';
 import { Meter } from '@/components/admin/meter';
 import { StatTile } from '@/components/admin/stat-tile';
@@ -216,7 +220,19 @@ export default function ClassroomReport({
                         <Section
                             title="Chamada"
                             icon={<CalendarCheck />}
-                            description="✓ presente · faltou · em branco: ainda não era da classe."
+                            description={
+                                <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <PresentMark label="" /> presente
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <AbsentMark label="" /> faltou
+                                    </span>
+                                    <span>
+                                        em branco: ainda não era da classe
+                                    </span>
+                                </span>
+                            }
                         >
                             <AttendanceMatrix
                                 sundays={sundays}

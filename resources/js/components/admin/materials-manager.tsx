@@ -3,13 +3,16 @@ import { Lock, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
 import { useConfirm } from '@/components/confirm-dialog';
+import { UnsavedHint } from '@/components/admin/unsaved-hint';
 import { Field } from '@/components/form-field';
 import { MaterialIcon } from '@/components/lesson/material-card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { FileInput } from '@/components/ui/file-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { cn } from '@/lib/utils';
 import { destroy, store, update } from '@/routes/admin/lessons/materials';
 import type { LessonMaterial, MaterialTypeValue } from '@/types';
@@ -171,6 +174,13 @@ function MaterialEditor({
         file: null,
     });
     const { data, setData, errors, processing, progress } = form;
+    // No material novo, escolher só o tipo não conta como alteração.
+    const unsaved =
+        form.isDirty &&
+        (material !== undefined ||
+            Boolean(data.title || data.file || data.url || data.description));
+
+    useUnsavedChangesGuard(unsaved && !processing);
     const type = types.find((t) => t.value === data.type) ?? types[0];
     const prefix = material ? `material-${material.id}` : 'material-new';
     const showUrl =
@@ -213,6 +223,7 @@ function MaterialEditor({
 
     return (
         <form
+            noValidate
             onSubmit={submit}
             className={
                 material
@@ -286,15 +297,12 @@ function MaterialEditor({
                     error={errors.file}
                     hint={`Formatos: ${type.accept.replaceAll('.', '').replaceAll(',', ', ')}. Até ${type.max_mb} MB.${type.value === 'audio' ? ' Ou informe um link abaixo.' : ''}`}
                 >
-                    <Input
+                    <FileInput
                         id={`${prefix}-file`}
-                        type="file"
                         accept={type.accept}
-                        onChange={(event) =>
-                            setData('file', event.target.files?.[0] ?? null)
-                        }
-                        required={!material && type.requires_upload}
-                        className="h-auto py-2"
+                        file={data.file}
+                        onFileChange={(file) => setData('file', file)}
+                        aria-invalid={errors.file ? true : undefined}
                     />
                     {progress && (
                         <progress
@@ -373,7 +381,8 @@ function MaterialEditor({
                 </Label>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center justify-end gap-2">
+                {unsaved && <UnsavedHint />}
                 {onDone && (
                     <Button type="button" variant="ghost" onClick={onDone}>
                         Cancelar

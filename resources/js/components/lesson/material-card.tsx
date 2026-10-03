@@ -41,12 +41,8 @@ export function MaterialCard({ material }: { material: LessonMaterial }) {
     const href = material.file?.open_url ?? material.url ?? undefined;
     const external = !material.file && !!material.url;
 
-    const meta = [
-        material.file?.extension || material.type_label,
-        material.file?.size,
-    ]
-        .filter(Boolean)
-        .join(' · ');
+    // O tamanho do arquivo só interessa na gestão (materials-manager).
+    const meta = material.file?.extension || material.type_label;
 
     const body = (
         <>
