@@ -173,13 +173,7 @@ class AwardBadges
             return false;
         }
 
-        $pending = ClassMeeting::query()
-            ->where('status', MeetingStatus::Planned)
-            ->whereDate('held_on', '>=', ChurchCalendar::today()->toDateString())
-            ->whereHas('lesson', fn ($q) => $q->whereBelongsTo($series))
-            ->exists();
-
-        if ($pending) {
+        if ($this->upcomingMeetings($series) > 0) {
             return false;
         }
 
@@ -187,7 +181,9 @@ class AwardBadges
     }
 
     /**
-     * Presenças sobre os domingos com chamada da série (meta mínima de 4).
+     * Presenças sobre os domingos da série: os que já tiveram chamada mais os
+     * que ainda vão acontecer (o selo só sai quando a série termina). Meta
+     * mínima de 4.
      *
      * @return array{current: int, target: int}|null
      */
@@ -201,7 +197,7 @@ class AwardBadges
 
         return [
             'current' => $this->presences($user, $meetings),
-            'target' => max(4, $meetings->count()),
+            'target' => max(4, $meetings->count() + $this->upcomingMeetings($series)),
         ];
     }
 
@@ -224,6 +220,16 @@ class AwardBadges
             ->whereDate('held_on', '>=', $since)
             ->whereHas('lesson', fn ($q) => $q->whereBelongsTo($series))
             ->pluck('id');
+    }
+
+    /** Domingos da série ainda por acontecer (planejados, de hoje em diante). */
+    private function upcomingMeetings(Series $series): int
+    {
+        return ClassMeeting::query()
+            ->where('status', MeetingStatus::Planned)
+            ->whereDate('held_on', '>=', ChurchCalendar::today()->toDateString())
+            ->whereHas('lesson', fn ($q) => $q->whereBelongsTo($series))
+            ->count();
     }
 
     /**
