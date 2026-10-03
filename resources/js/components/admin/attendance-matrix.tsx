@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { shortDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { SundaySummary } from '@/types';
@@ -145,21 +145,35 @@ export function AttendanceMatrix({
     );
 }
 
+/** `label` vazio: ícone decorativo (ex.: na legenda, ao lado do texto). */
+export function PresentMark({ label = 'presente' }: { label?: string }) {
+    return (
+        <span className="inline-flex size-6 items-center justify-center rounded-full bg-success-soft text-success-foreground">
+            <Check
+                className="size-3.5"
+                aria-label={label || undefined}
+                aria-hidden={label ? undefined : true}
+            />
+        </span>
+    );
+}
+
+export function AbsentMark({ label = 'faltou' }: { label?: string }) {
+    return (
+        <span className="inline-flex size-6 items-center justify-center rounded-full bg-danger-soft text-danger">
+            <X
+                className="size-3.5"
+                aria-label={label || undefined}
+                aria-hidden={label ? undefined : true}
+            />
+        </span>
+    );
+}
+
 function Cell({ value }: { value: boolean | null }) {
     if (value === null) {
         return <span className="sr-only">ainda não era da classe</span>;
     }
 
-    return value ? (
-        <span className="inline-flex size-6 items-center justify-center rounded-full bg-success-soft text-success-foreground">
-            <Check className="size-3.5" aria-label="presente" />
-        </span>
-    ) : (
-        <span
-            className="inline-flex size-6 items-center justify-center text-muted-foreground/60"
-            aria-label="faltou"
-        >
-            ·
-        </span>
-    );
+    return value ? <PresentMark /> : <AbsentMark />;
 }
