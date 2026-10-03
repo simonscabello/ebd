@@ -132,25 +132,20 @@ export default function Home({
                     </p>
                 ))}
 
-                {isStudent && nextLesson && (
-                    <Link
-                        href={myWeek({
-                            query: classroom ? { classe: classroom.slug } : {},
-                        })}
-                        className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-accent/60 px-4 py-3 font-medium text-accent-foreground hover:bg-accent"
-                    >
-                        <span>
-                            Minha semana: leitura de hoje, curiosidade do dia e
-                            preparação para domingo
-                        </span>
-                        <ArrowRight className="size-4 shrink-0" />
-                    </Link>
-                )}
-
                 {nextLesson ? (
                     <NextLesson
                         lesson={nextLesson}
                         todayReadingDone={todayReadingDone}
+                        // Aluno: leitura de hoje e "Leituras" levam à Minha semana.
+                        weekHref={
+                            isStudent
+                                ? myWeek.url({
+                                      query: classroom
+                                          ? { classe: classroom.slug }
+                                          : {},
+                                  })
+                                : undefined
+                        }
                         meeting={meeting}
                         position={
                             meetingTotal > 1
@@ -267,8 +262,10 @@ function NextLesson({
     meeting,
     position,
     todayReadingDone,
+    weekHref,
 }: {
     lesson: Lesson;
+    weekHref?: string;
     meeting: ClassMeeting | null;
     position: string | null;
     todayReadingDone: boolean;
@@ -299,7 +296,7 @@ function NextLesson({
                 <TodayReadingCard
                     reading={todayReading}
                     done={todayReadingDone}
-                    href={`${lessonUrl}#leituras`}
+                    href={weekHref ?? `${lessonUrl}#leituras`}
                 />
             )}
 
@@ -319,7 +316,7 @@ function NextLesson({
                     }
                 />
                 <StudyTile
-                    href={`${lessonUrl}#leituras`}
+                    href={weekHref ?? `${lessonUrl}#leituras`}
                     icon={<CalendarDays />}
                     title="Leituras"
                     detail={
