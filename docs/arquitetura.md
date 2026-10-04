@@ -202,6 +202,7 @@ Servidor MCP com o pacote oficial `laravel/mcp` (`app/Mcp`, rota em `routes/ai.p
 
 - Starter kit oficial (Inertia + React + TS + Tailwind + primitivos shadcn/Radix). Não há painel administrativo pronto (Filament/Nova): ele imporia visual de "sistema administrativo", e a gestão aqui é pequena e precisa ser boa no celular.
 - Tipografia: Literata (leitura) + Inter (interface), **auto-hospedadas** via `@fontsource` (sem CDN, bom para privacidade e PWA).
+- Duas cascas: o **app de estudo** (`AppLayout`: Início, Minha semana, Biblioteca, Perfil) e a **gestão** (`AdminLayout`, páginas `admin/*`: Painel, Classes, Lições, Séries), cada uma com o próprio topo e menu inferior. Professores e administradores entram na gestão pelo botão "Gestão" do topo e voltam por "Voltar ao app"; "Minha semana" aparece para qualquer membro de classe, professor ou aluno (`auth.user.is_member`).
 - Mobile-first: navegação inferior no celular, alvos de toque de 44px, `<select>` nativo, seções âncora, compartilhamento pelo menu nativo (Web Share API).
 - Dark mode aproveitando o mecanismo do starter kit.
 - Wayfinder gera funções tipadas para as rotas do Laravel: renomear uma rota quebra o `tsc`, não a produção.

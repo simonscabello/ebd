@@ -33,6 +33,29 @@ class AdminAccessTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())->get('/admin')->assertOk();
     }
 
+    public function test_teachers_also_get_my_week_in_the_navigation(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $teacher = User::factory()->teacherOf($classroom)->create();
+
+        // "Minha semana" aparece para qualquer membro de classe, não só para alunos.
+        $this->actingAs($teacher)
+            ->get('/')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.can_access_admin', true)
+                ->where('auth.user.is_student', false)
+                ->where('auth.user.is_member', true));
+
+        $this->actingAs($teacher)->get('/minha-semana')->assertOk();
+
+        // Administrador sem classe entra na gestão, mas não tem semana de estudo.
+        $this->actingAs(User::factory()->admin()->create())
+            ->get('/')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.can_access_admin', true)
+                ->where('auth.user.is_member', false));
+    }
+
     public function test_only_admins_manage_classrooms(): void
     {
         $classroom = Classroom::factory()->create();

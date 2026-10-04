@@ -8,6 +8,7 @@ import {
     CalendarRange,
     FileText,
     KeyRound,
+    LayoutDashboard,
     Layers,
     Link2,
     NotebookPen,
@@ -169,6 +170,13 @@ function ForStudents() {
 function ForTeachers() {
     return (
         <>
+            <Topic icon={<LayoutDashboard />} title="Estudo e gestão">
+                O app tem duas partes. No <strong>estudo</strong> (Início, Minha
+                semana, Biblioteca) você se prepara como qualquer aluno. O botão{' '}
+                <strong>Gestão</strong>, no topo, abre a área do professor:
+                painel, classes, lições e séries. Para voltar, toque em{' '}
+                <strong>Voltar ao app</strong>.
+            </Topic>
             <Topic icon={<Layers />} title="Séries e lições">
                 A <strong>série</strong> agrupa as lições de uma revista (ex.:
                 um trimestre). Crie a série em <strong>Gestão → Séries</strong>{' '}

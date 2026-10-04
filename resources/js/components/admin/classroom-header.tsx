@@ -11,7 +11,7 @@ import type { Classroom } from '@/types';
 export type ClassroomTab = 'resumo' | 'domingos' | 'alunos' | 'relatorio';
 
 /**
- * Topo de toda página de uma classe: o caminho (Gestão › Classe › …) e as
+ * Topo de toda página de uma classe: o caminho (Painel › Classe › …) e as
  * abas da classe. A página continua com o próprio PageHeader, sem caminho.
  */
 export function ClassroomHeader({
@@ -45,7 +45,7 @@ export function ClassroomHeader({
 
     const current = tabs.find((tab) => tab.key === active) ?? tabs[0];
     const trail: Crumb[] = [
-        { title: 'Gestão', href: dashboard.url() },
+        { title: 'Painel', href: dashboard.url() },
         { title: classroom.name, href: show.url(classroom.slug) },
         ...(active === 'resumo' && crumbs.length === 0
             ? []

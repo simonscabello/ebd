@@ -8,6 +8,8 @@ export type User = {
     is_admin: boolean;
     can_access_admin: boolean;
     is_student: boolean;
+    /** Aluno ou professor de ao menos uma classe. */
+    is_member: boolean;
 };
 
 export type Auth = {
