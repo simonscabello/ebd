@@ -64,10 +64,10 @@ export default function Account({ classrooms }: Props) {
             </div>
 
             <div className="mt-8 space-y-8">
-                {(classrooms.length > 0 || user.is_admin) && (
+                {(classrooms.length > 0 || user.can_access_admin) && (
                     <SettingsGroup title="Minha participação">
                         <SettingsCard>
-                            {user.is_student && (
+                            {user.is_member && (
                                 <SettingsRow
                                     href={myWeek.url()}
                                     icon={<CalendarCheck />}
@@ -98,16 +98,18 @@ export default function Account({ classrooms }: Props) {
                                     }
                                 />
                             ))}
-                            {user.is_admin && (
+                            {user.can_access_admin && (
                                 <SettingsRow
                                     href={dashboard.url()}
                                     icon={<ShieldCheck />}
                                     title="Gestão da EBD"
                                     description="Classes, lições e agenda"
                                     trailing={
-                                        <Badge className="rounded-full">
-                                            Admin
-                                        </Badge>
+                                        user.is_admin ? (
+                                            <Badge className="rounded-full">
+                                                Admin
+                                            </Badge>
+                                        ) : undefined
                                     }
                                 />
                             )}

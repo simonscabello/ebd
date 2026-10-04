@@ -55,7 +55,7 @@ export default function SeriesForm({
             <Page>
                 <PageHeader
                     breadcrumbs={[
-                        { title: 'Gestão', href: dashboard.url() },
+                        { title: 'Painel', href: dashboard.url() },
                         { title: 'Séries', href: seriesIndex.url() },
                         { title: series ? 'Editar' : 'Nova' },
                     ]}

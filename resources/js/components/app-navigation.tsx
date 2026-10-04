@@ -1,16 +1,18 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    ArrowLeft,
     BookMarked,
     CalendarCheck,
     Home,
+    LayoutDashboard,
     LogIn,
     LogOut,
-    PenLine,
     Smartphone,
     UserRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,21 +35,32 @@ import {
 import { dashboard } from '@/routes/admin';
 import { UserAvatar } from '@/components/user-avatar';
 
-type Item = {
+export type NavLinkItem = {
     title: string;
     /** Rótulo curto do menu inferior, quando o título não cabe numa linha. */
     short?: string;
     href: string;
     icon: LucideIcon;
+    /** Prefixo do endereço que deixa o item ativo. */
     match?: string;
+    /** Ativo só no endereço exato. */
+    exact?: boolean;
+    /** Fica só no menu inferior do celular (no computador está no menu da conta). */
+    mobileOnly?: boolean;
 };
 
-function useNavItems(): Item[] {
+/**
+ * Itens do app de estudo. A gestão não entra aqui: é uma área à parte, aberta
+ * pelo botão "Gestão" do topo (ver AdminLayout).
+ */
+function useStudyNavItems(): NavLinkItem[] {
     const { auth } = usePage().props;
 
-    const items: Item[] = [{ title: 'Início', href: home.url(), icon: Home }];
+    const items: NavLinkItem[] = [
+        { title: 'Início', href: home.url(), icon: Home },
+    ];
 
-    if (auth.user?.is_student) {
+    if (auth.user?.is_member) {
         items.push({
             title: 'Minha semana',
             short: 'Semana',
@@ -59,15 +72,6 @@ function useNavItems(): Item[] {
 
     items.push({ title: 'Biblioteca', href: library.url(), icon: BookMarked });
 
-    if (auth.user?.can_access_admin) {
-        items.push({
-            title: 'Gestão',
-            href: dashboard.url(),
-            icon: PenLine,
-            match: '/admin',
-        });
-    }
-
     items.push(
         auth.user
             ? {
@@ -75,6 +79,7 @@ function useNavItems(): Item[] {
                   href: account.url(),
                   icon: UserRound,
                   match: '/conta',
+                  mobileOnly: true,
               }
             : { title: 'Entrar', href: login.url(), icon: LogIn },
     );
@@ -82,21 +87,55 @@ function useNavItems(): Item[] {
     return items;
 }
 
-function useIsActive() {
+export function useIsActive() {
     const { currentUrl } = useCurrentUrl();
 
-    return (item: Item) =>
-        item.match
-            ? currentUrl.startsWith(item.match)
-            : item.href === '/'
-              ? currentUrl === '/' || currentUrl.startsWith('/licoes')
-              : currentUrl.startsWith(new URL(item.href, 'http://x').pathname);
+    return (item: NavLinkItem) =>
+        item.exact
+            ? currentUrl === item.href
+            : item.match
+              ? currentUrl.startsWith(item.match)
+              : item.href === '/'
+                ? currentUrl === '/' || currentUrl.startsWith('/licoes')
+                : currentUrl.startsWith(
+                      new URL(item.href, 'http://x').pathname,
+                  );
+}
+
+/** Links do topo no computador (no celular ficam no menu inferior). */
+export function TopNavLinks({
+    items,
+    label,
+}: {
+    items: NavLinkItem[];
+    label: string;
+}) {
+    const isActive = useIsActive();
+
+    return (
+        <nav className="hidden items-center gap-1 md:flex" aria-label={label}>
+            {items
+                .filter((item) => !item.mobileOnly)
+                .map((item) => (
+                    <Link
+                        key={item.title}
+                        href={item.href}
+                        aria-current={isActive(item) ? 'page' : undefined}
+                        className={cn(
+                            'rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                            isActive(item) && 'bg-muted text-foreground',
+                        )}
+                    >
+                        {item.title}
+                    </Link>
+                ))}
+        </nav>
+    );
 }
 
 export function TopBar() {
     const { auth, church } = usePage().props;
-    const items = useNavItems();
-    const isActive = useIsActive();
+    const items = useStudyNavItems();
 
     return (
         <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 print:hidden">
@@ -108,42 +147,31 @@ export function TopBar() {
                     <AppLogo churchName={church.name} />
                 </Link>
 
-                <nav
-                    className="hidden items-center gap-1 md:flex"
-                    aria-label="Principal"
-                >
-                    {items
-                        .filter((item) => item.title !== 'Perfil')
-                        .map((item) => (
-                            <Link
-                                key={item.title}
-                                href={item.href}
-                                aria-current={
-                                    isActive(item) ? 'page' : undefined
-                                }
-                                className={cn(
-                                    'rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                                    isActive(item) &&
-                                        'bg-muted text-foreground',
-                                )}
-                            >
-                                {item.title}
+                <div className="flex items-center gap-2 md:gap-1">
+                    <TopNavLinks items={items} label="Principal" />
+                    {auth.user?.can_access_admin && (
+                        <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="md:ml-2"
+                        >
+                            <Link href={dashboard()}>
+                                <LayoutDashboard /> Gestão
                             </Link>
-                        ))}
+                        </Button>
+                    )}
                     {auth.user && <UserMenu />}
-                </nav>
-
-                {auth.user && (
-                    <div className="md:hidden">
-                        <UserMenu />
-                    </div>
-                )}
+                </div>
             </div>
         </header>
     );
 }
 
-function UserMenu() {
+/**
+ * Menu da conta (avatar). Na gestão, troca o atalho "Gestão" por "Voltar ao app".
+ */
+export function UserMenu({ inAdmin = false }: { inAdmin?: boolean }) {
     const { auth } = usePage().props;
 
     if (!auth.user) {
@@ -166,6 +194,30 @@ function UserMenu() {
                     </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {inAdmin ? (
+                    <>
+                        <DropdownMenuItem asChild>
+                            <Link href={home()} className="w-full">
+                                <ArrowLeft /> Voltar ao app
+                            </Link>
+                        </DropdownMenuItem>
+                        {auth.user.is_member && (
+                            <DropdownMenuItem asChild>
+                                <Link href={myWeek()} className="w-full">
+                                    <CalendarCheck /> Minha semana
+                                </Link>
+                            </DropdownMenuItem>
+                        )}
+                    </>
+                ) : (
+                    auth.user.can_access_admin && (
+                        <DropdownMenuItem asChild>
+                            <Link href={dashboard()} className="w-full">
+                                <LayoutDashboard /> Gestão
+                            </Link>
+                        </DropdownMenuItem>
+                    )
+                )}
                 <DropdownMenuItem asChild>
                     <Link href={account()} className="w-full">
                         <UserRound /> Perfil
@@ -198,14 +250,19 @@ function UserMenu() {
  * do sistema aumentada. O fundo continua abaixo do menu para nada da página
  * aparecer por baixo dele.
  */
-export function BottomNav() {
-    const items = useNavItems();
+export function BottomNavBar({
+    items,
+    label,
+}: {
+    items: NavLinkItem[];
+    label: string;
+}) {
     const isActive = useIsActive();
 
     return (
         <nav
             className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-safe backdrop-blur after:absolute after:inset-x-0 after:top-full after:h-[50svh] after:bg-background md:hidden print:hidden"
-            aria-label="Principal"
+            aria-label={label}
         >
             <ul className="mx-auto flex h-15 max-w-md items-stretch justify-around px-2 pt-1.5">
                 {items.map((item) => {
@@ -236,4 +293,8 @@ export function BottomNav() {
             </ul>
         </nav>
     );
+}
+
+export function BottomNav() {
+    return <BottomNavBar items={useStudyNavItems()} label="Principal" />;
 }

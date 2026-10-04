@@ -28,7 +28,7 @@ export default function CreateLesson({
             <Page>
                 <PageHeader
                     breadcrumbs={[
-                        { title: 'Gestão', href: dashboard.url() },
+                        { title: 'Painel', href: dashboard.url() },
                         { title: 'Lições', href: lessonsIndex.url() },
                         { title: 'Nova' },
                     ]}
