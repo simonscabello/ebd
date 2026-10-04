@@ -67,7 +67,7 @@ class ClassroomOverviewTest extends TestCase
     {
         $today = Lesson::factory()->for($this->classroom)->published()->number(16)->on('2026-09-27')->create(['title' => 'Temor Inquestionável']);
         Lesson::factory()->for($this->classroom)->published()->number(17)->on('2026-10-04')->create(['title' => 'Próxima']);
-        $today->meetings()->update(['status' => MeetingStatus::Held, 'notes' => 'Paramos no II', 'attendance_taken_at' => now()]);
+        $today->meetings()->update(['status' => MeetingStatus::Held, 'notes' => 'Paramos no II', 'attendance_taken_at' => now(), 'finished_at' => now()]);
 
         $this->actingAs($this->teacher)->get('/admin/classes/jovens')
             ->assertOk()
@@ -83,23 +83,47 @@ class ClassroomOverviewTest extends TestCase
     public function test_finishing_today_without_a_next_sunday_keeps_today_on_the_card(): void
     {
         $today = Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create();
-        $today->meetings()->update(['status' => MeetingStatus::Held]);
+        $today->meetings()->update(['status' => MeetingStatus::Held, 'finished_at' => now()]);
 
         $this->actingAs($this->teacher)->get('/admin/classes/jovens')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('overview.week.meeting.held_on', '2026-09-27')
-                ->where('overview.week.meeting.status', 'held'));
+                ->where('overview.week.meeting.is_finished', true));
+    }
+
+    /** A chamada marca o domingo como realizado, mas não encerra a aula. */
+    public function test_taking_attendance_alone_keeps_today_on_the_card_until_finishing(): void
+    {
+        $today = Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create();
+        Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create();
+        $meeting = $today->meetings()->firstOrFail();
+        $meeting->forceFill(['status' => MeetingStatus::Held, 'attendance_taken_at' => now()])->save();
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('overview.week.meeting.held_on', '2026-09-27')
+                ->where('overview.week.meeting.is_finished', false));
+
+        $this->actingAs($this->teacher)
+            ->post(route('admin.meetings.finish', $meeting), ['continues' => false])
+            ->assertRedirect();
+
+        $this->assertNotNull($meeting->fresh()?->finished_at);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('overview.week.meeting.held_on', '2026-10-04'));
     }
 
     public function test_upcoming_lessons_are_listed_once_each_paginated_with_the_message(): void
     {
         $held = Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create(['title' => 'De hoje']);
-        $held->meetings()->update(['status' => MeetingStatus::Held]);
+        $held->meetings()->update(['status' => MeetingStatus::Held, 'finished_at' => now()]);
 
         $two = Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create(['title' => 'Dois domingos']);
         ClassMeeting::factory()->for($this->classroom)->forLesson($two)->on('2026-10-11')->create();
 
-        foreach (['2026-10-18', '2026-10-25', '2026-11-01', '2026-11-08'] as $i => $date) {
+        foreach (['2026-10-18', '2026-10-25', '2026-11-01', '2026-11-08', '2026-11-15', '2026-11-22'] as $i => $date) {
             Lesson::factory()->for($this->classroom)->published()->on($date)->create(['title' => "Seguinte {$i}"]);
         }
 
@@ -107,20 +131,20 @@ class ClassroomOverviewTest extends TestCase
 
         $this->actingAs($this->teacher)->get('/admin/classes/jovens')
             ->assertInertia(fn (Assert $page) => $page
-                ->where('upcoming.total', 5)
+                // "Dois domingos" está no card principal: não se repete na lista.
+                ->where('overview.week.lesson.id', $two->id)
+                ->where('upcoming.total', 6)
                 ->where('upcoming.last_page', 2)
                 ->has('upcoming.data', 4)
-                ->where('upcoming.data.0.lesson.id', $two->id)
-                ->where('upcoming.data.0.held_on', '2026-10-04')
-                ->where('upcoming.data.0.meetings_count', 2)
-                ->where('upcoming.data.0.message', fn (string $text) => str_contains($text, 'Dois domingos'))
-                ->where('upcoming.data.1.held_on', '2026-10-18'));
+                ->where('upcoming.data.0.held_on', '2026-10-18')
+                ->where('upcoming.data.0.meetings_count', 1)
+                ->where('upcoming.data.0.message', fn (string $text) => str_contains($text, 'Seguinte 0')));
 
         $this->actingAs($this->teacher)->get('/admin/classes/jovens?proximas=2')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('upcoming.current_page', 2)
-                ->has('upcoming.data', 1)
-                ->where('upcoming.data.0.held_on', '2026-11-08'));
+                ->has('upcoming.data', 2)
+                ->where('upcoming.data.1.held_on', '2026-11-22'));
     }
 
     public function test_pending_sundays_are_past_ones_still_planned(): void

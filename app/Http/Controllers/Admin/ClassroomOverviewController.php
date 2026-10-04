@@ -24,7 +24,7 @@ class ClassroomOverviewController extends Controller
             'classroom' => ClassroomResource::make($classroom),
             'overview' => $overview->for($classroom, $request->user()),
             // Próximas lições para compartilhar no grupo (paginadas à parte).
-            'upcoming' => fn () => $overview->upcoming($classroom),
+            'upcoming' => fn () => $overview->upcoming($classroom, $request->user()),
             'canEdit' => $request->user()->can('update', $classroom),
         ]);
     }

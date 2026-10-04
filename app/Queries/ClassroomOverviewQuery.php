@@ -40,18 +40,7 @@ class ClassroomOverviewQuery
     {
         $today = ChurchCalendar::today();
         $todayString = $today->toDateString();
-        $week = $this->current->for($classroom, $user);
-
-        // Aula de hoje já encerrada: o Resumo passa para o próximo domingo
-        // (dá para mandar a lição seguinte no grupo no mesmo dia). Hoje vira o
-        // "último domingo". Sem próximo domingo, continua mostrando o de hoje.
-        if ($this->finishedToday($week, $todayString)) {
-            $next = $this->current->for($classroom, $user, $today->addDay());
-
-            if ($next->meeting !== null && ! $next->isFallback) {
-                $week = $next;
-            }
-        }
+        $week = $this->week($classroom, $user);
 
         $book = $this->books->for($classroom);
 
@@ -81,6 +70,7 @@ class ClassroomOverviewQuery
                     'has_attendance' => $meeting->hasAttendance(),
                     'is_today' => $meeting->held_on->toDateString() === $todayString,
                     'notes' => $meeting->notes,
+                    'is_finished' => $meeting->finished_at !== null,
                 ],
                 'lesson' => $lesson === null ? null : [
                     'id' => $lesson->id,
@@ -136,20 +126,23 @@ class ClassroomOverviewQuery
     }
 
     /**
-     * Próximas lições da classe (uma por lição, no primeiro domingo ainda por
-     * acontecer), com a mensagem pronta para o grupo. A aula de hoje já
-     * encerrada fica de fora.
+     * Próximas lições da classe depois da do card principal (uma por lição, no
+     * primeiro domingo ainda por acontecer), com a mensagem pronta para o grupo.
      *
      * @return LengthAwarePaginator<int, array{meeting_id: int, held_on: string, is_today: bool, meetings_count: int, lesson: array{id: int, slug: string, display_title: string, bible_reference: string|null, status: string}, message: string|null}>
      */
-    public function upcoming(Classroom $classroom, int $perPage = 4): LengthAwarePaginator
+    public function upcoming(Classroom $classroom, User $user, int $perPage = 4): LengthAwarePaginator
     {
         $today = ChurchCalendar::todayString();
+        // A lição do card principal não se repete na lista.
+        $week = $this->week($classroom, $user);
+        $weekLessonId = $week->isFallback ? null : $week->lesson?->id;
         $upcoming = fn ($q) => $q->whereBelongsTo($classroom)
             ->where('status', MeetingStatus::Planned)
             ->whereDate('held_on', '>=', $today);
 
         $page = Lesson::query()
+            ->when($weekLessonId, fn ($q, int $id) => $q->whereKeyNot($id))
             ->whereHas('meetings', $upcoming)
             ->withMin(['meetings as next_on' => $upcoming], 'held_on')
             ->with(['readings', 'meetings' => fn ($q) => $upcoming($q)->chronological()])
@@ -228,11 +221,25 @@ class ClassroomOverviewQuery
         ];
     }
 
-    private function finishedToday(CurrentLesson $week, string $today): bool
+    /**
+     * Lição do card principal. Com a aula de hoje encerrada ("Encerrar aula";
+     * a chamada sozinha não conta), passa para o próximo domingo: dá para
+     * mandar a lição seguinte no grupo no mesmo dia, e hoje vira o "último
+     * domingo". Sem próximo domingo, continua mostrando o de hoje.
+     */
+    private function week(Classroom $classroom, User $user): CurrentLesson
     {
-        return ! $week->isFallback
-            && $week->meeting?->status === MeetingStatus::Held
-            && $week->meeting->held_on->toDateString() === $today;
+        $today = ChurchCalendar::today();
+        $week = $this->current->for($classroom, $user, $today);
+        $meeting = $week->meeting;
+
+        if ($week->isFallback || $meeting === null || $meeting->finished_at === null || $meeting->held_on->toDateString() !== $today->toDateString()) {
+            return $week;
+        }
+
+        $next = $this->current->for($classroom, $user, $today->addDay());
+
+        return $next->meeting !== null && ! $next->isFallback ? $next : $week;
     }
 
     /**

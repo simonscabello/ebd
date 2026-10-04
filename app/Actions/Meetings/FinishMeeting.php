@@ -25,10 +25,11 @@ class FinishMeeting
             throw ValidationException::withMessages(['meeting' => 'Este encontro não pode ser encerrado.']);
         }
 
-        $meeting->update([
+        $meeting->forceFill([
             'status' => MeetingStatus::Held,
             'notes' => filled($notes) ? $notes : $meeting->notes,
-        ]);
+            'finished_at' => now(),
+        ])->save();
 
         return $continues ? $this->continue->handle($meeting) : null;
     }
