@@ -26,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $title
  * @property string|null $notes
  * @property Carbon|null $attendance_taken_at
- * @property Carbon|null $finished_at  quando a aula foi encerrada (Encerrar aula)
+ * @property Carbon|null $finished_at
  * @property int $visitors_count
  * @property-read Classroom $classroom
  * @property-read Lesson|null $lesson
