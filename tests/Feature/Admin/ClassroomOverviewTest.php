@@ -63,6 +63,66 @@ class ClassroomOverviewTest extends TestCase
                 ->where('overview.week.weekly_message', fn (string $text) => str_contains($text, 'Lição 16 — Temor Inquestionável')));
     }
 
+    public function test_after_finishing_today_the_week_card_moves_to_the_next_sunday(): void
+    {
+        $today = Lesson::factory()->for($this->classroom)->published()->number(16)->on('2026-09-27')->create(['title' => 'Temor Inquestionável']);
+        Lesson::factory()->for($this->classroom)->published()->number(17)->on('2026-10-04')->create(['title' => 'Próxima']);
+        $today->meetings()->update(['status' => MeetingStatus::Held, 'notes' => 'Paramos no II']);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('overview.week.meeting.held_on', '2026-10-04')
+                ->where('overview.week.meeting.is_today', false)
+                ->where('overview.week.lesson.display_title', 'Lição 17 — Próxima')
+                ->where('overview.week.weekly_message', fn (string $text) => str_contains($text, 'Lição 17 — Próxima'))
+                ->where('overview.last_sunday.held_on', '2026-09-27')
+                ->where('overview.last_sunday.notes', 'Paramos no II'));
+    }
+
+    public function test_finishing_today_without_a_next_sunday_keeps_today_on_the_card(): void
+    {
+        $today = Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create();
+        $today->meetings()->update(['status' => MeetingStatus::Held]);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('overview.week.meeting.held_on', '2026-09-27')
+                ->where('overview.week.meeting.status', 'held'));
+    }
+
+    public function test_upcoming_lessons_are_listed_once_each_paginated_with_the_message(): void
+    {
+        $held = Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create(['title' => 'De hoje']);
+        $held->meetings()->update(['status' => MeetingStatus::Held]);
+
+        $two = Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create(['title' => 'Dois domingos']);
+        ClassMeeting::factory()->for($this->classroom)->forLesson($two)->on('2026-10-11')->create();
+
+        foreach (['2026-10-18', '2026-10-25', '2026-11-01', '2026-11-08'] as $i => $date) {
+            Lesson::factory()->for($this->classroom)->published()->on($date)->create(['title' => "Seguinte {$i}"]);
+        }
+
+        Lesson::factory()->for(Classroom::factory())->published()->on('2026-10-04')->create(['title' => 'Outra classe']);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('upcoming.total', 5)
+                ->where('upcoming.last_page', 2)
+                ->has('upcoming.data', 4)
+                ->where('upcoming.data.0.lesson.id', $two->id)
+                ->where('upcoming.data.0.held_on', '2026-10-04')
+                ->where('upcoming.data.0.meetings_count', 2)
+                ->where('upcoming.data.0.message', fn (string $text) => str_contains($text, 'Dois domingos'))
+                ->where('upcoming.data.1.held_on', '2026-10-18'));
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens?proximas=2')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('upcoming.current_page', 2)
+                ->has('upcoming.data', 1)
+                ->where('upcoming.data.0.held_on', '2026-11-08'));
+    }
+
     public function test_pending_sundays_are_past_ones_still_planned(): void
     {
         $pending = ClassMeeting::factory()->for($this->classroom)->on('2026-09-20')->create();

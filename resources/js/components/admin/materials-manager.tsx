@@ -72,7 +72,7 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                 />
                             ) : (
                                 <>
-                                    <span className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                                    <span className="mt-1 hidden size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground sm:flex">
                                         <MaterialIcon
                                             type={material.type}
                                             className="size-5"
@@ -103,40 +103,47 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                             </p>
                                         )}
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setEditing(material.id)}
-                                        aria-label="Editar material"
-                                    >
-                                        <Pencil />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Remover material"
-                                        onClick={async () => {
-                                            if (
-                                                await confirm({
-                                                    title: `Remover "${material.title}"?`,
-                                                    description:
-                                                        'Arquivos enviados também serão apagados.',
-                                                    confirmLabel: 'Remover',
-                                                    destructive: true,
-                                                })
-                                            ) {
-                                                router.delete(
-                                                    destroy.url({
-                                                        lesson: lessonId,
-                                                        material: material.id,
-                                                    }),
-                                                    { preserveScroll: true },
-                                                );
+                                    <div className="flex shrink-0 flex-col sm:flex-row">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() =>
+                                                setEditing(material.id)
                                             }
-                                        }}
-                                    >
-                                        <Trash2 />
-                                    </Button>
+                                            aria-label="Editar material"
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Remover material"
+                                            onClick={async () => {
+                                                if (
+                                                    await confirm({
+                                                        title: `Remover "${material.title}"?`,
+                                                        description:
+                                                            'Arquivos enviados também serão apagados.',
+                                                        confirmLabel: 'Remover',
+                                                        destructive: true,
+                                                    })
+                                                ) {
+                                                    router.delete(
+                                                        destroy.url({
+                                                            lesson: lessonId,
+                                                            material:
+                                                                material.id,
+                                                        }),
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </div>
                                 </>
                             )}
                         </li>

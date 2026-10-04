@@ -82,38 +82,44 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
                                             </p>
                                         )}
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setEditing(reading.id)}
-                                        aria-label="Editar leitura"
-                                    >
-                                        <Pencil />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Remover leitura"
-                                        onClick={async () => {
-                                            if (
-                                                await confirm({
-                                                    title: `Remover a leitura "${reading.reference}"?`,
-                                                    confirmLabel: 'Remover',
-                                                    destructive: true,
-                                                })
-                                            ) {
-                                                router.delete(
-                                                    destroy.url({
-                                                        lesson: lessonId,
-                                                        reading: reading.id,
-                                                    }),
-                                                    { preserveScroll: true },
-                                                );
+                                    <div className="flex shrink-0 flex-col sm:flex-row">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() =>
+                                                setEditing(reading.id)
                                             }
-                                        }}
-                                    >
-                                        <Trash2 />
-                                    </Button>
+                                            aria-label="Editar leitura"
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Remover leitura"
+                                            onClick={async () => {
+                                                if (
+                                                    await confirm({
+                                                        title: `Remover a leitura "${reading.reference}"?`,
+                                                        confirmLabel: 'Remover',
+                                                        destructive: true,
+                                                    })
+                                                ) {
+                                                    router.delete(
+                                                        destroy.url({
+                                                            lesson: lessonId,
+                                                            reading: reading.id,
+                                                        }),
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </div>
                                 </>
                             )}
                         </li>

@@ -23,6 +23,8 @@ class ClassroomOverviewController extends Controller
         return Inertia::render('admin/classrooms/show', [
             'classroom' => ClassroomResource::make($classroom),
             'overview' => $overview->for($classroom, $request->user()),
+            // Próximas lições para compartilhar no grupo (paginadas à parte).
+            'upcoming' => fn () => $overview->upcoming($classroom),
             'canEdit' => $request->user()->can('update', $classroom),
         ]);
     }

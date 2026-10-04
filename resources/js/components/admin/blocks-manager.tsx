@@ -70,7 +70,7 @@ export function BlocksManager({ lessonId, blocks, kinds, weekdays }: Props) {
                                 />
                             ) : (
                                 <>
-                                    <span className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                                    <span className="mt-1 hidden size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground sm:flex">
                                         <BlockIcon
                                             kind={block.kind}
                                             className="size-5"
@@ -99,40 +99,44 @@ export function BlocksManager({ lessonId, blocks, kinds, weekdays }: Props) {
                                             {block.body}
                                         </p>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setEditing(block.id)}
-                                        aria-label="Editar bloco"
-                                    >
-                                        <Pencil />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Remover bloco"
-                                        onClick={async () => {
-                                            if (
-                                                await confirm({
-                                                    title: 'Remover este bloco?',
-                                                    description:
-                                                        block.display_title,
-                                                    confirmLabel: 'Remover',
-                                                    destructive: true,
-                                                })
-                                            ) {
-                                                router.delete(
-                                                    destroy.url({
-                                                        lesson: lessonId,
-                                                        block: block.id,
-                                                    }),
-                                                    { preserveScroll: true },
-                                                );
-                                            }
-                                        }}
-                                    >
-                                        <Trash2 />
-                                    </Button>
+                                    <div className="flex shrink-0 flex-col sm:flex-row">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setEditing(block.id)}
+                                            aria-label="Editar bloco"
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Remover bloco"
+                                            onClick={async () => {
+                                                if (
+                                                    await confirm({
+                                                        title: 'Remover este bloco?',
+                                                        description:
+                                                            block.display_title,
+                                                        confirmLabel: 'Remover',
+                                                        destructive: true,
+                                                    })
+                                                ) {
+                                                    router.delete(
+                                                        destroy.url({
+                                                            lesson: lessonId,
+                                                            block: block.id,
+                                                        }),
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </div>
                                 </>
                             )}
                         </li>

@@ -1,11 +1,13 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     AlertTriangle,
     BookOpen,
     CalendarCheck,
     CalendarClock,
     Cake,
+    ChevronLeft,
     ChevronRight,
+    Flag,
     FileText,
     MessageSquareText,
     Pencil,
@@ -18,6 +20,7 @@ import { Meter } from '@/components/admin/meter';
 import { StatTile } from '@/components/admin/stat-tile';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { CopyWhatsAppButtons } from '@/components/copy-whatsapp-button';
+import { FinishMeetingDialog } from '@/components/lesson/finish-meeting-dialog';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { WhatsAppButton } from '@/components/whatsapp-button';
@@ -30,7 +33,7 @@ import {
     show as meetingPage,
 } from '@/routes/admin/classrooms/meetings';
 import { show as studentPage } from '@/routes/admin/classrooms/students';
-import { sunday } from '@/routes/lessons';
+import { show as lessonPage, sunday } from '@/routes/lessons';
 import type {
     Classroom,
     LessonStatus,
@@ -56,6 +59,7 @@ type Overview = {
             title: string | null;
             has_attendance: boolean;
             is_today: boolean;
+            notes: string | null;
         };
         lesson: {
             id: number;
@@ -118,9 +122,33 @@ type Overview = {
     };
 };
 
+type UpcomingLesson = {
+    meeting_id: number;
+    held_on: string;
+    is_today: boolean;
+    meetings_count: number;
+    lesson: {
+        id: number;
+        slug: string;
+        display_title: string;
+        bible_reference: string | null;
+        status: LessonStatus;
+    };
+    message: string | null;
+};
+
+/** Paginador do Laravel serializado direto (sem API Resource). */
+type Upcoming = {
+    data: UpcomingLesson[];
+    current_page: number;
+    last_page: number;
+    total: number;
+};
+
 type Props = {
     classroom: Classroom;
     overview: Overview;
+    upcoming: Upcoming;
     canEdit: boolean;
 };
 
@@ -131,6 +159,7 @@ type Props = {
 export default function ClassroomOverview({
     classroom,
     overview,
+    upcoming,
     canEdit,
 }: Props) {
     const { week, last_sunday: last, stats } = overview;
@@ -179,6 +208,13 @@ export default function ClassroomOverview({
                                     </Link>
                                 </Button>
                             </EmptyState>
+                        )}
+
+                        {upcoming.total > 0 && (
+                            <UpcomingLessons
+                                classroom={classroom}
+                                upcoming={upcoming}
+                            />
                         )}
 
                         {last && (
@@ -367,6 +403,16 @@ function WeekCard({
                         </Link>
                     </Button>
                 )}
+                {lesson && meeting.is_today && meeting.status === 'planned' && (
+                    <FinishMeetingDialog
+                        meetingId={meeting.id}
+                        initialNotes={meeting.notes}
+                    >
+                        <Button variant="outline">
+                            <Flag /> Encerrar aula
+                        </Button>
+                    </FinishMeetingDialog>
+                )}
                 <Button asChild variant="outline">
                     <Link href={url}>
                         {week.can_take_attendance && !meeting.has_attendance ? (
@@ -403,6 +449,118 @@ function WeekCard({
                 </details>
             )}
         </section>
+    );
+}
+
+/**
+ * Próximas lições da classe, uma por lição, com a mensagem pronta para o
+ * grupo: dá para adiantar o envio da lição de qualquer domingo.
+ */
+function UpcomingLessons({
+    classroom,
+    upcoming,
+}: {
+    classroom: Classroom;
+    upcoming: Upcoming;
+}) {
+    const goTo = (page: number) =>
+        router.reload({
+            only: ['upcoming'],
+            data: { proximas: page },
+        });
+
+    return (
+        <Section
+            title="Próximas lições"
+            icon={<CalendarClock />}
+            description="A mensagem de cada lição, pronta para mandar no grupo quando quiser."
+        >
+            <ul className="divide-y rounded-2xl border bg-card">
+                {upcoming.data.map((item) => (
+                    <li key={item.lesson.id} className="px-4 py-3">
+                        <p className="text-sm font-medium text-primary">
+                            {item.is_today
+                                ? 'Hoje'
+                                : `Domingo, ${dayMonth(item.held_on)}`}
+                            {item.meetings_count > 1 &&
+                                ` · ${item.meetings_count} domingos`}
+                        </p>
+                        <p className="mt-0.5 flex flex-wrap items-center gap-2">
+                            <Link
+                                href={lessonPage(item.lesson.slug)}
+                                className="font-medium hover:underline"
+                            >
+                                {item.lesson.display_title}
+                            </Link>
+                            {item.lesson.status === 'draft' && (
+                                <StatusBadge status="draft" label="Rascunho" />
+                            )}
+                        </p>
+                        {item.lesson.bible_reference && (
+                            <p className="text-sm text-muted-foreground">
+                                {item.lesson.bible_reference}
+                            </p>
+                        )}
+                        {item.message && (
+                            <details className="group mt-2">
+                                <summary className="flex min-h-9 cursor-pointer items-center gap-2 text-sm font-medium text-primary marker:content-none">
+                                    <MessageSquareText className="size-4" />
+                                    Mensagem para o grupo
+                                    <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
+                                </summary>
+                                {item.lesson.status === 'draft' && (
+                                    <p className="mt-2 text-sm text-warning-foreground">
+                                        Rascunho: publique a lição antes de
+                                        mandar, senão os alunos não conseguem
+                                        abrir o link.
+                                    </p>
+                                )}
+                                <pre className="mt-2 max-h-56 overflow-auto rounded-lg bg-muted/60 p-3 font-sans text-sm whitespace-pre-wrap">
+                                    {item.message}
+                                </pre>
+                                <div className="mt-3">
+                                    <CopyWhatsAppButtons
+                                        text={item.message}
+                                        copyLabel="Copiar mensagem"
+                                    />
+                                </div>
+                            </details>
+                        )}
+                    </li>
+                ))}
+            </ul>
+            {upcoming.last_page > 1 && (
+                <nav
+                    className="mt-3 flex items-center justify-between gap-3"
+                    aria-label="Páginas das próximas lições"
+                >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={upcoming.current_page <= 1}
+                        onClick={() => goTo(upcoming.current_page - 1)}
+                    >
+                        <ChevronLeft /> Anteriores
+                    </Button>
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                        {upcoming.current_page} de {upcoming.last_page}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={upcoming.current_page >= upcoming.last_page}
+                        onClick={() => goTo(upcoming.current_page + 1)}
+                    >
+                        Seguintes <ChevronRight />
+                    </Button>
+                </nav>
+            )}
+            <Button asChild variant="ghost" size="sm" className="mt-2">
+                <Link href={meetingsIndex(classroom.slug)}>
+                    Planejar domingos <ChevronRight />
+                </Link>
+            </Button>
+        </Section>
     );
 }
 
