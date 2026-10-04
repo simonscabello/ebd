@@ -22,7 +22,7 @@ class CompleteProfileController extends Controller
         $user = $request->user();
 
         if (! $user->needsProfileCompletion()) {
-            return redirect()->route('my-week');
+            return redirect()->route('home');
         }
 
         return Inertia::render('auth/complete-profile', [
@@ -45,6 +45,6 @@ class CompleteProfileController extends Controller
 
         $this->toast('Cadastro completo! Agora você entra com seu e-mail e senha.');
 
-        return redirect()->intended(route('my-week'));
+        return redirect()->intended(route('home'));
     }
 }

@@ -1,7 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import {
     CircleHelp,
-    CalendarCheck,
+    Award,
     IdCard,
     LockKeyhole,
     LogOut,
@@ -19,7 +19,7 @@ import {
     SettingsRow,
 } from '@/components/settings/settings-list';
 import { Badge } from '@/components/ui/badge';
-import { help, home, install, logout, myWeek } from '@/routes';
+import { help, home, install, logout, myProgress } from '@/routes';
 import { dashboard } from '@/routes/admin';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
@@ -69,10 +69,10 @@ export default function Account({ classrooms }: Props) {
                         <SettingsCard>
                             {user.is_member && (
                                 <SettingsRow
-                                    href={myWeek.url()}
-                                    icon={<CalendarCheck />}
-                                    title="Minha semana"
-                                    description="Leituras e preparação para domingo"
+                                    href={myProgress.url()}
+                                    icon={<Award />}
+                                    title="Meu progresso"
+                                    description="Sequência de estudo e selos"
                                 />
                             )}
                             {classrooms.map((classroom) => (

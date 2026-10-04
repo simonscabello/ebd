@@ -15,7 +15,7 @@ const EXIT_MS = 260;
  *
  * m-0: dentro de um contêiner space-y-* o painel herdava margin-bottom e,
  * mesmo "fora da tela", subia 32px; o cabeçalho ("Leitura ✕") aparecia por
- * cima do menu inferior em Minha semana. Além disso, fechado ele termina a
+ * cima do menu inferior no Início e em Leituras da semana. Além disso, fechado ele termina a
  * descida e fica invisível e inerte, sem depender de estar fora da tela.
  */
 export function BottomSheet({

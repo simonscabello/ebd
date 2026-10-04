@@ -38,7 +38,7 @@ class AdminAccessTest extends TestCase
         $classroom = Classroom::factory()->create();
         $teacher = User::factory()->teacherOf($classroom)->create();
 
-        // "Minha semana" aparece para qualquer membro de classe, não só para alunos.
+        // A semana de estudo vale para qualquer membro de classe, não só para alunos.
         $this->actingAs($teacher)
             ->get('/')
             ->assertInertia(fn (Assert $page) => $page

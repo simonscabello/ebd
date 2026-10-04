@@ -88,7 +88,7 @@ class NotificationsTest extends TestCase
         $message = $this->push->sentTo($this->ana)->first();
         $this->assertSame('Leitura de hoje: Salmo 99', $message->title);
         $this->assertSame('O Senhor reina.', $message->body);
-        $this->assertSame(route('my-week', ['classe' => 'jovens']), $message->url);
+        $this->assertSame(route('home', ['classe' => 'jovens']), $message->url);
         $this->assertSame("reading:{$lesson->id}:3", $message->tag);
         $this->assertCount(1, $this->push->sentTo($this->teacher));
     }

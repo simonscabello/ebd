@@ -58,7 +58,7 @@ class HandleInertiaRequests extends Middleware
                     'is_admin' => $user->isAdmin(),
                     'can_access_admin' => $user->canAccessAdmin(),
                     'is_student' => $user->isStudentAnywhere(),
-                    // Aluno ou professor de ao menos uma classe: mostra "Minha semana" na navegação.
+                    // Aluno ou professor de ao menos uma classe: tem semana de estudo e "Meu progresso".
                     'is_member' => $user->memberClassroomIds() !== [],
                 ] : null,
             ],

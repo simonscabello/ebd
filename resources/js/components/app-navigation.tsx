@@ -2,7 +2,6 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookMarked,
-    CalendarCheck,
     Home,
     LayoutDashboard,
     LogIn,
@@ -23,15 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
-import {
-    account,
-    home,
-    install,
-    library,
-    login,
-    logout,
-    myWeek,
-} from '@/routes';
+import { account, home, install, library, login, logout } from '@/routes';
 import { dashboard } from '@/routes/admin';
 import { UserAvatar } from '@/components/user-avatar';
 
@@ -50,7 +41,8 @@ export type NavLinkItem = {
 };
 
 /**
- * Itens do app de estudo. A gestão não entra aqui: é uma área à parte, aberta
+ * Itens do app de estudo. A semana de estudo está no Início (e "Leituras da
+ * semana" abre por lá). A gestão não entra aqui: é uma área à parte, aberta
  * pelo botão "Gestão" do topo (ver AdminLayout).
  */
 function useStudyNavItems(): NavLinkItem[] {
@@ -59,16 +51,6 @@ function useStudyNavItems(): NavLinkItem[] {
     const items: NavLinkItem[] = [
         { title: 'Início', href: home.url(), icon: Home },
     ];
-
-    if (auth.user?.is_member) {
-        items.push({
-            title: 'Minha semana',
-            short: 'Semana',
-            href: myWeek.url(),
-            icon: CalendarCheck,
-            match: '/minha-semana',
-        });
-    }
 
     items.push({ title: 'Biblioteca', href: library.url(), icon: BookMarked });
 
@@ -96,7 +78,10 @@ export function useIsActive() {
             : item.match
               ? currentUrl.startsWith(item.match)
               : item.href === '/'
-                ? currentUrl === '/' || currentUrl.startsWith('/licoes')
+                ? currentUrl === '/' ||
+                  currentUrl.startsWith('/licoes') ||
+                  currentUrl.startsWith('/minha-semana') ||
+                  currentUrl.startsWith('/meu-progresso')
                 : currentUrl.startsWith(
                       new URL(item.href, 'http://x').pathname,
                   );
@@ -195,20 +180,11 @@ export function UserMenu({ inAdmin = false }: { inAdmin?: boolean }) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {inAdmin ? (
-                    <>
-                        <DropdownMenuItem asChild>
-                            <Link href={home()} className="w-full">
-                                <ArrowLeft /> Voltar ao app
-                            </Link>
-                        </DropdownMenuItem>
-                        {auth.user.is_member && (
-                            <DropdownMenuItem asChild>
-                                <Link href={myWeek()} className="w-full">
-                                    <CalendarCheck /> Minha semana
-                                </Link>
-                            </DropdownMenuItem>
-                        )}
-                    </>
+                    <DropdownMenuItem asChild>
+                        <Link href={home()} className="w-full">
+                            <ArrowLeft /> Voltar ao app
+                        </Link>
+                    </DropdownMenuItem>
                 ) : (
                     auth.user.can_access_admin && (
                         <DropdownMenuItem asChild>

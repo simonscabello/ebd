@@ -65,7 +65,7 @@ export default function LessonShow({
 
     const materials = lesson.materials ?? [];
     const readings = lesson.readings ?? [];
-    // As leituras também estão na Minha semana: aqui ficam recolhidas na de
+    // As leituras também estão no Início e em Leituras da semana: aqui ficam recolhidas na de
     // hoje (ou na próxima por ler), e abrem inteiras pelo botão ou por #leituras.
     const collapsible = readings.length > 2;
     const featuredReading =

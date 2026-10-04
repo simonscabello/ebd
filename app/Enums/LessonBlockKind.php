@@ -42,7 +42,7 @@ enum LessonBlockKind: string
     }
 
     /**
-     * Pode ser liberado aos poucos em "Minha semana" (um por dia).
+     * Pode ser liberado aos poucos em "Para hoje", no Início (um por dia).
      */
     public function isDrippable(): bool
     {

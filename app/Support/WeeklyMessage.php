@@ -54,7 +54,7 @@ class WeeklyMessage
         $lines[] = 'Estude a lição: '.route('lessons.show', $lesson->slug);
 
         if (Route::has('my-week')) {
-            $lines[] = 'Sua semana de estudo: '.route('my-week');
+            $lines[] = 'Leituras da semana: '.route('my-week');
         }
 
         return implode("\n", $lines);

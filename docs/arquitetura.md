@@ -53,7 +53,7 @@ users ──< classroom_user >── classrooms ──< series ──< lessons �
 | `push_subscriptions` | Aparelhos inscritos nos lembretes (Web Push): `endpoint` único, chaves `p256dh`/`auth` do navegador. Um aparelho pertence a quem entrou por último nele.                                                                                                                                                                                                                                                         |
 | `attendances`        | Presença = existir a linha. Falta só conta em encontro com chamada feita e para quem já estava na classe.                                                                                                                                                                                                                                                                                                        |
 
-Integridade no banco, não só na aplicação: FKs com `restrict`/`cascade` conforme o caso, `CHECK` para todos os enums, `CHECK` que proíbe liberar em "Minha semana" um bloco do professor e que exige arquivo ou URL nos materiais (exceto referências).
+Integridade no banco, não só na aplicação: FKs com `restrict`/`cascade` conforme o caso, `CHECK` para todos os enums, `CHECK` que proíbe liberar em "Para hoje" um bloco do professor e que exige arquivo ou URL nos materiais (exceto referências).
 
 **JSON/JSONB não foi usado**: tudo que existe hoje é claramente relacional.
 
@@ -142,7 +142,7 @@ Ficou de fora de propósito: sincronizar a tela do professor com os alunos em te
 
 ## Semana de estudo do aluno
 
-- **Minha semana** (`/minha-semana`, `StudyWeekQuery`): semana de segunda a domingo da lição atual, com a leitura de cada dia; qualquer dia pode ser marcado como lido a qualquer momento (adiantar ou ler tudo no fim de semana), e o check-in guarda o dia do plano (`weekday`) e a data em que foi marcado (`read_on`, do servidor), curiosidades e conceitos liberados um por dia (`drip_weekday` ou distribuição automática), checklist "Prepare-se para domingo" e sequência de dias.
+- **Semana de estudo** (`StudyWeekQuery`): semana de segunda a domingo da lição atual, com a leitura de cada dia; qualquer dia pode ser marcado como lido a qualquer momento (adiantar ou ler tudo no fim de semana), e o check-in guarda o dia do plano (`weekday`) e a data em que foi marcado (`read_on`, do servidor), curiosidades e conceitos liberados um por dia (`drip_weekday` ou distribuição automática), progresso e sequência de dias. Fica no **Início** (leitura de hoje marcável, faixa da semana, "Para hoje" e atalhos), que reaproveita a lição atual já calculada; **Leituras da semana** (`/minha-semana`) é só a lista dos dias. Login pelo link, cadastro completo e lembretes levam ao Início.
 - **Selos** (`AwardBadges`), concedidos no momento da ação, sem scheduler: semana completa (leituras de segunda a sábado de uma lição), 7 e 30 dias seguidos, leitor fiel e presença em todos os domingos do trimestre. São pessoais: **não há ranking**.
 - **Sequência** (`StudyStreak`): dias (`read_on`) em que marcou leitura ou teve presença no domingo; continua viva se o último dia foi ontem.
 
@@ -202,7 +202,7 @@ Servidor MCP com o pacote oficial `laravel/mcp` (`app/Mcp`, rota em `routes/ai.p
 
 - Starter kit oficial (Inertia + React + TS + Tailwind + primitivos shadcn/Radix). Não há painel administrativo pronto (Filament/Nova): ele imporia visual de "sistema administrativo", e a gestão aqui é pequena e precisa ser boa no celular.
 - Tipografia: Literata (leitura) + Inter (interface), **auto-hospedadas** via `@fontsource` (sem CDN, bom para privacidade e PWA).
-- Duas cascas: o **app de estudo** (`AppLayout`: Início, Minha semana, Biblioteca, Perfil) e a **gestão** (`AdminLayout`, páginas `admin/*`: Painel, Classes, Lições, Séries), cada uma com o próprio topo e menu inferior. Professores e administradores entram na gestão pelo botão "Gestão" do topo e voltam por "Voltar ao app"; "Minha semana" aparece para qualquer membro de classe, professor ou aluno (`auth.user.is_member`).
+- Duas cascas: o **app de estudo** (`AppLayout`: Início, Biblioteca, Perfil) e a **gestão** (`AdminLayout`, páginas `admin/*`: Painel, Classes, Lições, Séries), cada uma com o próprio topo e menu inferior. Professores e administradores entram na gestão pelo botão "Gestão" do topo e voltam por "Voltar ao app"; a semana de estudo vale para qualquer membro de classe, professor ou aluno (`auth.user.is_member`).
 - Mobile-first: navegação inferior no celular, alvos de toque de 44px, `<select>` nativo, seções âncora, compartilhamento pelo menu nativo (Web Share API).
 - Dark mode aproveitando o mecanismo do starter kit.
 - Wayfinder gera funções tipadas para as rotas do Laravel: renomear uma rota quebra o `tsc`, não a produção.
@@ -240,7 +240,7 @@ A aplicação roda com `php artisan serve` (com `PHP_CLI_SERVER_WORKERS`). É ad
 Web Push do PWA, sem serviço de terceiros: o servidor assina cada envio com as chaves VAPID e fala direto com o serviço de push do navegador (Google, Apple, Mozilla). Biblioteca `minishlink/web-push`.
 
 - **Regra sempre por classe.** Quem decide os destinatários são as Actions em `app/Actions/Notifications`: `SendReadingReminders` (9h e 20h), `SendLessonReminder` (sábado, se há encontro amanhã) e `NotifyLessonPublished` (listener de `LessonPublished`). Todas partem de `Classroom::active()` e dos membros com aparelho inscrito.
-- **Mesma lógica das telas.** A "leitura de hoje" do lembrete é a de "Minha semana" (`CurrentLessonQuery` + plano de leitura; sem plano, reler o texto base de segunda a sábado). Rascunhos nunca geram lembrete, mesmo que o primeiro destinatário seja professor.
+- **Mesma lógica das telas.** A "leitura de hoje" do lembrete é a do Início (`CurrentLessonQuery` + plano de leitura; sem plano, reler o texto base de segunda a sábado). Rascunhos nunca geram lembrete, mesmo que o primeiro destinatário seja professor.
 - **Envio** por trás da interface `PushSender`: `WebPushSender` em produção, `NullPushSender` sem chaves e `FakePushSender` nos testes. Um `flush` por classe manda as requisições em paralelo; 404/410 apaga a inscrição.
 - **Agendamento** em `routes/console.php`, no fuso da igreja, com `onOneServer` e `withoutOverlapping`. Em produção roda no serviço `scheduler` (`schedule:work`); o `app` não agenda nada.
 - **Falha nunca bloqueia.** O listener da publicação captura qualquer exceção e só reporta: publicar a lição não depende do push.

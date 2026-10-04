@@ -25,7 +25,7 @@ import { index as seriesIndex } from '@/routes/admin/series';
  * Área de gestão (backoffice): casca própria, separada do app de estudo.
  *
  * Só os assuntos da gestão aparecem aqui (painel, classes, lições, séries);
- * "Voltar ao app" leva de volta ao estudo (Início, Minha semana, Biblioteca).
+ * "Voltar ao app" leva de volta ao estudo (Início, Biblioteca).
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const { church } = usePage().props;

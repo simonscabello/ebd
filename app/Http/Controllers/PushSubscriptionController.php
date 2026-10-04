@@ -109,7 +109,7 @@ class PushSubscriptionController extends Controller
             $sent = $sender->send($devices, new PushMessage(
                 title: 'Os lembretes estão funcionando!',
                 body: "Oi, {$user->name}. É assim que a leitura do dia vai chegar.",
-                url: route('my-week'),
+                url: route('home'),
                 tag: 'test',
             ));
         } catch (\Throwable $e) {

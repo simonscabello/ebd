@@ -45,6 +45,6 @@ class AccessLinkController extends Controller
 
         $this->toast("Olá, {$firstName}! Este aparelho vai lembrar de você.");
 
-        return redirect()->route('my-week');
+        return redirect()->route('home');
     }
 }

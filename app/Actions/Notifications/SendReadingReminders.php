@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
 /**
  * Lembrete da leitura do dia, por classe (9h e 20h no fuso da igreja).
  *
- * Segue a mesma regra de "Minha semana": a leitura de hoje é a do plano da
+ * Segue a mesma regra do Início: a leitura de hoje é a do plano da
  * lição da semana; sem plano, de segunda a sábado é reler o texto base. À
  * noite todos recebem: quem ainda não marcou a leitura de hoje ganha o "ainda
  * dá tempo"; quem já marcou, um lembrete para relembrar. Sem lição da semana
@@ -145,7 +145,7 @@ final class SendReadingReminders
         return new PushMessage(
             title: "Leitura de hoje: {$reading['reference']}",
             body: 'Você já leu hoje. Que tal relembrar o texto antes de dormir?',
-            url: route('my-week', ['classe' => $classroom->slug]),
+            url: route('home', ['classe' => $classroom->slug]),
             tag: "reading:{$lesson->id}:".ChurchCalendar::today()->dayOfWeekIso,
         );
     }
@@ -155,7 +155,7 @@ final class SendReadingReminders
      */
     private function message(ReminderSlot $slot, Classroom $classroom, Lesson $lesson, array $reading): PushMessage
     {
-        $url = route('my-week', ['classe' => $classroom->slug]);
+        $url = route('home', ['classe' => $classroom->slug]);
         $tag = "reading:{$lesson->id}:".ChurchCalendar::today()->dayOfWeekIso;
 
         if ($slot === ReminderSlot::Evening) {

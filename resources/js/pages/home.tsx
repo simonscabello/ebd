@@ -1,24 +1,40 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
+    Award,
     BookMarked,
     CalendarDays,
     CalendarOff,
     FileText,
     Hourglass,
     Layers,
+    NotebookPen,
     Presentation,
 } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { InstallAppBanner } from '@/components/install-app-banner';
 import { LessonHero } from '@/components/lesson/lesson-hero';
+import { ReadToggle } from '@/components/lesson/reading-plan';
+import { ReadingSheet } from '@/components/lesson/reading-sheet';
 import { TodayReadingCard } from '@/components/lesson/today-reading-card';
 import { RemindersBanner } from '@/components/reminders-banner';
 import { EmptyState, Page } from '@/components/page';
+import { DailyBlocks } from '@/components/week/daily-blocks';
+import { TodayReading } from '@/components/week/today-reading';
+import { WeekSummary } from '@/components/week/week-summary';
+import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn, plural } from '@/lib/utils';
-import { home, library, login, myWeek } from '@/routes';
+import { home, library, login, myProgress, myWeek } from '@/routes';
 import { show, sunday } from '@/routes/lessons';
-import type { ClassMeeting, Classroom, Lesson, Series } from '@/types';
+import type {
+    ClassMeeting,
+    Classroom,
+    Lesson,
+    LessonReading,
+    Series,
+    StudyWeek,
+} from '@/types';
 
 type Props = {
     greeting: string;
@@ -28,7 +44,8 @@ type Props = {
     isMember: boolean;
     isStudent: boolean;
     nextLesson: Lesson | null;
-    todayReadingDone: boolean;
+    /** Semana de estudo (só para quem é da classe e tem lição). */
+    week: StudyWeek | null;
     meeting: ClassMeeting | null;
     meetingIndex: number;
     meetingTotal: number;
@@ -43,9 +60,8 @@ export default function Home({
     classrooms,
     classroom,
     isMember,
-    isStudent,
     nextLesson,
-    todayReadingDone,
+    week,
     meeting,
     meetingIndex,
     meetingTotal,
@@ -135,17 +151,8 @@ export default function Home({
                 {nextLesson ? (
                     <NextLesson
                         lesson={nextLesson}
-                        todayReadingDone={todayReadingDone}
-                        // Aluno: leitura de hoje e "Leituras" levam à Minha semana.
-                        weekHref={
-                            isStudent
-                                ? myWeek.url({
-                                      query: classroom
-                                          ? { classe: classroom.slug }
-                                          : {},
-                                  })
-                                : undefined
-                        }
+                        week={week}
+                        classroom={classroom}
                         meeting={meeting}
                         position={
                             meetingTotal > 1
@@ -259,16 +266,16 @@ function headline(meeting: ClassMeeting | null): string {
 
 function NextLesson({
     lesson,
+    week,
+    classroom,
     meeting,
     position,
-    todayReadingDone,
-    weekHref,
 }: {
     lesson: Lesson;
-    weekHref?: string;
+    week: StudyWeek | null;
+    classroom: Classroom | null;
     meeting: ClassMeeting | null;
     position: string | null;
-    todayReadingDone: boolean;
 }) {
     const readings = lesson.readings ?? [];
     const materials = lesson.materials ?? [];
@@ -278,6 +285,11 @@ function NextLesson({
     );
     const todayReading = readings.find((r) => r.is_today);
     const lessonUrl = show.url(lesson.slug);
+    const readingsHref = week
+        ? myWeek.url({
+              query: classroom ? { classe: classroom.slug } : {},
+          })
+        : `${lessonUrl}#leituras`;
 
     return (
         <>
@@ -292,18 +304,26 @@ function NextLesson({
                     .join(' · ')}
             />
 
-            {todayReading && (
-                <TodayReadingCard
-                    reading={todayReading}
-                    done={todayReadingDone}
-                    href={weekHref ?? `${lessonUrl}#leituras`}
+            {week ? (
+                <StudyToday
+                    week={week}
+                    lessonSlug={lesson.slug}
+                    todayReading={todayReading ?? null}
+                    readingsHref={readingsHref}
                 />
+            ) : (
+                todayReading && (
+                    <TodayReadingCard
+                        reading={todayReading}
+                        href={`${lessonUrl}#leituras`}
+                    />
+                )
             )}
 
             <h2 className="mt-10 mb-3 text-lg font-semibold tracking-tight">
-                Para estudar durante a semana
+                Atalhos da lição
             </h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <StudyTile
                     href={primary?.file?.open_url ?? lessonUrl}
                     external={!!primary}
@@ -316,19 +336,21 @@ function NextLesson({
                     }
                 />
                 <StudyTile
-                    href={weekHref ?? `${lessonUrl}#leituras`}
+                    href={readingsHref}
                     icon={<CalendarDays />}
                     title="Leituras"
                     detail={
-                        readings.length
-                            ? `${plural(readings.length, 'leitura', 'leituras')} na semana`
-                            : 'Texto base'
+                        week?.progress
+                            ? `${week.progress.days_done} de ${week.progress.days_total} lidas`
+                            : readings.length
+                              ? `${plural(readings.length, 'leitura', 'leituras')} na semana`
+                              : 'Texto base'
                     }
                 />
                 <StudyTile
                     href={`${lessonUrl}#materiais`}
                     icon={<BookMarked />}
-                    title="Material complementar"
+                    title="Materiais"
                     detail={
                         complementary.length
                             ? plural(complementary.length, 'item', 'itens')
@@ -341,7 +363,90 @@ function NextLesson({
                     title="Modo Domingo"
                     detail="Acompanhar a aula"
                 />
+                {week && (
+                    <>
+                        <StudyTile
+                            href={`${lessonUrl}#anotacoes`}
+                            icon={<NotebookPen />}
+                            title="Anotações"
+                            detail="Suas anotações"
+                        />
+                        <StudyTile
+                            href={myProgress.url()}
+                            icon={<Award />}
+                            title="Meu progresso"
+                            detail="Sequência e selos"
+                        />
+                    </>
+                )}
             </div>
+        </>
+    );
+}
+
+/**
+ * O estudo de hoje para quem é da classe: a leitura do dia (ler e marcar ali
+ * mesmo), o resumo da semana e o conteúdo liberado hoje.
+ */
+function StudyToday({
+    week,
+    lessonSlug,
+    todayReading,
+    readingsHref,
+}: {
+    week: StudyWeek;
+    lessonSlug: string;
+    todayReading: LessonReading | null;
+    readingsHref: string;
+}) {
+    const checkin = useReadingCheckin(lessonSlug);
+    const [reading, setReading] = useState<LessonReading | null>(null);
+    const days = week.days ?? [];
+    const today = days.find((day) => day.is_today);
+    const done = today?.done ?? false;
+    const toggle = () =>
+        today && checkin.toggle(today.weekday, done, todayReading?.id ?? null);
+
+    return (
+        <>
+            {todayReading && today && (
+                <>
+                    <TodayReading
+                        reading={todayReading}
+                        done={done}
+                        pending={checkin.isPending(today.weekday)}
+                        onToggle={toggle}
+                        onRead={() => setReading(todayReading)}
+                    />
+                    <ReadingSheet
+                        reading={reading}
+                        open={reading !== null}
+                        onOpenChange={(open) => !open && setReading(null)}
+                        footer={
+                            <ReadToggle
+                                done={done}
+                                pending={checkin.isPending(today.weekday)}
+                                highlight
+                                onClick={toggle}
+                                className="w-full justify-center"
+                            />
+                        }
+                    />
+                </>
+            )}
+
+            {week.progress && days.length > 0 && (
+                <WeekSummary
+                    days={days}
+                    progress={week.progress}
+                    streak={week.streak}
+                    href={readingsHref}
+                />
+            )}
+
+            {(week.todayBlocks ?? []).length > 0 && (
+                <DailyBlocks blocks={week.todayBlocks ?? []} />
+            )}
         </>
     );
 }
