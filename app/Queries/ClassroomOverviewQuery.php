@@ -5,12 +5,14 @@ namespace App\Queries;
 use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
+use App\Models\Lesson;
 use App\Models\User;
 use App\Queries\Data\AttendanceBook;
 use App\Queries\Data\CurrentLesson;
 use App\Queries\Data\Period;
 use App\Support\ChurchCalendar;
 use App\Support\WeeklyMessage;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Resumo da classe para o professor (tela Resumo e ferramenta
@@ -39,6 +41,18 @@ class ClassroomOverviewQuery
         $today = ChurchCalendar::today();
         $todayString = $today->toDateString();
         $week = $this->current->for($classroom, $user);
+
+        // Aula de hoje já encerrada: o Resumo passa para o próximo domingo
+        // (dá para mandar a lição seguinte no grupo no mesmo dia). Hoje vira o
+        // "último domingo". Sem próximo domingo, continua mostrando o de hoje.
+        if ($this->finishedToday($week, $todayString)) {
+            $next = $this->current->for($classroom, $user, $today->addDay());
+
+            if ($next->meeting !== null && ! $next->isFallback) {
+                $week = $next;
+            }
+        }
+
         $book = $this->books->for($classroom);
 
         // Sem domingo pela frente, a "lição da semana" é a do último domingo:
@@ -66,6 +80,7 @@ class ClassroomOverviewQuery
                     'title' => $meeting->title,
                     'has_attendance' => $meeting->hasAttendance(),
                     'is_today' => $meeting->held_on->toDateString() === $todayString,
+                    'notes' => $meeting->notes,
                 ],
                 'lesson' => $lesson === null ? null : [
                     'id' => $lesson->id,
@@ -121,6 +136,51 @@ class ClassroomOverviewQuery
     }
 
     /**
+     * Próximas lições da classe (uma por lição, no primeiro domingo ainda por
+     * acontecer), com a mensagem pronta para o grupo. A aula de hoje já
+     * encerrada fica de fora.
+     *
+     * @return LengthAwarePaginator<int, array{meeting_id: int, held_on: string, is_today: bool, meetings_count: int, lesson: array{id: int, slug: string, display_title: string, bible_reference: string|null, status: string}, message: string|null}>
+     */
+    public function upcoming(Classroom $classroom, int $perPage = 4): LengthAwarePaginator
+    {
+        $today = ChurchCalendar::todayString();
+        $upcoming = fn ($q) => $q->whereBelongsTo($classroom)
+            ->where('status', MeetingStatus::Planned)
+            ->whereDate('held_on', '>=', $today);
+
+        $page = Lesson::query()
+            ->whereHas('meetings', $upcoming)
+            ->withMin(['meetings as next_on' => $upcoming], 'held_on')
+            ->with(['readings', 'meetings' => fn ($q) => $upcoming($q)->chronological()])
+            ->orderBy('next_on')
+            ->orderBy('id')
+            ->paginate($perPage, pageName: 'proximas')
+            ->withQueryString();
+
+        return $page->through(function (Lesson $lesson) use ($today) {
+            /** @var ClassMeeting $meeting */
+            $meeting = $lesson->meetings->first();
+            $meeting->setRelation('lesson', $lesson);
+
+            return [
+                'meeting_id' => $meeting->id,
+                'held_on' => $meeting->held_on->toDateString(),
+                'is_today' => $meeting->held_on->toDateString() === $today,
+                'meetings_count' => $lesson->meetings->count(),
+                'lesson' => [
+                    'id' => $lesson->id,
+                    'slug' => $lesson->slug,
+                    'display_title' => $lesson->displayTitle(),
+                    'bible_reference' => $lesson->bible_reference,
+                    'status' => $lesson->status->value,
+                ],
+                'message' => $this->weeklyMessage->for($meeting),
+            ];
+        });
+    }
+
+    /**
      * Estudo em casa da lição da semana (null sem domingo pela frente).
      *
      * @return array{lesson_id: int, lesson_title: string, readings_total: int, readers: int, expected: int, rate: int|null, avg_days: float, days: array<int, int>}|null
@@ -166,6 +226,13 @@ class ClassroomOverviewQuery
             'title' => $meeting->title,
             ...$book->sunday($meeting),
         ];
+    }
+
+    private function finishedToday(CurrentLesson $week, string $today): bool
+    {
+        return ! $week->isFallback
+            && $week->meeting?->status === MeetingStatus::Held
+            && $week->meeting->held_on->toDateString() === $today;
     }
 
     /**
