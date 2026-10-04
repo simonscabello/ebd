@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $title
  * @property string|null $notes
  * @property Carbon|null $attendance_taken_at
+ * @property Carbon|null $finished_at
  * @property int $visitors_count
  * @property-read Classroom $classroom
  * @property-read Lesson|null $lesson
@@ -53,6 +54,7 @@ class ClassMeeting extends Model
             'held_on' => 'date',
             'status' => MeetingStatus::class,
             'attendance_taken_at' => 'datetime',
+            'finished_at' => 'datetime',
             'visitors_count' => 'integer',
         ];
     }

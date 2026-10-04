@@ -60,6 +60,7 @@ type Overview = {
             has_attendance: boolean;
             is_today: boolean;
             notes: string | null;
+            is_finished: boolean;
         };
         lesson: {
             id: number;
@@ -403,7 +404,7 @@ function WeekCard({
                         </Link>
                     </Button>
                 )}
-                {lesson && meeting.is_today && meeting.status === 'planned' && (
+                {lesson && meeting.is_today && !meeting.is_finished && (
                     <FinishMeetingDialog
                         meetingId={meeting.id}
                         initialNotes={meeting.notes}
