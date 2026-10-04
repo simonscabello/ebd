@@ -140,7 +140,7 @@ class ClassroomOverviewQuery
      * acontecer), com a mensagem pronta para o grupo. A aula de hoje já
      * encerrada fica de fora.
      *
-     * @return LengthAwarePaginator<int, array<string, mixed>>
+     * @return LengthAwarePaginator<int, array{meeting_id: int, held_on: string, is_today: bool, meetings_count: int, lesson: array{id: int, slug: string, display_title: string, bible_reference: string|null, status: string}, message: string|null}>
      */
     public function upcoming(Classroom $classroom, int $perPage = 4): LengthAwarePaginator
     {
