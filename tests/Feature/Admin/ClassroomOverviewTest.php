@@ -67,7 +67,7 @@ class ClassroomOverviewTest extends TestCase
     {
         $today = Lesson::factory()->for($this->classroom)->published()->number(16)->on('2026-09-27')->create(['title' => 'Temor Inquestionável']);
         Lesson::factory()->for($this->classroom)->published()->number(17)->on('2026-10-04')->create(['title' => 'Próxima']);
-        $today->meetings()->update(['status' => MeetingStatus::Held, 'notes' => 'Paramos no II']);
+        $today->meetings()->update(['status' => MeetingStatus::Held, 'notes' => 'Paramos no II', 'attendance_taken_at' => now()]);
 
         $this->actingAs($this->teacher)->get('/admin/classes/jovens')
             ->assertOk()
