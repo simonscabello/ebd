@@ -204,3 +204,43 @@ export type Paginated<T> = {
         to: number | null;
     };
 };
+
+/** Um dia da semana de estudo (StudyWeekQuery). */
+export type StudyWeekDay = {
+    date: string;
+    weekday: number;
+    label: string;
+    short: string;
+    is_today: boolean;
+    is_future: boolean;
+    done: boolean;
+    readings: LessonReading[];
+    blocks_count: number;
+};
+
+/** A semana de estudo da lição atual (Início e "Leituras da semana"). */
+export type StudyWeek = {
+    today: string;
+    weekday: number;
+    streak: { current: number; best: number; today_done: boolean };
+    meeting: {
+        held_on: string;
+        date_label: string;
+        days_until: number;
+        index: number;
+        total: number;
+    } | null;
+    preparing: boolean;
+    lesson: {
+        id: number;
+        slug: string;
+        url: string;
+        display_title: string;
+        number: number | null;
+        title: string;
+        bible_reference: string | null;
+    } | null;
+    days?: StudyWeekDay[];
+    todayBlocks?: LessonBlock[];
+    progress?: { days_done: number; days_total: number };
+};

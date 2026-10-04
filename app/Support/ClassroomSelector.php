@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
- * Escolha da classe em telas com seletor (?classe=slug): home e "Minha semana".
+ * Escolha da classe em telas com seletor (?classe=slug): Início e "Leituras da semana".
  */
 class ClassroomSelector
 {

@@ -1,107 +1,56 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import {
-    CalendarDays,
-    Check,
-    CheckCircle2,
-    Circle,
-    Hourglass,
-    Lightbulb,
-    ListChecks,
-} from 'lucide-react';
-import { InstallAppBanner } from '@/components/install-app-banner';
-import { RemindersBanner } from '@/components/reminders-banner';
-import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
-import { LessonHero } from '@/components/lesson/lesson-hero';
+import { ArrowLeft, CalendarDays, Check, Hourglass } from 'lucide-react';
 import { ReadToggle } from '@/components/lesson/reading-plan';
 import {
     ReadingSheet,
     ReadTextButton,
 } from '@/components/lesson/reading-sheet';
-import { EmptyState, Page, Section } from '@/components/page';
-import type { Streak } from '@/components/progress/streak-flame';
-import { StreakFlame } from '@/components/progress/streak-flame';
-import type { WeekDay } from '@/components/progress/week-bar';
+import { EmptyState, Page } from '@/components/page';
 import { WeekBar } from '@/components/progress/week-bar';
-import { Button } from '@/components/ui/button';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn } from '@/lib/utils';
-import { myProgress, myWeek } from '@/routes';
+import { home, myWeek } from '@/routes';
 import type {
-    BiblePassage,
     Classroom,
-    LessonBlock,
     LessonReading,
+    StudyWeek,
+    StudyWeekDay,
 } from '@/types';
-
-type Day = WeekDay & {
-    label: string;
-    readings: LessonReading[];
-    blocks_count: number;
-};
-
-type Week = {
-    today: string;
-    weekday: number;
-    streak: Streak;
-    meeting: {
-        held_on: string;
-        date_label: string;
-        days_until: number;
-        index: number;
-        total: number;
-    } | null;
-    preparing: boolean;
-    lesson: {
-        id: number;
-        slug: string;
-        url: string;
-        display_title: string;
-        number: number | null;
-        title: string;
-        bible_reference: string | null;
-        key_verse: string | null;
-        key_verse_passage: BiblePassage | null;
-        general_readings: LessonReading[];
-    } | null;
-    days?: Day[];
-    todayBlocks?: LessonBlock[];
-    unlockedBlocks?: LessonBlock[];
-    progress?: { days_done: number; days_total: number };
-    checklist?: {
-        key: string;
-        label: string;
-        done: boolean | null;
-        hidden?: boolean;
-    }[];
-};
 
 type Props = {
     classrooms: Classroom[];
     classroom: Classroom | null;
-    week: Week | null;
+    week: StudyWeek | null;
 };
 
 /**
- * "Minha semana": o roteiro de estudo do aluno até domingo.
+ * "Leituras da semana": só a lista dos dias, para ler e marcar (adiantar ou
+ * pôr em dia). A leitura de hoje, o progresso e o conteúdo do dia ficam no
+ * Início.
  */
-export default function MyWeek({ classrooms, classroom, week }: Props) {
+export default function WeekReadings({ classrooms, classroom, week }: Props) {
     return (
         <>
-            <Head title="Minha semana" />
+            <Head title="Leituras da semana" />
             <Page>
-                <InstallAppBanner />
-                {classroom && <RemindersBanner />}
+                <Link
+                    href={home({
+                        query: classroom ? { classe: classroom.slug } : {},
+                    })}
+                    className="mb-4 inline-flex min-h-9 items-center gap-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                    <ArrowLeft className="size-4" /> Início
+                </Link>
                 <header className="mb-6">
-                    <p className="text-sm font-medium text-primary">
-                        {classroom ? `Classe ${classroom.name}` : 'EBD'}
-                    </p>
-                    <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight">
-                        Minha semana
+                    <h1 className="font-serif text-3xl font-semibold tracking-tight">
+                        Leituras da semana
                     </h1>
-                    {week?.meeting && (
+                    {week?.lesson && (
                         <p className="mt-1 text-muted-foreground">
-                            {countdown(week.meeting.days_until)}
+                            {week.lesson.display_title}
+                            {week.meeting &&
+                                ` · ${countdown(week.meeting.days_until)}`}
                         </p>
                     )}
                 </header>
@@ -141,40 +90,34 @@ export default function MyWeek({ classrooms, classroom, week }: Props) {
                         Peça ao seu professor para adicionar você à classe.
                     </EmptyState>
                 ) : !week.lesson ? (
-                    <div className="space-y-6">
-                        <EmptyState
-                            icon={<Hourglass />}
-                            title={
-                                week.preparing
-                                    ? 'A próxima lição está sendo preparada'
-                                    : 'Nenhuma lição marcada ainda'
-                            }
-                        >
-                            Assim que o professor publicar, sua semana de estudo
-                            aparece aqui.
-                        </EmptyState>
-                        <StreakFlame streak={week.streak} />
-                    </div>
+                    <EmptyState
+                        icon={<Hourglass />}
+                        title={
+                            week.preparing
+                                ? 'A próxima lição está sendo preparada'
+                                : 'Nenhuma lição marcada ainda'
+                        }
+                    >
+                        Assim que o professor publicar, as leituras da semana
+                        aparecem aqui.
+                    </EmptyState>
                 ) : (
-                    <WeekContent week={week} lesson={week.lesson} />
+                    <ReadingList week={week} lesson={week.lesson} />
                 )}
             </Page>
         </>
     );
 }
 
-function WeekContent({
+function ReadingList({
     week,
     lesson,
 }: {
-    week: Week;
-    lesson: NonNullable<Week['lesson']>;
+    week: StudyWeek;
+    lesson: NonNullable<StudyWeek['lesson']>;
 }) {
     const days = week.days ?? [];
     const checkin = useReadingCheckin(lesson.slug);
-    const otherUnlocked = (week.unlockedBlocks ?? []).filter(
-        (b) => !(week.todayBlocks ?? []).some((t) => t.id === b.id),
-    );
 
     // Dias com leitura no plano; sem plano, a semana toda (segunda a sábado) é
     // para reler o texto base.
@@ -184,11 +127,11 @@ function WeekContent({
             ? withReadings
             : days.filter((d) => d.weekday <= 6);
 
-    const toggle = (day: Day) =>
+    const toggle = (day: StudyWeekDay) =>
         checkin.toggle(day.weekday, day.done, day.readings[0]?.id ?? null);
 
     const [reading, setReading] = useState<{
-        day: Day;
+        day: StudyWeekDay;
         reading: LessonReading;
     } | null>(null);
     const openDay = reading
@@ -196,7 +139,7 @@ function WeekContent({
         : null;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <ReadingSheet
                 reading={reading?.reading ?? null}
                 open={reading !== null}
@@ -213,108 +156,30 @@ function WeekContent({
                     ) : undefined
                 }
             />
-            <LessonHero
-                lesson={lesson}
-                eyebrow={
-                    week.meeting
-                        ? `${week.meeting.date_label}${week.meeting.total > 1 ? ` · encontro ${week.meeting.index} de ${week.meeting.total}` : ''}`
-                        : 'Última lição'
-                }
-            />
 
             <section className="space-y-3">
                 <WeekBar days={days} />
                 {week.progress && (
                     <p className="text-center text-sm text-muted-foreground">
                         {week.progress.days_done} de {week.progress.days_total}{' '}
-                        leituras da semana
+                        leituras da semana. Pode adiantar ou pôr em dia quando
+                        quiser.
                     </p>
                 )}
             </section>
 
-            <Section
-                title="Leituras da semana"
-                icon={<CalendarDays />}
-                description="Marque quando ler. Pode adiantar ou pôr em dia quando quiser."
-            >
-                <ul className="space-y-2.5">
-                    {readingDays.map((day) => (
-                        <DayReading
-                            key={day.date}
-                            day={day}
-                            fallback={lesson.bible_reference}
-                            pending={checkin.isPending(day.weekday)}
-                            onToggle={() => toggle(day)}
-                            onRead={(item) =>
-                                setReading({ day, reading: item })
-                            }
-                        />
-                    ))}
-                </ul>
-            </Section>
-
-            {(week.todayBlocks ?? []).length > 0 && (
-                <Section
-                    title="Para hoje"
-                    icon={<Lightbulb />}
-                    description="Um detalhe por dia para o texto ganhar vida."
-                >
-                    <BlockCards
-                        blocks={week.todayBlocks ?? []}
-                        tone="highlight"
+            <ul className="space-y-2.5">
+                {readingDays.map((day) => (
+                    <DayReading
+                        key={day.date}
+                        day={day}
+                        fallback={lesson.bible_reference}
+                        pending={checkin.isPending(day.weekday)}
+                        onToggle={() => toggle(day)}
+                        onRead={(item) => setReading({ day, reading: item })}
                     />
-                </Section>
-            )}
-
-            {otherUnlocked.length > 0 && (
-                <Section title="Já liberado nesta semana" icon={<Lightbulb />}>
-                    <BlockAccordion blocks={otherUnlocked} />
-                </Section>
-            )}
-
-            {week.checklist && (
-                <Section title="Prepare-se para domingo" icon={<ListChecks />}>
-                    <ul className="divide-y rounded-2xl border bg-card">
-                        {week.checklist
-                            .filter((item) => !item.hidden)
-                            .map((item) => (
-                                <li
-                                    key={item.key}
-                                    className="flex items-center gap-3 px-4 py-3"
-                                >
-                                    {item.done ? (
-                                        <CheckCircle2 className="size-5 shrink-0 text-success" />
-                                    ) : (
-                                        <Circle className="size-5 shrink-0 text-muted-foreground" />
-                                    )}
-                                    <span
-                                        className={cn(
-                                            item.done &&
-                                                'text-muted-foreground line-through',
-                                        )}
-                                    >
-                                        {item.label}
-                                    </span>
-                                    {item.key === 'note' && !item.done && (
-                                        <Link
-                                            href={`${lesson.url}#anotacoes`}
-                                            className="ml-auto shrink-0 text-sm font-medium text-primary"
-                                        >
-                                            Anotar
-                                        </Link>
-                                    )}
-                                </li>
-                            ))}
-                    </ul>
-                </Section>
-            )}
-
-            <section className="space-y-3">
-                <StreakFlame streak={week.streak} />
-                <Button asChild variant="outline" className="w-full">
-                    <Link href={myProgress()}>Ver meu progresso e selos</Link>
-                </Button>
-            </section>
+                ))}
+            </ul>
         </div>
     );
 }
@@ -326,7 +191,7 @@ function DayReading({
     onToggle,
     onRead,
 }: {
-    day: Day;
+    day: StudyWeekDay;
     fallback: string | null;
     pending: boolean;
     onToggle: () => void;
@@ -391,8 +256,8 @@ function DayReading({
 }
 
 function countdown(days: number): string {
-    if (days <= 0) return 'Hoje é dia de EBD!';
-    if (days === 1) return 'Amanhã é dia de EBD.';
+    if (days <= 0) return 'hoje é dia de EBD';
+    if (days === 1) return 'amanhã é dia de EBD';
 
-    return `Faltam ${days} dias para domingo.`;
+    return `faltam ${days} dias para domingo`;
 }

@@ -15,7 +15,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
- * Estudo do aluno durante a semana: leituras marcadas, Minha semana,
+ * Estudo do aluno durante a semana: leituras marcadas, Início e Leituras da semana,
  * anotações e selos.
  */
 class EngagementTest extends TestCase
@@ -100,7 +100,7 @@ class EngagementTest extends TestCase
             ->assertSessionHasErrors('reading_id');
     }
 
-    public function test_my_week_shows_days_readings_drip_blocks_and_checklist(): void
+    public function test_week_readings_show_days_readings_and_drip_blocks(): void
     {
         LessonReading::factory()->for($this->lesson)->create(['weekday' => 1, 'reference' => 'Jo 1.1-14']);
         LessonReading::factory()->for($this->lesson)->create(['weekday' => 3, 'reference' => 'Rm 12.1-2']);
@@ -122,11 +122,9 @@ class EngagementTest extends TestCase
                 ->where('week.days.2.done', false)
                 ->has('week.todayBlocks', 1)
                 ->where('week.todayBlocks.0.title', 'Siloé significa Enviado')
-                ->has('week.unlockedBlocks', 1)
                 ->where('week.progress.days_done', 1)
                 ->where('week.progress.days_total', 2)
                 ->missing('week.review')
-                ->where('week.checklist.0.done', true)
                 ->where('week.streak.current', 0));
     }
 
@@ -138,8 +136,29 @@ class EngagementTest extends TestCase
 
         $this->actingAs($this->student)->get('/minha-semana')
             ->assertInertia(fn (Assert $page) => $page
-                ->where('week.todayBlocks.0.title', 'Qua')
-                ->has('week.unlockedBlocks', 3));
+                ->where('week.todayBlocks.0.title', 'Qua'));
+    }
+
+    public function test_home_brings_the_study_week_for_members(): void
+    {
+        LessonReading::factory()->for($this->lesson)->create(['weekday' => 3, 'reference' => 'Rm 12.1-2']);
+        LessonBlock::factory()->for($this->lesson)->drip(3)->create(['title' => 'Siloé significa Enviado']);
+        $this->checkIn($this->lesson, 3, '2026-09-23');
+
+        // Quem é da classe vê no Início a leitura de hoje marcada, o progresso e o conteúdo do dia.
+        $this->actingAs($this->student)->get('/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('home')
+                ->where('week.lesson.slug', 'e-necessario')
+                ->where('week.days.2.is_today', true)
+                ->where('week.days.2.done', true)
+                ->where('week.progress.days_done', 1)
+                ->where('week.todayBlocks.0.title', 'Siloé significa Enviado'));
+
+        // Visitante não tem semana de estudo.
+        auth()->logout();
+        $this->get('/')->assertInertia(fn (Assert $page) => $page->where('week', null));
     }
 
     public function test_student_in_two_classrooms_can_switch_week(): void

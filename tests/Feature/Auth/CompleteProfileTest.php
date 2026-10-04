@@ -92,7 +92,7 @@ class CompleteProfileTest extends TestCase
         $this->actingAs($student)->get('/minha-semana')->assertOk();
         $this->actingAs($visitor)->get('/')->assertOk();
 
-        $this->actingAs($student)->get('/completar-cadastro')->assertRedirect(route('my-week'));
+        $this->actingAs($student)->get('/completar-cadastro')->assertRedirect(route('home'));
     }
 
     public function test_student_with_password_but_missing_data_fills_only_the_data(): void
@@ -106,6 +106,7 @@ class CompleteProfileTest extends TestCase
         $this->actingAs($student)
             ->post('/completar-cadastro', $this->payload(['email' => $student->email, 'password' => null, 'password_confirmation' => null]))
             ->assertSessionHasNoErrors()
+            // Volta para a página que a pessoa tentou abrir antes do cadastro.
             ->assertRedirect(route('my-week'));
 
         $student->refresh();
@@ -124,7 +125,7 @@ class CompleteProfileTest extends TestCase
 
         $response = $this->actingAs($student)->post('/completar-cadastro', $this->payload());
 
-        $response->assertSessionHasNoErrors()->assertRedirect(route('my-week'));
+        $response->assertSessionHasNoErrors()->assertRedirect(route('home'));
         $this->assertNotEmpty(collect($response->headers->getCookies())->first(fn ($c) => str_starts_with($c->getName(), 'remember_web_')));
 
         $student->refresh();

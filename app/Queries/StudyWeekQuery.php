@@ -9,7 +9,7 @@ use App\Http\Resources\LessonReadingResource;
 use App\Models\Classroom;
 use App\Models\LessonBlock;
 use App\Models\User;
-use App\Support\Bible\Bible;
+use App\Queries\Data\CurrentLesson;
 use App\Support\ChurchCalendar;
 use App\Support\StudyStreak;
 use Carbon\CarbonImmutable;
@@ -18,13 +18,14 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * "Minha semana": a semana de estudo (segunda a domingo) da lição atual da classe.
+ * A semana de estudo (segunda a domingo) da lição atual da classe, usada no
+ * Início e em "Leituras da semana".
  *
  * - leitura de cada dia (lesson_readings.weekday) e se a pessoa marcou como
  *   lida (vale marcar qualquer dia, a qualquer momento: adiantar ou recuperar);
  * - conteúdo do dia (curiosidade/conceito): blocos com dia definido ou, sem
  *   dia, distribuídos automaticamente de segunda a sábado;
- * - checklist "Prepare-se para domingo" e sequência de dias.
+ * - progresso da semana e sequência de dias.
  */
 class StudyWeekQuery
 {
@@ -34,13 +35,14 @@ class StudyWeekQuery
     ) {}
 
     /**
+     * @param  CurrentLesson|null  $current  a lição atual já calculada (o Início já tem), para não buscar de novo
      * @return array<string, mixed>
      */
-    public function for(User $user, Classroom $classroom, Request $request): array
+    public function for(User $user, Classroom $classroom, Request $request, ?CurrentLesson $current = null): array
     {
         $today = ChurchCalendar::today();
         $monday = $today->startOfWeek(CarbonImmutable::MONDAY);
-        $current = $this->current->for($classroom, $user);
+        $current ??= $this->current->for($classroom, $user);
         $lesson = $current->lesson;
 
         $base = [
@@ -93,16 +95,9 @@ class StudyWeekQuery
             ];
         }
 
-        // Conteúdo já liberado nesta semana (hoje e dias anteriores).
-        $unlocked = collect($blocksByDay)
-            ->filter(fn ($blocks, $day) => $day <= $today->dayOfWeekIso)
-            ->flatten(1)
-            ->values();
-
         $readingDays = $lesson->readings->filter(fn ($r) => $r->weekday !== null && $r->weekday !== Weekday::Sunday)
             ->pluck('weekday')->unique()->count();
         $weekDone = collect($days)->filter(fn ($d) => $d['done'] && $d['weekday'] <= 6)->count();
-        $hasNote = DB::table('lesson_notes')->where('user_id', $user->id)->where('lesson_id', $lesson->id)->exists();
 
         return [
             ...$base,
@@ -114,24 +109,12 @@ class StudyWeekQuery
                 'number' => $lesson->number,
                 'title' => $lesson->title,
                 'bible_reference' => $lesson->bible_reference,
-                'key_verse' => $lesson->key_verse,
-                'key_verse_passage' => Bible::passage($lesson->key_verse),
-                'general_readings' => LessonReadingResource::collection(
-                    $lesson->readings->filter(fn ($r) => $r->weekday === null)->values()
-                )->resolve($request),
             ],
             'days' => $days,
             'todayBlocks' => LessonBlockResource::collection($blocksByDay[$today->dayOfWeekIso] ?? [])->resolve($request),
-            'unlockedBlocks' => LessonBlockResource::collection($unlocked)->resolve($request),
             'progress' => [
                 'days_done' => $weekDone,
                 'days_total' => max($readingDays, 1),
-            ],
-            'checklist' => [
-                ['key' => 'read', 'label' => 'Ler o texto base ('.($lesson->bible_reference ?? 'da lição').')', 'done' => $checked !== []],
-                ['key' => 'week', 'label' => "Fazer as leituras da semana ({$weekDone}/".max($readingDays, 1).')', 'done' => $weekDone >= max($readingDays, 1)],
-                ['key' => 'note', 'label' => 'Anotar o que Deus falou com você', 'done' => $hasNote],
-                ['key' => 'magazine', 'label' => 'Levar a revista e a Bíblia no domingo', 'done' => null],
             ],
         ];
     }

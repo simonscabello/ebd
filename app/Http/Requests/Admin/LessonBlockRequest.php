@@ -25,7 +25,7 @@ class LessonBlockRequest extends FormRequest
     {
         $rules = $this->lessonBlockRules();
 
-        // Só conteúdo de aluno pode ser liberado em "Minha semana".
+        // Só conteúdo de aluno pode ser liberado em "Para hoje".
         $rules['drip_weekday'][] = 'prohibited_if:audience,teacher';
 
         return $rules;
@@ -50,6 +50,6 @@ class LessonBlockRequest extends FormRequest
      */
     public function messages(): array
     {
-        return ['drip_weekday.prohibited_if' => 'Conteúdo só do professor não aparece em "Minha semana".'];
+        return ['drip_weekday.prohibited_if' => 'Conteúdo só do professor não aparece em "Para hoje".'];
     }
 }

@@ -20,7 +20,7 @@ class SaveLessonReading extends EbdTool
 
     protected string $title = 'Salvar leitura da semana';
 
-    protected string $description = 'Adiciona uma leitura bíblica da semana a um rascunho de lição, ou edita uma existente (reading_id; campos omitidos ficam como estão). Os alunos marcam essas leituras em "Minha semana".';
+    protected string $description = 'Adiciona uma leitura bíblica da semana a um rascunho de lição, ou edita uma existente (reading_id; campos omitidos ficam como estão). Os alunos marcam essas leituras no Início e em "Leituras da semana".';
 
     public function schema(JsonSchema $schema): array
     {

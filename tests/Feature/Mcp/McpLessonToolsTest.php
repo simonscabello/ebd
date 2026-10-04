@@ -76,7 +76,7 @@ class McpLessonToolsTest extends TestCase
         $this->assertSame($this->series->id, $lesson->series_id);
         $this->assertSame([$this->teacher->id], $lesson->authors()->pluck('users.id')->all());
         $this->assertSame(1, $lesson->readings()->count());
-        $this->assertNull($lesson->blocks()->sole()->drip_weekday, 'roteiro é do professor: nunca vai para "Minha semana"');
+        $this->assertNull($lesson->blocks()->sole()->drip_weekday, 'roteiro é do professor: nunca vai para "Para hoje"');
         $this->assertSame('2026-10-04', ClassMeeting::query()->where('lesson_id', $lesson->id)->sole()->held_on->toDateString());
 
         $log = AuditLog::query()->sole();

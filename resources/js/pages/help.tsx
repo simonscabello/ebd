@@ -125,12 +125,14 @@ function ForStudents() {
                 e-mail. Perdeu o acesso? Peça um novo link de acesso ao
                 professor; não crie outra conta.
             </Topic>
-            <Topic icon={<CalendarDays />} title="Minha semana">
+            <Topic icon={<CalendarDays />} title="Leitura do dia">
                 Uma leitura curta por dia, de segunda a sábado, preparando a
-                lição de domingo. Toque em <strong>Ler o texto</strong> e depois
-                em <strong>Marcar como lido</strong>. Dá para adiantar ou pôr em
-                dia quando quiser. Alguns dias trazem uma curiosidade ou um
-                conceito da lição.
+                lição de domingo. Ela aparece no <strong>Início</strong>: toque
+                em <strong>Ler o texto</strong> e depois em{' '}
+                <strong>Marcar como lido</strong>. Para adiantar ou pôr em dia,
+                abra <strong>Leituras da semana</strong>. Alguns dias trazem uma
+                curiosidade ou um conceito da lição em{' '}
+                <strong>Para hoje</strong>.
             </Topic>
             <Topic icon={<NotebookPen />} title="Anotações">
                 No fim de cada lição há um espaço para anotar o que Deus falou
@@ -193,13 +195,15 @@ function ForTeachers() {
                     </li>
                     <li>
                         <strong>Leituras</strong>: uma por dia, de segunda a
-                        sábado. Aparecem na Minha semana dos alunos.
+                        sábado. Aparecem no Início dos alunos, no dia de cada
+                        uma.
                     </li>
                     <li>
                         <strong>Aprofundamento</strong>: roteiro, contexto,
                         curiosidades e conceitos. Escolha se é para os alunos ou{' '}
-                        <strong>só professor</strong>. Em “Liberar em Minha
-                        semana” você define o dia em que a curiosidade aparece.
+                        <strong>só professor</strong>. Em “Mostrar em Para hoje
+                        no dia” você define o dia em que a curiosidade aparece
+                        no Início.
                     </li>
                     <li>
                         <strong>Materiais</strong>: o PDF da revista como

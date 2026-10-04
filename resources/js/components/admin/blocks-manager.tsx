@@ -87,7 +87,7 @@ export function BlocksManager({ lessonId, blocks, kinds, weekdays }: Props) {
                                             )}
                                             {block.drip_weekday_label && (
                                                 <span>
-                                                    · Minha semana:{' '}
+                                                    · Para hoje:{' '}
                                                     {block.drip_weekday_label}
                                                 </span>
                                             )}
@@ -316,7 +316,7 @@ function BlockEditor({
 
             {data.audience === 'student' && (
                 <Field
-                    label="Liberar em “Minha semana”"
+                    label="Mostrar em “Para hoje” no dia"
                     htmlFor={`${prefix}-drip`}
                     error={errors.drip_weekday}
                     hint="Opcional. Curiosidades e conceitos sem dia são distribuídos automaticamente entre segunda e sábado."

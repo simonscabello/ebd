@@ -16,7 +16,7 @@ type HeroLesson = {
 };
 
 /**
- * Card de destaque da lição (Início e Minha semana): o card inteiro abre a lição.
+ * Card de destaque da lição (Início): o card inteiro abre a lição.
  */
 export function LessonHero({
     lesson,

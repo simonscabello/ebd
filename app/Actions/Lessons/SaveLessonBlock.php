@@ -37,7 +37,7 @@ class SaveLessonBlock
     /**
      * Sem público informado, usa o padrão do tipo (roteiro = professor,
      * curiosidade = aluno...). Conteúdo do professor nunca é liberado em
-     * "Minha semana".
+     * "Para hoje".
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>

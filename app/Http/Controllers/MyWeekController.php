@@ -11,7 +11,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * "Minha semana": o roteiro de estudo do aluno até domingo.
+ * "Leituras da semana": a lista dos dias da semana de estudo, com a leitura de
+ * cada um para ler e marcar. O resto da semana (leitura de hoje, progresso,
+ * conteúdo do dia) fica no Início.
  */
 class MyWeekController extends Controller
 {

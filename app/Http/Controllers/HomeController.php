@@ -9,19 +9,23 @@ use App\Http\Resources\LessonResource;
 use App\Http\Resources\SeriesResource;
 use App\Models\User;
 use App\Queries\CurrentLessonQuery;
+use App\Queries\StudyWeekQuery;
 use App\Support\ChurchCalendar;
 use App\Support\ClassroomSelector;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
  * Home: responde "o que eu preciso estudar para o próximo domingo?".
+ *
+ * Para quem é da classe, também é a semana de estudo: a leitura de hoje (que
+ * dá para marcar ali mesmo), o progresso da semana, a sequência e o conteúdo
+ * do dia. A lista completa das leituras fica em "Leituras da semana".
  */
 class HomeController extends Controller
 {
-    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector): Response
+    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector, StudyWeekQuery $week): Response
     {
         /** @var User|null $user */
         $user = $request->user();
@@ -31,6 +35,7 @@ class HomeController extends Controller
 
         $current = $classroom ? $lessons->for($classroom, $user) : null;
         $lesson = $current?->lesson;
+        $isMember = $classroom && $user?->isMemberOf($classroom);
 
         $lesson?->load([
             'readings',
@@ -52,14 +57,10 @@ class HomeController extends Controller
             ],
             'classrooms' => ClassroomResource::collection($classrooms),
             'classroom' => $classroom ? ClassroomResource::make($classroom) : null,
-            'isMember' => $classroom && $user?->isMemberOf($classroom),
-            'isStudent' => $classroom && $user && $user->isMemberOf($classroom) && ! $user->isTeacherOf($classroom),
+            'isMember' => $isMember,
+            'isStudent' => $isMember && ! $user->isTeacherOf($classroom),
             'nextLesson' => $lesson ? LessonResource::make($lesson) : null,
-            'todayReadingDone' => $lesson && $user && $user->isMemberOf($classroom) && DB::table('reading_checkins')
-                ->where('user_id', $user->id)
-                ->where('lesson_id', $lesson->id)
-                ->where('weekday', ChurchCalendar::today()->dayOfWeekIso)
-                ->exists(),
+            'week' => $isMember && $lesson ? $week->for($user, $classroom, $request, $current) : null,
             'meeting' => $current?->meeting && ! $current->isFallback ? ClassMeetingResource::make($current->meeting) : null,
             'meetingIndex' => $current->meetingIndex ?? 0,
             'meetingTotal' => $current->meetingTotal ?? 0,
