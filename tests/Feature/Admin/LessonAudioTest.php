@@ -76,7 +76,8 @@ class LessonAudioTest extends TestCase
                 && $request['model'] === config('ebd.audio.model')
                 && $request['response_format'] === 'mp3'
                 && str_starts_with($input, "Lição 3 — O sinal de Jonas.\n\nIntrodução.")
-                && str_contains($input, 'um sinal (Mateus, capítulo 12, versículos 38 a 40).')
+                && str_contains($input, 'Os fariseus pedem um sinal.')
+                && ! str_contains($input, '12.38')
                 && ! str_contains($input, '**')
                 && ! str_contains($input, '##');
         });
