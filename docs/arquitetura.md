@@ -142,6 +142,7 @@ Ficou de fora de propósito: sincronizar a tela do professor com os alunos em te
 
 ## Semana de estudo do aluno
 
+- **Semana de leitura**: o plano de uma lição vai da segunda-feira até o domingo do encontro (`ChurchCalendar::readingWeekday`, `Lesson::readingWeekdayToday`). Fora dessa semana não há "leitura de hoje": no domingo, a leitura de domingo da lição seguinte só vale no domingo dela. A mesma regra vale para a página da lição, o Início, "Leituras da semana" e os lembretes.
 - **Semana de estudo** (`StudyWeekQuery`): semana de segunda a domingo da lição atual, com a leitura de cada dia; qualquer dia pode ser marcado como lido a qualquer momento (adiantar ou ler tudo no fim de semana), e o check-in guarda o dia do plano (`weekday`) e a data em que foi marcado (`read_on`, do servidor), curiosidades e conceitos liberados um por dia (`drip_weekday` ou distribuição automática), progresso e sequência de dias. Fica no **Início** (leitura de hoje marcável, faixa da semana, "Para hoje" e atalhos), que reaproveita a lição atual já calculada; **Leituras da semana** (`/minha-semana`) é só a lista dos dias. Login pelo link, cadastro completo e lembretes levam ao Início.
 - **Selos** (`AwardBadges`), concedidos no momento da ação, sem scheduler: semana completa (leituras de segunda a sábado de uma lição), 7 e 30 dias seguidos, leitor fiel e presença em todos os domingos do trimestre. São pessoais: **não há ranking**.
 - **Sequência** (`StudyStreak`): dias (`read_on`) em que marcou leitura ou teve presença no domingo; continua viva se o último dia foi ontem.

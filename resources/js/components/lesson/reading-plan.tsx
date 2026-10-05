@@ -1,9 +1,6 @@
-import { Check, CircleCheck } from 'lucide-react';
+import { BookOpen, Check, CircleCheck } from 'lucide-react';
 import { useState } from 'react';
-import {
-    ReadingSheet,
-    ReadTextButton,
-} from '@/components/lesson/reading-sheet';
+import { ReadingSheet } from '@/components/lesson/reading-sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import type { LessonReading } from '@/types';
@@ -17,9 +14,11 @@ export type ReadingTracking = {
 };
 
 /**
- * Plano de leitura da semana. A leitura de hoje fica em destaque e, para
- * membros da classe, qualquer dia pode ser marcado como lido a qualquer
- * momento (dá para adiantar ou pôr a leitura em dia).
+ * Plano de leitura da semana. Cada dia é uma linha curta (dia, referência e
+ * "Ler o texto"); a apresentação, o texto bíblico e o "Marcar como lido" ficam
+ * no leitor que abre. A leitura de hoje fica em destaque e, para membros da
+ * classe, qualquer dia pode ser marcado a qualquer momento (adiantar ou pôr
+ * a leitura em dia).
  */
 export function ReadingPlan({
     readings,
@@ -64,65 +63,21 @@ export function ReadingPlan({
                         !!tracking &&
                         weekday !== null &&
                         tracking.checkedWeekdays.includes(weekday);
-                    const pending =
-                        !!tracking &&
-                        weekday !== null &&
-                        (tracking.pendingWeekdays ?? []).includes(weekday);
 
                     return (
-                        <li
-                            key={reading.id}
-                            className={cn(
-                                'grid grid-cols-[3rem_1fr] items-center gap-x-3.5 gap-y-3 rounded-2xl border bg-card p-3.5 transition-colors sm:grid-cols-[3rem_1fr_auto]',
-                                reading.is_today &&
-                                    !done &&
-                                    'border-primary/50 bg-accent/60 ring-1 ring-primary/20',
-                                done && 'border-success/40 bg-success-soft',
-                            )}
-                        >
-                            <span
-                                className={cn(
-                                    'flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground uppercase',
-                                    reading.is_today &&
-                                        'bg-primary text-primary-foreground',
-                                    done && 'bg-success text-white',
-                                )}
-                            >
-                                {done ? (
-                                    <Check className="size-5" />
-                                ) : (
-                                    (reading.weekday_short ?? '•')
-                                )}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-muted-foreground">
-                                    {reading.is_today
+                        <li key={reading.id}>
+                            <ReadingRow
+                                badge={reading.weekday_short ?? '•'}
+                                label={
+                                    reading.is_today
                                         ? 'Leitura de hoje'
-                                        : (reading.weekday_label ?? 'Leitura')}
-                                </p>
-                                <p className="font-serif text-lg font-semibold">
-                                    {reading.reference}
-                                </p>
-                                {reading.notes && (
-                                    <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-                                        {reading.notes}
-                                    </p>
-                                )}
-                                <ReadTextButton
-                                    reading={reading}
-                                    onClick={() => setOpenId(reading.id)}
-                                />
-                            </div>
-                            {tracking && weekday !== null && (
-                                <ReadToggle
-                                    done={done}
-                                    pending={pending}
-                                    highlight={reading.is_today}
-                                    onClick={() =>
-                                        tracking.onToggle(reading, done)
-                                    }
-                                />
-                            )}
+                                        : (reading.weekday_label ?? 'Leitura')
+                                }
+                                reference={reading.reference}
+                                isToday={reading.is_today}
+                                done={done}
+                                onRead={() => setOpenId(reading.id)}
+                            />
                         </li>
                     );
                 })}
@@ -155,7 +110,7 @@ export function ReadToggle({
             aria-busy={pending || undefined}
             disabled={pending}
             className={cn(
-                'col-start-2 flex min-h-11 items-center gap-1.5 justify-self-start rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-70 sm:col-start-auto',
+                'flex min-h-11 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-70',
                 done
                     ? 'border-success text-success-foreground hover:bg-success/10'
                     : highlight
@@ -167,5 +122,76 @@ export function ReadToggle({
             {pending ? <Spinner /> : <CircleCheck className="size-4" />}
             {pending ? 'Salvando…' : done ? 'Lido' : 'Marcar como lido'}
         </button>
+    );
+}
+
+/**
+ * Uma leitura em linha: o dia como selo, a referência e o botão "Ler o
+ * texto". Usada na página da lição, em "Leituras da semana" e no Início.
+ */
+export function ReadingRow({
+    badge,
+    label,
+    reference,
+    isToday = false,
+    done = false,
+    onRead,
+    className,
+}: {
+    badge: string;
+    label: string;
+    reference: string;
+    isToday?: boolean;
+    done?: boolean;
+    onRead: () => void;
+    className?: string;
+}) {
+    return (
+        <div
+            className={cn(
+                'flex items-center gap-3 rounded-2xl border bg-card p-3 transition-colors',
+                isToday &&
+                    !done &&
+                    'border-primary/50 bg-accent/60 ring-1 ring-primary/20',
+                done && 'border-success/40 bg-success-soft',
+                className,
+            )}
+        >
+            <span
+                className={cn(
+                    'flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground uppercase',
+                    isToday && 'bg-primary text-primary-foreground',
+                    done && 'bg-success text-white',
+                )}
+            >
+                {done ? <Check className="size-5" /> : badge}
+            </span>
+            <div className="min-w-0 flex-1">
+                <p
+                    className={cn(
+                        'text-xs font-medium text-muted-foreground',
+                        done && 'text-success-foreground',
+                    )}
+                >
+                    {done ? `${label} · lida` : label}
+                </p>
+                <p className="font-serif text-lg leading-snug font-semibold">
+                    {reference}
+                </p>
+            </div>
+            <button
+                type="button"
+                onClick={onRead}
+                className={cn(
+                    'inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                    isToday && !done
+                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'bg-card hover:bg-muted',
+                )}
+            >
+                <BookOpen className="size-4" />
+                Ler o texto
+            </button>
+        </div>
     );
 }

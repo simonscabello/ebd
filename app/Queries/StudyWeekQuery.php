@@ -41,9 +41,15 @@ class StudyWeekQuery
     public function for(User $user, Classroom $classroom, Request $request, ?CurrentLesson $current = null): array
     {
         $today = ChurchCalendar::today();
-        $monday = $today->startOfWeek(CarbonImmutable::MONDAY);
         $current ??= $this->current->for($classroom, $user);
         $lesson = $current->lesson;
+
+        // A semana de leitura é a do encontro (segunda até o domingo da aula),
+        // não a semana do calendário: no domingo à noite, a lição seguinte
+        // ainda não tem "leitura de hoje".
+        $meetingOn = $current->meeting?->held_on;
+        $monday = $meetingOn ? ChurchCalendar::readingWeekStart($meetingOn) : $today->startOfWeek(CarbonImmutable::MONDAY);
+        $todayWeekday = ChurchCalendar::readingWeekday($meetingOn, $today);
 
         $base = [
             'today' => $today->toDateString(),
@@ -85,11 +91,12 @@ class StudyWeekQuery
                 'weekday' => $weekday->value,
                 'label' => $weekday->label(),
                 'short' => $weekday->shortLabel(),
-                'is_today' => $date->isSameDay($today),
+                'is_today' => $weekday->value === $todayWeekday,
                 'is_future' => $date->gt($today),
                 'done' => in_array($weekday->value, $checked, true),
-                'readings' => LessonReadingResource::collection(
-                    $lesson->readings->filter(fn ($r) => $r->weekday === $weekday)->values()
+                'readings' => LessonReadingResource::forWeek(
+                    $lesson->readings->filter(fn ($r) => $r->weekday === $weekday)->values(),
+                    $todayWeekday,
                 )->resolve($request),
                 'blocks_count' => count($blocksByDay[$weekday->value] ?? []),
             ];
@@ -111,7 +118,7 @@ class StudyWeekQuery
                 'bible_reference' => $lesson->bible_reference,
             ],
             'days' => $days,
-            'todayBlocks' => LessonBlockResource::collection($blocksByDay[$today->dayOfWeekIso] ?? [])->resolve($request),
+            'todayBlocks' => LessonBlockResource::collection($todayWeekday ? ($blocksByDay[$todayWeekday] ?? []) : [])->resolve($request),
             'progress' => [
                 'days_done' => $weekDone,
                 'days_total' => max($readingDays, 1),
