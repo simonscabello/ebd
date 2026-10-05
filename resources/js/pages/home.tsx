@@ -15,13 +15,11 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { InstallAppBanner } from '@/components/install-app-banner';
 import { LessonHero } from '@/components/lesson/lesson-hero';
-import { ReadToggle } from '@/components/lesson/reading-plan';
+import { ReadingRow, ReadToggle } from '@/components/lesson/reading-plan';
 import { ReadingSheet } from '@/components/lesson/reading-sheet';
-import { TodayReadingCard } from '@/components/lesson/today-reading-card';
 import { RemindersBanner } from '@/components/reminders-banner';
 import { EmptyState, Page } from '@/components/page';
 import { DailyBlocks } from '@/components/week/daily-blocks';
-import { TodayReading } from '@/components/week/today-reading';
 import { WeekSummary } from '@/components/week/week-summary';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn, plural } from '@/lib/utils';
@@ -308,16 +306,10 @@ function NextLesson({
                 <StudyToday
                     week={week}
                     lessonSlug={lesson.slug}
-                    todayReading={todayReading ?? null}
                     readingsHref={readingsHref}
                 />
             ) : (
-                todayReading && (
-                    <TodayReadingCard
-                        reading={todayReading}
-                        href={`${lessonUrl}#leituras`}
-                    />
-                )
+                todayReading && <GuestTodayReading reading={todayReading} />
             )}
 
             <h2 className="mt-10 mb-3 text-lg font-semibold tracking-tight">
@@ -391,48 +383,42 @@ function NextLesson({
 function StudyToday({
     week,
     lessonSlug,
-    todayReading,
     readingsHref,
 }: {
     week: StudyWeek;
     lessonSlug: string;
-    todayReading: LessonReading | null;
     readingsHref: string;
 }) {
     const checkin = useReadingCheckin(lessonSlug);
-    const [reading, setReading] = useState<LessonReading | null>(null);
+    const [open, setOpen] = useState(false);
     const days = week.days ?? [];
-    const today = days.find((day) => day.is_today);
-    const done = today?.done ?? false;
-    const toggle = () =>
-        today && checkin.toggle(today.weekday, done, todayReading?.id ?? null);
+    const day = days.find((d) => d.is_today);
+    const reading = day?.readings[0];
+    const today = day && reading ? { day, reading } : null;
 
     return (
         <>
-            {todayReading && today && (
-                <>
-                    <TodayReading
-                        reading={todayReading}
-                        done={done}
-                        pending={checkin.isPending(today.weekday)}
-                        onToggle={toggle}
-                        onRead={() => setReading(todayReading)}
-                    />
-                    <ReadingSheet
-                        reading={reading}
-                        open={reading !== null}
-                        onOpenChange={(open) => !open && setReading(null)}
-                        footer={
-                            <ReadToggle
-                                done={done}
-                                pending={checkin.isPending(today.weekday)}
-                                highlight
-                                onClick={toggle}
-                                className="w-full justify-center"
-                            />
-                        }
-                    />
-                </>
+            {today && (
+                <ReadingSheet
+                    reading={open ? today.reading : null}
+                    open={open}
+                    onOpenChange={setOpen}
+                    footer={
+                        <ReadToggle
+                            done={today.day.done}
+                            pending={checkin.isPending(today.day.weekday)}
+                            highlight
+                            onClick={() =>
+                                checkin.toggle(
+                                    today.day.weekday,
+                                    today.day.done,
+                                    today.reading.id,
+                                )
+                            }
+                            className="w-full justify-center"
+                        />
+                    }
+                />
             )}
 
             {week.progress && days.length > 0 && (
@@ -441,12 +427,39 @@ function StudyToday({
                     progress={week.progress}
                     streak={week.streak}
                     href={readingsHref}
+                    today={today}
+                    onRead={() => setOpen(true)}
                 />
             )}
 
             {(week.todayBlocks ?? []).length > 0 && (
                 <DailyBlocks blocks={week.todayBlocks ?? []} />
             )}
+        </>
+    );
+}
+
+/**
+ * Leitura de hoje para quem não é da classe: só ler (marcar é para membros).
+ */
+function GuestTodayReading({ reading }: { reading: LessonReading }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <>
+            <ReadingSheet
+                reading={open ? reading : null}
+                open={open}
+                onOpenChange={setOpen}
+            />
+            <ReadingRow
+                className="mt-4"
+                badge={reading.weekday_short ?? '•'}
+                label="Leitura de hoje"
+                reference={reading.reference}
+                isToday
+                onRead={() => setOpen(true)}
+            />
         </>
     );
 }

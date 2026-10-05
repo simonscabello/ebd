@@ -1,4 +1,3 @@
-import { BookOpen } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { PassageVerses, verseCount } from '@/components/lesson/passage-text';
@@ -6,8 +5,9 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import type { LessonReading } from '@/types';
 
 /**
- * Leitor da leitura do dia: o texto na largura toda, com tipografia de
- * leitura, e o rodapé (ex.: "Marcar como lido") fixo ao alcance do polegar.
+ * Leitor da leitura do dia: a apresentação, o texto bíblico na largura toda,
+ * com tipografia de leitura, e no fim o rodapé (ex.: "Marcar como lido") fixo
+ * ao alcance do polegar.
  */
 export function ReadingSheet({
     reading,
@@ -70,31 +70,5 @@ export function ReadingSheet({
                 </div>
             )}
         </BottomSheet>
-    );
-}
-
-/**
- * Botão que abre o leitor, no card da leitura.
- */
-export function ReadTextButton({
-    reading,
-    onClick,
-}: {
-    reading: LessonReading;
-    onClick: () => void;
-}) {
-    if (!reading.passage || reading.passage.verses.length === 0) {
-        return null;
-    }
-
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        >
-            <BookOpen className="size-4" />
-            Ler o texto · {verseCount(reading.passage)}
-        </button>
     );
 }

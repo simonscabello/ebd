@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
+use App\Support\ChurchCalendar;
 use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -142,6 +143,22 @@ class Lesson extends Model
     public function meetings(): HasMany
     {
         return $this->hasMany(ClassMeeting::class)->chronological();
+    }
+
+    /**
+     * Dia do plano de leitura que cai hoje (1 = segunda ... 7 = domingo), na
+     * semana que termina no próximo encontro da lição (hoje incluído). Sem
+     * encontro por vir, ou antes da segunda-feira dessa semana, null.
+     */
+    public function readingWeekdayToday(): ?int
+    {
+        $today = ChurchCalendar::today();
+
+        $next = $this->relationLoaded('meetings')
+            ? $this->meetings->first(fn (ClassMeeting $m) => ! $m->isCancelled() && $m->held_on->toDateString() >= $today->toDateString())
+            : $this->meetings()->active()->fromDate($today)->first();
+
+        return ChurchCalendar::readingWeekday($next?->held_on, $today);
     }
 
     /**

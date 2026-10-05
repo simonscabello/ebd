@@ -54,6 +54,32 @@ class ChurchCalendar
     public const JOINED_ON_SQL = "((classroom_user.created_at AT TIME ZONE 'UTC') AT TIME ZONE ?)::date";
 
     /**
+     * Dia do plano de leitura (1 = segunda ... 7 = domingo) que cai hoje na
+     * semana de leitura de um encontro: de segunda-feira até o dia do
+     * encontro. Fora dessa semana não há "leitura de hoje": no domingo, a
+     * leitura de domingo da lição seguinte ainda não começou.
+     */
+    public static function readingWeekday(?\DateTimeInterface $meetingOn, ?\DateTimeInterface $today = null): ?int
+    {
+        if ($meetingOn === null) {
+            return null;
+        }
+
+        $today = CarbonImmutable::parse(($today ?? self::today())->format('Y-m-d'), self::timezone());
+        $end = CarbonImmutable::parse($meetingOn->format('Y-m-d'), self::timezone());
+
+        return $today->betweenIncluded(self::readingWeekStart($end), $end) ? $today->dayOfWeekIso : null;
+    }
+
+    /**
+     * Segunda-feira que abre a semana de leitura do encontro.
+     */
+    public static function readingWeekStart(\DateTimeInterface $meetingOn): CarbonImmutable
+    {
+        return CarbonImmutable::parse($meetingOn->format('Y-m-d'), self::timezone())->startOfWeek(CarbonImmutable::MONDAY);
+    }
+
+    /**
      * Próximo domingo (hoje, se hoje for domingo).
      */
     public static function nextSunday(): CarbonImmutable

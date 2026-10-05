@@ -38,7 +38,6 @@ final class SendReadingReminders
     public function handle(ReminderSlot $slot, ?CarbonImmutable $today = null): int
     {
         $today ??= ChurchCalendar::today();
-        $weekday = $today->dayOfWeekIso;
         $sent = 0;
 
         foreach (Classroom::query()->active()->get() as $classroom) {
@@ -55,6 +54,15 @@ final class SendReadingReminders
             $lesson = $current->lesson;
 
             if ($lesson === null || $current->isFallback || $lesson->status !== LessonStatus::Published) {
+                continue;
+            }
+
+            // Só dentro da semana de leitura do encontro (segunda até o domingo
+            // da aula): no domingo, a leitura de domingo da próxima lição ainda
+            // não começou.
+            $weekday = ChurchCalendar::readingWeekday($current->meeting?->held_on, $today);
+
+            if ($weekday === null) {
                 continue;
             }
 

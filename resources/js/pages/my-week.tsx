@@ -1,11 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { ArrowLeft, CalendarDays, Check, Hourglass } from 'lucide-react';
-import { ReadToggle } from '@/components/lesson/reading-plan';
-import {
-    ReadingSheet,
-    ReadTextButton,
-} from '@/components/lesson/reading-sheet';
+import { ArrowLeft, CalendarDays, Hourglass } from 'lucide-react';
+import { ReadingRow, ReadToggle } from '@/components/lesson/reading-plan';
+import { ReadingSheet } from '@/components/lesson/reading-sheet';
 import { EmptyState, Page } from '@/components/page';
 import { WeekBar } from '@/components/progress/week-bar';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
@@ -118,39 +115,51 @@ function ReadingList({
 }) {
     const days = week.days ?? [];
     const checkin = useReadingCheckin(lesson.slug);
-
-    // Dias com leitura no plano; sem plano, a semana toda (segunda a sábado) é
-    // para reler o texto base.
-    const withReadings = days.filter((d) => d.readings.length > 0);
-    const readingDays =
-        withReadings.length > 0
-            ? withReadings
-            : days.filter((d) => d.weekday <= 6);
-
-    const toggle = (day: StudyWeekDay) =>
-        checkin.toggle(day.weekday, day.done, day.readings[0]?.id ?? null);
-
-    const [reading, setReading] = useState<{
-        day: StudyWeekDay;
+    const [open, setOpen] = useState<{
+        weekday: number;
         reading: LessonReading;
     } | null>(null);
-    const openDay = reading
-        ? (days.find((d) => d.weekday === reading.day.weekday) ?? reading.day)
+
+    // Uma linha por leitura do plano. Sem plano, cada dia de segunda a sábado
+    // é para reler o texto base.
+    const withReadings = days.filter((d) => d.readings.length > 0);
+    const rows =
+        withReadings.length > 0
+            ? withReadings.flatMap((day) =>
+                  day.readings.map((reading) => ({ day, reading })),
+              )
+            : days
+                  .filter((d) => d.weekday <= 6)
+                  .map((day) => ({
+                      day,
+                      reading: baseTextReading(day, lesson.bible_reference),
+                  }));
+
+    const openDay = open
+        ? (days.find((d) => d.weekday === open.weekday) ?? null)
         : null;
 
     return (
         <div className="space-y-6">
             <ReadingSheet
-                reading={reading?.reading ?? null}
-                open={reading !== null}
-                onOpenChange={(open) => !open && setReading(null)}
+                reading={open?.reading ?? null}
+                open={open !== null}
+                onOpenChange={(value) => !value && setOpen(null)}
                 footer={
                     openDay ? (
                         <ReadToggle
                             done={openDay.done}
                             pending={checkin.isPending(openDay.weekday)}
                             highlight
-                            onClick={() => toggle(openDay)}
+                            onClick={() =>
+                                checkin.toggle(
+                                    openDay.weekday,
+                                    openDay.done,
+                                    open?.reading.id && open.reading.id > 0
+                                        ? open.reading.id
+                                        : null,
+                                )
+                            }
                             className="w-full justify-center"
                         />
                     ) : undefined
@@ -169,90 +178,46 @@ function ReadingList({
             </section>
 
             <ul className="space-y-2.5">
-                {readingDays.map((day) => (
-                    <DayReading
-                        key={day.date}
-                        day={day}
-                        fallback={lesson.bible_reference}
-                        pending={checkin.isPending(day.weekday)}
-                        onToggle={() => toggle(day)}
-                        onRead={(item) => setReading({ day, reading: item })}
-                    />
+                {rows.map(({ day, reading }) => (
+                    <li key={`${day.date}-${reading.id}`}>
+                        <ReadingRow
+                            badge={day.short}
+                            label={
+                                day.is_today ? `Hoje · ${day.label}` : day.label
+                            }
+                            reference={reading.reference}
+                            isToday={day.is_today}
+                            done={day.done}
+                            onRead={() =>
+                                setOpen({ weekday: day.weekday, reading })
+                            }
+                        />
+                    </li>
                 ))}
             </ul>
         </div>
     );
 }
 
-function DayReading({
-    day,
-    fallback,
-    pending,
-    onToggle,
-    onRead,
-}: {
-    day: StudyWeekDay;
-    fallback: string | null;
-    pending: boolean;
-    onToggle: () => void;
-    onRead: (reading: LessonReading) => void;
-}) {
-    return (
-        <li
-            className={cn(
-                'grid grid-cols-[3rem_1fr] items-center gap-x-3.5 gap-y-3 rounded-2xl border bg-card p-3.5 transition-colors sm:grid-cols-[3rem_1fr_auto]',
-                day.is_today &&
-                    !day.done &&
-                    'border-primary/50 bg-accent/60 ring-1 ring-primary/20',
-                day.done && 'border-success/40 bg-success-soft',
-            )}
-        >
-            <span
-                className={cn(
-                    'flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground uppercase',
-                    day.is_today && 'bg-primary text-primary-foreground',
-                    day.done && 'bg-success text-white',
-                )}
-            >
-                {day.done ? <Check className="size-5" /> : day.short}
-            </span>
-            <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-muted-foreground">
-                    {day.is_today ? `Hoje · ${day.label}` : day.label}
-                </p>
-                {day.readings.length > 0 ? (
-                    day.readings.map((reading) => (
-                        <div key={reading.id}>
-                            <p className="font-serif text-lg font-semibold">
-                                {reading.reference}
-                            </p>
-                            {reading.notes && (
-                                <p className="text-sm text-pretty text-muted-foreground">
-                                    {reading.notes}
-                                </p>
-                            )}
-                            <ReadTextButton
-                                reading={reading}
-                                onClick={() => onRead(reading)}
-                            />
-                        </div>
-                    ))
-                ) : (
-                    <p className="font-serif text-lg font-semibold">
-                        {fallback
-                            ? `Releia ${fallback}`
-                            : 'Releia o texto base'}
-                    </p>
-                )}
-            </div>
-            <ReadToggle
-                done={day.done}
-                pending={pending}
-                highlight={day.is_today}
-                onClick={onToggle}
-            />
-        </li>
-    );
+/**
+ * Sem plano de leitura, o dia é para reler o texto base: o leitor abre com a
+ * orientação e o "Marcar como lido".
+ */
+function baseTextReading(
+    day: StudyWeekDay,
+    reference: string | null,
+): LessonReading {
+    return {
+        id: -day.weekday,
+        weekday: day.weekday,
+        weekday_label: day.label,
+        weekday_short: day.short,
+        is_today: day.is_today,
+        reference: reference ?? 'Texto base da lição',
+        passage: null,
+        notes: 'Releia o texto base da lição.',
+        position: day.weekday,
+    };
 }
 
 function countdown(days: number): string {

@@ -139,6 +139,40 @@ class EngagementTest extends TestCase
                 ->where('week.todayBlocks.0.title', 'Qua'));
     }
 
+    public function test_reading_of_the_day_only_counts_inside_the_lesson_week(): void
+    {
+        LessonReading::factory()->for($this->lesson)->create(['weekday' => 7, 'reference' => 'Jo 9.35-41']);
+        $next = Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create(['slug' => 'proxima']);
+        LessonReading::factory()->for($next)->create(['weekday' => 1, 'reference' => 'Mt 12.38-42']);
+        LessonReading::factory()->for($next)->create(['weekday' => 7, 'reference' => 'Mc 16.14-20']);
+
+        // Domingo da aula: a leitura de hoje é a de domingo desta lição; a de
+        // domingo da próxima lição só vale no domingo que vem.
+        $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 27)->setTime(20, 0));
+
+        $this->actingAs($this->student)->get('/licoes/e-necessario')
+            ->assertInertia(fn (Assert $page) => $page->where('lesson.readings.0.is_today', true));
+        $this->actingAs($this->student)->get('/licoes/proxima')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('lesson.readings.0.is_today', false)
+                ->where('lesson.readings.1.is_today', false));
+
+        // Segunda-feira: começa a semana de leitura da próxima lição.
+        $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 28)->setTime(10, 0));
+
+        $this->actingAs($this->student)->get('/licoes/proxima')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('lesson.readings.0.reference', 'Mt 12.38-42')
+                ->where('lesson.readings.0.is_today', true)
+                ->where('lesson.readings.1.is_today', false));
+        $this->actingAs($this->student)->get('/')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('week.lesson.slug', 'proxima')
+                ->where('week.days.0.is_today', true)
+                ->where('week.days.0.date', '2026-09-28')
+                ->where('week.days.6.is_today', false));
+    }
+
     public function test_home_brings_the_study_week_for_members(): void
     {
         LessonReading::factory()->for($this->lesson)->create(['weekday' => 3, 'reference' => 'Rm 12.1-2']);
