@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\BibleController;
 use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LessonAudioController;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\LessonNoteController;
 use App\Http\Controllers\LibraryController;
@@ -64,6 +65,10 @@ Route::middleware('throttle:engagement')->group(function () {
 Route::get('materiais/{material}/arquivo', MaterialFileController::class)
     ->middleware('throttle:downloads')
     ->name('materials.file');
+
+Route::get('licoes/{lesson:slug}/audio', LessonAudioController::class)
+    ->middleware('throttle:downloads')
+    ->name('lessons.audio');
 
 // Link pessoal de acesso dos alunos: /entrar#token (ver AccessLinkController).
 Route::get('entrar', [AccessLinkController::class, 'show'])->name('access-link.show');
@@ -162,6 +167,7 @@ Route::middleware(['auth', 'can:access-admin'])
             ->except(['show']);
 
         Route::post('licoes/{lesson}/status', Admin\LessonStatusController::class)->name('lessons.status');
+        Route::post('licoes/{lesson}/audio', Admin\LessonAudioController::class)->name('lessons.audio');
         Route::put('licoes/{lesson}/ordem/{relation}', Admin\LessonOrderController::class)
             ->whereIn('relation', ['materials', 'readings', 'blocks'])
             ->name('lessons.reorder');

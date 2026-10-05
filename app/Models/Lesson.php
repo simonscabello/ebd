@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
+use App\Support\Audio\StudyNarration;
 use App\Support\ChurchCalendar;
 use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -36,6 +37,14 @@ use Illuminate\Support\Carbon;
  * @property LessonVisibility $visibility
  * @property Carbon|null $published_at
  * @property int|null $created_by
+ * @property string|null $audio_disk
+ * @property string|null $audio_path
+ * @property int|null $audio_duration
+ * @property string|null $audio_source_hash
+ * @property Carbon|null $audio_generated_at
+ * @property string|null $audio_status
+ * @property string|null $audio_error
+ * @property Carbon|null $audio_requested_at
  * @property-read Classroom $classroom
  * @property-read Series|null $series
  */
@@ -49,9 +58,17 @@ use Illuminate\Support\Carbon;
     'content',
     'visibility',
 ])]
-#[Hidden(['search_vector', 'blocks_text'])]
+#[Hidden(['search_vector', 'blocks_text', 'audio_disk', 'audio_path', 'audio_source_hash', 'audio_error'])]
 class Lesson extends Model
 {
+    /** Geração de áudio em andamento (ver GenerateLessonAudio). */
+    public const AUDIO_GENERATING = 'generating';
+
+    public const AUDIO_FAILED = 'failed';
+
+    /** Depois disso, uma geração "em andamento" é dada como perdida (processo caiu). */
+    public const AUDIO_GENERATION_TIMEOUT_MINUTES = 15;
+
     /** @use HasFactory<LessonFactory> */
     use HasFactory, SoftDeletes;
 
@@ -74,6 +91,9 @@ class Lesson extends Model
             'visibility' => LessonVisibility::class,
             'published_at' => 'datetime',
             'number' => 'integer',
+            'audio_duration' => 'integer',
+            'audio_generated_at' => 'datetime',
+            'audio_requested_at' => 'datetime',
         ];
     }
 
@@ -167,6 +187,35 @@ class Lesson extends Model
     public function displayTitle(): string
     {
         return $this->number ? "Lição {$this->number} — {$this->title}" : $this->title;
+    }
+
+    /** Texto que vira o áudio do estudo: o título e o campo de estudo. */
+    public function narration(): StudyNarration
+    {
+        return StudyNarration::make($this->displayTitle(), $this->content);
+    }
+
+    /** Impressão digital do texto narrado; muda quando o estudo é editado. */
+    public function audioSourceHash(): string
+    {
+        return sha1($this->displayTitle()."\n".$this->content);
+    }
+
+    public function hasAudio(): bool
+    {
+        return $this->audio_path !== null;
+    }
+
+    /** O estudo mudou depois que o áudio foi gerado. */
+    public function isAudioStale(): bool
+    {
+        return $this->hasAudio() && $this->audio_source_hash !== $this->audioSourceHash();
+    }
+
+    public function isGeneratingAudio(): bool
+    {
+        return $this->audio_status === self::AUDIO_GENERATING
+            && $this->audio_requested_at?->gt(now()->subMinutes(self::AUDIO_GENERATION_TIMEOUT_MINUTES));
     }
 
     public function isPublic(): bool

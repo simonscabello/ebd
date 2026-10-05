@@ -185,6 +185,18 @@ export type Lesson = {
     headline?: string | null;
 };
 
+/** "Ouvir estudo": áudio narrado do estudo (LessonController::audio). */
+export type LessonAudio = {
+    file: { url: string; duration: number | null } | null;
+    /** Só para quem gerencia a lição. */
+    manage?: {
+        status: 'none' | 'generating' | 'ready' | 'failed';
+        stale: boolean;
+        error: string | null;
+        generated_at: string | null;
+    };
+};
+
 export type Option<T = string> = { value: T; label: string };
 
 export type Paginated<T> = {
