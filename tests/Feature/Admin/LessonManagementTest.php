@@ -11,6 +11,7 @@ use App\Models\Series;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class LessonManagementTest extends TestCase
@@ -210,5 +211,27 @@ class LessonManagementTest extends TestCase
         $this->actingAs($this->teacher)->post('/admin/licoes', $this->payload());
         $this->assertDatabaseHas('lessons', ['slug' => 'a-santidade-de-deus-adultos']);
         $this->get('/licoes/a-santidade-de-deus')->assertNotFound();
+    }
+
+    public function test_lessons_list_is_grouped_by_series_in_the_magazine_order(): void
+    {
+        $old = Series::factory()->for($this->classroom)->create(['title' => 'Milagres', 'starts_on' => '2026-01-04']);
+        $new = Series::factory()->for($this->classroom)->create(['title' => 'Efésios', 'starts_on' => '2026-10-04']);
+        Lesson::factory()->for($this->classroom)->create(['title' => 'Avulsa']);
+        Lesson::factory()->forSeries($old)->number(17)->create(['title' => 'M17']);
+        Lesson::factory()->forSeries($new)->number(2)->create(['title' => 'E2']);
+        Lesson::factory()->forSeries($old)->number(16)->create(['title' => 'M16']);
+        Lesson::factory()->forSeries($new)->number(1)->create(['title' => 'E1']);
+
+        $this->actingAs($this->teacher)->get('/admin/licoes')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('lessons.data.0.title', 'E1')
+                ->where('lessons.data.0.number', 1)
+                ->where('lessons.data.0.series.title', 'Efésios')
+                ->where('lessons.data.1.title', 'E2')
+                ->where('lessons.data.2.title', 'M16')
+                ->where('lessons.data.3.title', 'M17')
+                ->where('lessons.data.4.title', 'Avulsa'));
     }
 }

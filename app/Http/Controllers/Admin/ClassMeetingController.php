@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Lessons\SyncLessonSchedule;
+use App\Actions\Meetings\FillSundays;
 use App\Actions\Meetings\PlanMeetings;
 use App\Actions\Meetings\SaveMeeting;
 use App\Concerns\MeetingValidationRules;
@@ -29,7 +29,8 @@ use Inertia\Response;
 
 /**
  * Domingos da classe: a lista (próximos e anteriores) e a página de cada
- * domingo, com a lição, a chamada e "onde paramos".
+ * domingo, com a lição, a chamada e "onde paramos". Todo domingo já existe
+ * (FillSundays); domingo sem aula é marcado como "sem EBD", não removido.
  */
 class ClassMeetingController extends Controller
 {
@@ -38,9 +39,11 @@ class ClassMeetingController extends Controller
     /** Quantas semanas para trás a lista mostra antes de "ver todos". */
     private const PAST_WEEKS = 12;
 
-    public function index(Request $request, Classroom $classroom, AttendanceBookQuery $books): Response
+    public function index(Request $request, Classroom $classroom, AttendanceBookQuery $books, FillSundays $fill): Response
     {
         Gate::authorize('manageContent', $classroom);
+
+        $fill->handle($classroom);
 
         $today = ChurchCalendar::today();
         $todayString = $today->toDateString();
@@ -67,7 +70,6 @@ class ClassMeetingController extends Controller
             'past' => $past->reverse()->map($row)->values(),
             'showingAll' => $showAll,
             'hasOlder' => ! $showAll && $classroom->meetings()->whereDate('held_on', '<', (string) $from)->exists(),
-            'lessons' => $this->lessonOptions($classroom),
             'series' => SeriesResource::collection($classroom->series()->orderByDesc('starts_on')->get()),
         ]);
     }
@@ -120,15 +122,6 @@ class ClassMeetingController extends Controller
         ]);
     }
 
-    public function store(MeetingRequest $request, Classroom $classroom, SaveMeeting $save): RedirectResponse
-    {
-        $save->handle($classroom, $request->validated());
-
-        $this->toast('Domingo adicionado.');
-
-        return back();
-    }
-
     public function update(MeetingRequest $request, ClassMeeting $meeting, SaveMeeting $save): RedirectResponse
     {
         $save->handle($meeting->classroom, $request->validated(), $meeting);
@@ -136,25 +129,6 @@ class ClassMeetingController extends Controller
         $this->toast('Domingo atualizado.');
 
         return back();
-    }
-
-    public function destroy(ClassMeeting $meeting, SyncLessonSchedule $sync): RedirectResponse
-    {
-        Gate::authorize('delete', $meeting);
-
-        if ($meeting->hasAttendance()) {
-            $this->toast('Este domingo tem chamada registrada e não pode ser removido.', 'error');
-
-            return back();
-        }
-
-        $meeting->delete();
-        $sync->handle($meeting->classroom_id);
-
-        $this->toast('Domingo removido.');
-
-        // A página do domingo removido deixa de existir: volta para a lista.
-        return to_route('admin.classrooms.meetings.index', $meeting->classroom);
     }
 
     public function plan(Request $request, Classroom $classroom, PlanMeetings $plan): RedirectResponse

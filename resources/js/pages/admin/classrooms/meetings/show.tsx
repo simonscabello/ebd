@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from "@inertiajs/react";
 import {
     BookOpen,
     CalendarCheck,
@@ -13,41 +13,38 @@ import {
     Presentation,
     RotateCcw,
     StickyNote,
-    Trash2,
     Users,
-} from 'lucide-react';
-import { useState } from 'react';
-import { ClassroomHeader } from '@/components/admin/classroom-header';
-import { CancelMeetingDialog } from '@/components/admin/meetings/cancel-meeting-dialog';
-import { EditMeetingDialog } from '@/components/admin/meetings/edit-meeting-dialog';
-import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
-import { AutosaveStatus } from '@/components/autosave-status';
-import { useConfirm } from '@/components/confirm-dialog';
-import type { Roster } from '@/components/lesson/attendance-sheet';
-import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
-import { Page, PageHeader, Section } from '@/components/page';
-import { Button } from '@/components/ui/button';
-import { NativeSelect } from '@/components/ui/native-select';
-import { Textarea } from '@/components/ui/textarea';
-import { useAutosave } from '@/hooks/use-autosave';
-import { dayMonth, longDate } from '@/lib/dates';
-import { show } from '@/routes/admin/classrooms/meetings';
-import { edit as editLesson } from '@/routes/admin/lessons';
+} from "lucide-react";
+import { useState } from "react";
+import { ClassroomHeader } from "@/components/admin/classroom-header";
+import { CancelMeetingDialog } from "@/components/admin/meetings/cancel-meeting-dialog";
+import { EditMeetingDialog } from "@/components/admin/meetings/edit-meeting-dialog";
+import { MeetingStatusBadge } from "@/components/admin/meeting-status-badge";
+import { AutosaveStatus } from "@/components/autosave-status";
+import type { Roster } from "@/components/lesson/attendance-sheet";
+import { AttendanceSheet } from "@/components/lesson/attendance-sheet";
+import { Page, PageHeader, Section } from "@/components/page";
+import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutosave } from "@/hooks/use-autosave";
+import { dayMonth, longDate } from "@/lib/dates";
+import { show } from "@/routes/admin/classrooms/meetings";
+import { edit as editLesson } from "@/routes/admin/lessons";
 import {
     continueMethod as continueMeeting,
-    destroy,
     held,
     restore,
     update,
-} from '@/routes/admin/meetings';
-import { update as updateNotes } from '@/routes/admin/meetings/notes';
-import { sunday } from '@/routes/lessons';
+} from "@/routes/admin/meetings";
+import { update as updateNotes } from "@/routes/admin/meetings/notes";
+import { sunday } from "@/routes/lessons";
 import type {
     ClassMeeting,
     Classroom,
     LessonOption,
     SundaySummary,
-} from '@/types';
+} from "@/types";
 
 type Meeting = ClassMeeting & {
     is_today: boolean;
@@ -82,29 +79,15 @@ export default function MeetingPage({
     attendance,
     lessons,
 }: Props) {
-    const confirm = useConfirm();
     const [cancelOpen, setCancelOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
-    const cancelled = meeting.status === 'cancelled';
+    const cancelled = meeting.status === "cancelled";
     const past = !meeting.is_future;
     const title = longDate(meeting.held_on);
     const here = show.url({ classroom: classroom.slug, meeting: meeting.id });
 
     const post = (url: string) =>
         router.post(url, {}, { preserveScroll: true });
-
-    const remove = async () => {
-        if (
-            await confirm({
-                title: 'Excluir este domingo?',
-                description: `${title}. Use "Sem EBD" se não houve aula; excluir é para domingos criados por engano.`,
-                confirmLabel: 'Excluir',
-                destructive: true,
-            })
-        ) {
-            router.delete(destroy.url(meeting.id));
-        }
-    };
 
     return (
         <>
@@ -134,7 +117,7 @@ export default function MeetingPage({
                                 {meeting.position &&
                                     meeting.position.total > 1 && (
                                         <span>
-                                            domingo {meeting.position.index} de{' '}
+                                            domingo {meeting.position.index} de{" "}
                                             {meeting.position.total} da lição
                                         </span>
                                     )}
@@ -163,7 +146,7 @@ export default function MeetingPage({
                         {!cancelled && (
                             <Section title="Lição do dia" icon={<BookOpen />}>
                                 <LessonPicker
-                                    key={meeting.lesson_id ?? 'none'}
+                                    key={meeting.lesson_id ?? "none"}
                                     meeting={meeting}
                                     lessons={lessons}
                                 />
@@ -206,7 +189,7 @@ export default function MeetingPage({
                             icon={<Users />}
                             description={
                                 attendance
-                                    ? 'Toque no nome de quem estava. Salva sozinha e pode ser corrigida depois.'
+                                    ? "Toque no nome de quem estava. Salva sozinha e pode ser corrigida depois."
                                     : undefined
                             }
                         >
@@ -216,7 +199,7 @@ export default function MeetingPage({
                                         Não teve EBD neste domingo
                                         {meeting.title
                                             ? ` (${meeting.title})`
-                                            : ''}
+                                            : ""}
                                         .
                                     </p>
                                     <Button
@@ -235,12 +218,12 @@ export default function MeetingPage({
                                     {summary && (
                                         <p className="mb-4 flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-sm text-success-foreground">
                                             <CalendarCheck className="size-4 shrink-0" />
-                                            {summary.present} de{' '}
+                                            {summary.present} de{" "}
                                             {summary.expected} presentes
                                             {summary.rate !== null &&
                                                 ` (${summary.rate}%)`}
                                             {summary.visitors > 0 &&
-                                                ` · ${summary.visitors} visitante${summary.visitors > 1 ? 's' : ''}`}
+                                                ` · ${summary.visitors} visitante${summary.visitors > 1 ? "s" : ""}`}
                                         </p>
                                     )}
                                     <AttendanceSheet
@@ -249,7 +232,7 @@ export default function MeetingPage({
                                         roster={attendance.roster}
                                         initialPresent={attendance.present}
                                         initialVisitors={attendance.visitors}
-                                        reloadOnly={['summary', 'meeting']}
+                                        reloadOnly={["summary", "meeting"]}
                                     />
                                 </>
                             ) : (
@@ -287,7 +270,7 @@ export default function MeetingPage({
                                         próximo
                                     </Button>
                                 )}
-                                {meeting.status === 'planned' &&
+                                {meeting.status === "planned" &&
                                     past &&
                                     !meeting.has_attendance && (
                                         <Button
@@ -314,15 +297,6 @@ export default function MeetingPage({
                                 >
                                     <Pencil /> Editar data e título
                                 </Button>
-                                {!meeting.has_attendance && (
-                                    <Button
-                                        variant="ghost"
-                                        className="text-destructive hover:text-destructive"
-                                        onClick={remove}
-                                    >
-                                        <Trash2 /> Excluir
-                                    </Button>
-                                )}
                             </div>
                         </Section>
                     </div>
@@ -352,11 +326,11 @@ function NeighborLink({
 }: {
     classroom: Classroom;
     id: number | null;
-    direction: 'previous' | 'next';
+    direction: "previous" | "next";
 }) {
     const label =
-        direction === 'previous' ? 'Domingo anterior' : 'Próximo domingo';
-    const Icon = direction === 'previous' ? ChevronLeft : ChevronRight;
+        direction === "previous" ? "Domingo anterior" : "Próximo domingo";
+    const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
 
     if (id === null) {
         return (
@@ -389,9 +363,9 @@ function LessonPicker({
     meeting: Meeting;
     lessons: LessonOption[];
 }) {
-    const form = useForm<{ held_on: string; lesson_id: number | '' }>({
+    const form = useForm<{ held_on: string; lesson_id: number | "" }>({
         held_on: meeting.held_on,
-        lesson_id: meeting.lesson_id ?? '',
+        lesson_id: meeting.lesson_id ?? "",
     });
 
     return (
@@ -415,8 +389,8 @@ function LessonPicker({
                 value={form.data.lesson_id}
                 onChange={(event) =>
                     form.setData(
-                        'lesson_id',
-                        event.target.value ? Number(event.target.value) : '',
+                        "lesson_id",
+                        event.target.value ? Number(event.target.value) : "",
                     )
                 }
                 className="sm:flex-1"
@@ -425,7 +399,7 @@ function LessonPicker({
                 {lessons.map((lesson) => (
                     <option key={lesson.id} value={lesson.id}>
                         {lesson.label}
-                        {lesson.status === 'draft' ? ' (rascunho)' : ''}
+                        {lesson.status === "draft" ? " (rascunho)" : ""}
                     </option>
                 ))}
             </NativeSelect>
@@ -439,7 +413,7 @@ function LessonPicker({
 }
 
 function NotesForm({ meeting }: { meeting: Meeting }) {
-    const initial = meeting.notes ?? '';
+    const initial = meeting.notes ?? "";
     const [notes, setNotes] = useState(initial);
     const { status, retry } = useAutosave(notes, initial, (value, callbacks) =>
         router.put(
@@ -448,7 +422,7 @@ function NotesForm({ meeting }: { meeting: Meeting }) {
             {
                 preserveScroll: true,
                 preserveState: true,
-                only: ['meeting'],
+                only: ["meeting"],
                 ...callbacks,
             },
         ),

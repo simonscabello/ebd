@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\Gender;
+use App\Enums\MeetingStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ClassroomResource;
 use App\Models\ClassMeeting;
@@ -74,6 +75,7 @@ class ClassroomReportController extends Controller
                 ...$book->sunday($m),
             ])->values(),
             'students' => $students,
+            'calendar' => $this->calendar($classroom, $period),
             'totals' => $book->totals(),
             'byGender' => $this->byGender($students->all()),
             'homeStudy' => array_values(array_map(
@@ -108,6 +110,42 @@ class ClassroomReportController extends Controller
         return $series->firstWhere('id', $weekSeries?->id)
             ?? $series->first(fn (Series $s) => $s->starts_on !== null && $s->starts_on->toDateString() <= $today && ($s->ends_on === null || $s->ends_on->toDateString() >= $today))
             ?? $series->first();
+    }
+
+    /**
+     * Os domingos do período até hoje: quantos tiveram aula, quais ficaram sem
+     * EBD (com o motivo) e quais passaram sem chamada nem confirmação.
+     *
+     * @return array{total: int, held: int, cancelled: list<array{id: int, held_on: string, reason: string|null}>, pending: list<array{id: int, held_on: string}>}
+     */
+    private function calendar(Classroom $classroom, Period $period): array
+    {
+        $meetings = $classroom->meetings()
+            ->when($period->from, fn ($query, string $from) => $query->whereDate('held_on', '>=', $from))
+            ->whereDate('held_on', '<=', $period->to)
+            ->chronological()
+            ->get(['id', 'held_on', 'status', 'title']);
+
+        $today = ChurchCalendar::todayString();
+        $pick = fn (MeetingStatus $status) => $meetings->where('status', $status)->values();
+        $held = $pick(MeetingStatus::Held)->count();
+        $cancelled = $pick(MeetingStatus::Cancelled);
+        // O domingo de hoje ainda não está pendente.
+        $pending = $pick(MeetingStatus::Planned)->filter(fn (ClassMeeting $m) => $m->held_on->toDateString() < $today)->values();
+
+        return [
+            'total' => $held + $cancelled->count() + $pending->count(),
+            'held' => $held,
+            'cancelled' => array_values($cancelled->map(fn (ClassMeeting $m) => [
+                'id' => $m->id,
+                'held_on' => $m->held_on->toDateString(),
+                'reason' => $m->title,
+            ])->all()),
+            'pending' => array_values($pending->map(fn (ClassMeeting $m) => [
+                'id' => $m->id,
+                'held_on' => $m->held_on->toDateString(),
+            ])->all()),
+        ];
     }
 
     /**

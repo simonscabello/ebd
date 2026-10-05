@@ -1,6 +1,8 @@
 <?php
 
+use App\Actions\Meetings\FillSundays;
 use App\Models\AuditLog;
+use App\Models\Classroom;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -36,3 +38,10 @@ foreach ([
 // Limpeza: histórico de ações dos agentes com mais de um ano e tokens OAuth vencidos ou revogados.
 Schedule::command('model:prune', ['--model' => [AuditLog::class]])->dailyAt('03:30')->timezone($timezone)->onOneServer();
 Schedule::command('passport:purge')->dailyAt('03:40')->timezone($timezone)->onOneServer();
+
+// Todo domingo existe na agenda de cada classe ativa, algumas semanas à frente.
+Schedule::call(function () {
+    foreach (Classroom::query()->active()->get() as $classroom) {
+        app(FillSundays::class)->handle($classroom);
+    }
+})->name('ebd:fill-sundays')->dailyAt('03:50')->timezone($timezone)->onOneServer();

@@ -1,29 +1,31 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from "@inertiajs/react";
 import {
     BookOpen,
     CalendarCheck,
+    CalendarDays,
     FileBarChart,
     Printer,
     Users,
-} from 'lucide-react';
+} from "lucide-react";
 import type {
     MatrixStudent,
     MatrixSunday,
-} from '@/components/admin/attendance-matrix';
+} from "@/components/admin/attendance-matrix";
 import {
     AbsentMark,
     AttendanceMatrix,
     PresentMark,
-} from '@/components/admin/attendance-matrix';
-import { ClassroomHeader } from '@/components/admin/classroom-header';
-import { Meter } from '@/components/admin/meter';
-import { StatTile } from '@/components/admin/stat-tile';
-import { EmptyState, Page, PageHeader, Section } from '@/components/page';
-import { Button } from '@/components/ui/button';
-import { NativeSelect } from '@/components/ui/native-select';
-import { dayMonth, longDate } from '@/lib/dates';
-import { report } from '@/routes/admin/classrooms';
-import type { Classroom } from '@/types';
+} from "@/components/admin/attendance-matrix";
+import { ClassroomHeader } from "@/components/admin/classroom-header";
+import { Meter } from "@/components/admin/meter";
+import { StatTile } from "@/components/admin/stat-tile";
+import { EmptyState, Page, PageHeader, Section } from "@/components/page";
+import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
+import { dayMonth, longDate } from "@/lib/dates";
+import { report } from "@/routes/admin/classrooms";
+import { show as showMeeting } from "@/routes/admin/classrooms/meetings";
+import type { Classroom } from "@/types";
 
 type Props = {
     classroom: Classroom;
@@ -37,6 +39,7 @@ type Props = {
     selected: string;
     sundays: MatrixSunday[];
     students: (MatrixStudent & { gender: string | null })[];
+    calendar: Calendar;
     totals: {
         sundays: number;
         present: number;
@@ -64,6 +67,13 @@ type Props = {
     printedAt: string;
 };
 
+type Calendar = {
+    total: number;
+    held: number;
+    cancelled: { id: number; held_on: string; reason: string | null }[];
+    pending: { id: number; held_on: string }[];
+};
+
 /**
  * Relatório da classe por série (revista): a chamada de cada aluno em cada
  * domingo, a frequência por gênero e o estudo em casa por lição. Imprime em
@@ -76,6 +86,7 @@ export default function ClassroomReport({
     selected,
     sundays,
     students,
+    calendar,
     totals,
     byGender,
     homeStudy,
@@ -86,10 +97,10 @@ export default function ClassroomReport({
         : `até ${dayMonth(period.to)}`;
 
     const choose = (value: string) => {
-        const [kind, id] = value.split(':');
+        const [kind, id] = value.split(":");
         router.get(
             report.url(classroom.slug, {
-                query: kind === 'serie' ? { serie: id } : { periodo: '3m' },
+                query: kind === "serie" ? { serie: id } : { periodo: "3m" },
             }),
             {},
             { preserveScroll: true },
@@ -99,18 +110,18 @@ export default function ClassroomReport({
     return (
         <>
             <Head title={`Relatório · ${classroom.name}`} />
-            <style>{'@page { size: A4 landscape; margin: 12mm; }'}</style>
+            <style>{"@page { size: A4 landscape; margin: 12mm; }"}</style>
 
             <Page width="wide">
                 <ClassroomHeader classroom={classroom} active="relatorio" />
 
                 <p className="mb-2 hidden text-sm text-muted-foreground print:block">
-                    EBD · Classe {classroom.name} · impresso em{' '}
+                    EBD · Classe {classroom.name} · impresso em{" "}
                     {longDate(printedAt)}
                 </p>
                 <PageHeader
                     title={`Relatório · ${period.label}`}
-                    description={`${range} · ${totals.sundays} ${totals.sundays === 1 ? 'domingo' : 'domingos'} com chamada. Cada aluno conta a partir de quando entrou na classe.`}
+                    description={`${range} · ${totals.sundays} ${totals.sundays === 1 ? "domingo" : "domingos"} com chamada. Cada aluno conta a partir de quando entrou na classe.`}
                     actions={
                         <div className="flex flex-wrap gap-2 print:hidden">
                             <label htmlFor="report-period" className="sr-only">
@@ -157,7 +168,7 @@ export default function ClassroomReport({
                                 label="Frequência média"
                                 value={
                                     totals.rate === null
-                                        ? '—'
+                                        ? "—"
                                         : `${totals.rate}%`
                                 }
                                 hint={`${totals.present} de ${totals.expected} presenças`}
@@ -171,7 +182,7 @@ export default function ClassroomReport({
                                         (g) =>
                                             `${g.students} ${g.label.toLowerCase()}`,
                                     )
-                                    .join(' · ')}
+                                    .join(" · ")}
                             />
                             <StatTile
                                 icon={<Users />}
@@ -195,7 +206,7 @@ export default function ClassroomReport({
                                                 </span>
                                                 <span className="font-serif text-2xl font-semibold tabular-nums">
                                                     {group.rate === null
-                                                        ? '—'
+                                                        ? "—"
                                                         : `${group.rate}%`}
                                                 </span>
                                             </p>
@@ -204,11 +215,11 @@ export default function ClassroomReport({
                                                 className="mt-2"
                                             />
                                             <p className="mt-2 text-xs text-muted-foreground">
-                                                {group.students}{' '}
+                                                {group.students}{" "}
                                                 {group.students === 1
-                                                    ? 'aluno'
-                                                    : 'alunos'}{' '}
-                                                · {group.present} de{' '}
+                                                    ? "aluno"
+                                                    : "alunos"}{" "}
+                                                · {group.present} de{" "}
                                                 {group.expected} presenças
                                             </p>
                                         </li>
@@ -269,21 +280,90 @@ export default function ClassroomReport({
                         )}
                     </div>
                 )}
+
+                {calendar.total > 0 && (
+                    <SundaysSection classroom={classroom} calendar={calendar} />
+                )}
             </Page>
         </>
     );
 }
 
-function studySummary(lesson: Props['homeStudy'][number]): string {
+function SundaysSection({
+    classroom,
+    calendar,
+}: {
+    classroom: Classroom;
+    calendar: Calendar;
+}) {
+    const plural = (n: number, one: string, many: string) =>
+        `${n} ${n === 1 ? one : many}`;
+
+    return (
+        <Section
+            title="Domingos do período"
+            icon={<CalendarDays />}
+            description={[
+                plural(calendar.total, "domingo", "domingos"),
+                `${calendar.held} com aula`,
+                `${calendar.cancelled.length} sem EBD`,
+                calendar.pending.length > 0 &&
+                    plural(calendar.pending.length, "pendente", "pendentes"),
+            ]
+                .filter(Boolean)
+                .join(" · ")}
+            className="mt-10"
+        >
+            {calendar.cancelled.length + calendar.pending.length > 0 && (
+                <ul className="divide-y rounded-2xl border bg-card text-sm">
+                    {calendar.cancelled.map((sunday) => (
+                        <li
+                            key={sunday.id}
+                            className="flex flex-wrap gap-x-3 px-4 py-2.5"
+                        >
+                            <span className="w-28 font-medium tabular-nums">
+                                {dayMonth(sunday.held_on)}
+                            </span>
+                            <span className="text-muted-foreground">
+                                Sem EBD
+                                {sunday.reason ? ` · ${sunday.reason}` : ""}
+                            </span>
+                        </li>
+                    ))}
+                    {calendar.pending.map((sunday) => (
+                        <li key={sunday.id}>
+                            <Link
+                                href={showMeeting({
+                                    classroom: classroom.slug,
+                                    meeting: sunday.id,
+                                })}
+                                className="flex flex-wrap gap-x-3 px-4 py-2.5 hover:bg-muted/50"
+                            >
+                                <span className="w-28 font-medium tabular-nums">
+                                    {dayMonth(sunday.held_on)}
+                                </span>
+                                <span className="font-medium text-warning-foreground">
+                                    Pendente: faça a chamada ou marque “Sem EBD”
+                                </span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </Section>
+    );
+}
+
+function studySummary(lesson: Props["homeStudy"][number]): string {
     if (lesson.readers === 0) {
         return lesson.expected === 1
-            ? 'O aluno não marcou leitura'
+            ? "O aluno não marcou leitura"
             : `Nenhum dos ${lesson.expected} alunos marcou leitura`;
     }
 
-    const days = String(lesson.avg_days).replace('.', ',');
+    const days = String(lesson.avg_days).replace(".", ",");
     const plan =
-        lesson.readings_total > 1 ? ` (plano de ${lesson.readings_total})` : '';
+        lesson.readings_total > 1 ? ` (plano de ${lesson.readings_total})` : "";
 
-    return `${lesson.readers} de ${lesson.expected} leram${lesson.rate !== null ? ` (${lesson.rate}%)` : ''} · média de ${days} ${lesson.avg_days === 1 ? 'dia' : 'dias'}${plan}`;
+    return `${lesson.readers} de ${lesson.expected} leram${lesson.rate !== null ? ` (${lesson.rate}%)` : ""} · média de ${days} ${lesson.avg_days === 1 ? "dia" : "dias"}${plan}`;
 }

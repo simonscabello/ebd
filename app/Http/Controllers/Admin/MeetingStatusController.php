@@ -94,7 +94,7 @@ class MeetingStatusController extends Controller
         $lesson = Lesson::query()->find($lessonId);
 
         if ($lesson !== null) {
-            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Adicione um domingo em Domingos.", 'warning');
+            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Escolha um domingo para ela em Domingos.", 'warning');
         }
     }
 }

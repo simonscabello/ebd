@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Actions\Meetings\FillSundays;
 use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
 use App\Models\User;
+use App\Queries\CurrentLessonQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -78,14 +80,15 @@ class MeetingManagementTest extends TestCase
     public function test_only_one_meeting_per_day_and_lesson_must_be_of_the_classroom(): void
     {
         ClassMeeting::factory()->for($this->classroom)->on('2026-09-27')->create();
+        $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-10-04')->create();
         $foreign = Lesson::factory()->create();
 
         $this->actingAs($this->teacher)
-            ->post('/admin/classes/adultos/domingos', ['held_on' => '2026-09-27'])
+            ->put("/admin/encontros/{$meeting->id}", ['held_on' => '2026-09-27'])
             ->assertSessionHasErrors('held_on');
 
         $this->actingAs($this->teacher)
-            ->post('/admin/classes/adultos/domingos', ['held_on' => '2026-10-04', 'lesson_id' => $foreign->id])
+            ->put("/admin/encontros/{$meeting->id}", ['held_on' => '2026-10-04', 'lesson_id' => $foreign->id])
             ->assertSessionHasErrors('lesson_id');
     }
 
@@ -156,15 +159,12 @@ class MeetingManagementTest extends TestCase
         $this->assertSame(MeetingStatus::Planned, $meeting->refresh()->status);
     }
 
-    public function test_meeting_with_attendance_cannot_be_cancelled_or_deleted(): void
+    public function test_meeting_with_attendance_cannot_be_cancelled(): void
     {
         $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-09-20')->held()->create();
         $meeting->forceFill(['attendance_taken_at' => now()])->save();
 
         $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/cancelar")->assertSessionHasErrors('meeting');
-        $this->actingAs($this->teacher)->delete("/admin/encontros/{$meeting->id}");
-
-        $this->assertModelExists($meeting);
         $this->assertSame(MeetingStatus::Held, $meeting->refresh()->status);
     }
 
@@ -175,9 +175,7 @@ class MeetingManagementTest extends TestCase
 
         $this->actingAs($outsider)->get('/admin/classes/adultos/domingos')->assertForbidden();
         $this->actingAs($outsider)->get("/admin/classes/adultos/domingos/{$meeting->id}")->assertForbidden();
-        $this->actingAs($outsider)->post('/admin/classes/adultos/domingos', ['held_on' => '2026-10-04'])->assertForbidden();
         $this->actingAs($outsider)->post("/admin/encontros/{$meeting->id}/cancelar")->assertForbidden();
-        $this->actingAs($outsider)->delete("/admin/encontros/{$meeting->id}")->assertForbidden();
     }
 
     public function test_sundays_page_lists_upcoming_and_past_with_attendance_summary(): void
@@ -268,15 +266,45 @@ class MeetingManagementTest extends TestCase
         $this->assertSame('Revisão do trimestre', $meeting->refresh()->title);
     }
 
-    public function test_deleting_a_sunday_goes_back_to_the_list(): void
+    public function test_every_sunday_is_on_the_agenda_from_the_first_one_to_weeks_ahead(): void
     {
-        $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-10-04')->create();
+        ClassMeeting::factory()->for($this->classroom)->on('2026-09-06')->held()->create();
+        ClassMeeting::factory()->for($this->classroom)->on('2026-09-20')->cancelled()->create(['title' => 'Retiro']);
 
-        $this->actingAs($this->teacher)
-            ->delete("/admin/encontros/{$meeting->id}")
-            ->assertRedirect('/admin/classes/adultos/domingos');
+        $this->actingAs($this->teacher)->get('/admin/classes/adultos/domingos')->assertOk();
 
-        $this->assertModelMissing($meeting);
+        $dates = ClassMeeting::query()->whereBelongsTo($this->classroom)->chronological()->pluck('held_on')->map->toDateString();
+
+        // Do primeiro domingo (06/09) até 12 semanas depois do domingo desta semana (20/09).
+        $this->assertSame('2026-09-06', $dates->first());
+        $this->assertSame('2026-12-13', $dates->last());
+        $this->assertCount(15, $dates);
+        $this->assertSame('Retiro', ClassMeeting::query()->whereDate('held_on', '2026-09-20')->sole()->title);
+
+        // Abrir de novo não duplica nada; domingo não se exclui, vira "sem EBD".
+        $this->actingAs($this->teacher)->get('/admin/classes/adultos/domingos');
+        $this->assertSame(15, ClassMeeting::query()->whereBelongsTo($this->classroom)->count());
+        $this->actingAs($this->teacher)->delete('/admin/encontros/'.ClassMeeting::query()->value('id'))->assertMethodNotAllowed();
+    }
+
+    public function test_new_classroom_starts_the_agenda_this_week(): void
+    {
+        app(FillSundays::class)->handle($this->classroom);
+
+        $dates = ClassMeeting::query()->whereBelongsTo($this->classroom)->chronological()->pluck('held_on')->map->toDateString();
+
+        $this->assertSame('2026-09-20', $dates->first());
+        $this->assertCount(13, $dates);
+    }
+
+    public function test_lesson_of_the_week_skips_empty_sundays(): void
+    {
+        $lesson = Lesson::factory()->for($this->classroom)->published()->number(1)->on('2026-10-11')->create();
+        app(FillSundays::class)->handle($this->classroom);
+
+        $current = app(CurrentLessonQuery::class)->for($this->classroom, $this->teacher);
+
+        $this->assertSame($lesson->id, $current->lesson?->id);
     }
 
     public function test_old_agenda_and_evolution_addresses_redirect(): void

@@ -1,22 +1,20 @@
-import { Head, Link } from '@inertiajs/react';
-import { CalendarPlus, ChevronRight, StickyNote } from 'lucide-react';
-import { ClassroomHeader } from '@/components/admin/classroom-header';
-import { AddMeetingDialog } from '@/components/admin/meetings/add-meeting-dialog';
-import { PlanMeetingsDialog } from '@/components/admin/meetings/plan-meetings-dialog';
-import { StatusBadge } from '@/components/admin/status-badge';
-import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
-import { EmptyState, Page, PageHeader, Section } from '@/components/page';
-import { dateTile, monthYear } from '@/lib/dates';
-import { cn } from '@/lib/utils';
-import { index, show } from '@/routes/admin/classrooms/meetings';
+import { Head, Link } from "@inertiajs/react";
+import { CalendarPlus, ChevronRight, StickyNote } from "lucide-react";
+import { ClassroomHeader } from "@/components/admin/classroom-header";
+import { PlanMeetingsDialog } from "@/components/admin/meetings/plan-meetings-dialog";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { MeetingStatusBadge } from "@/components/admin/meeting-status-badge";
+import { EmptyState, Page, PageHeader, Section } from "@/components/page";
+import { dateTile, monthYear } from "@/lib/dates";
+import { cn } from "@/lib/utils";
+import { index, show } from "@/routes/admin/classrooms/meetings";
 import type {
     Classroom,
-    LessonOption,
     LessonStatus,
     MeetingStatus,
     Series,
     SundaySummary,
-} from '@/types';
+} from "@/types";
 
 type Row = {
     id: number;
@@ -41,7 +39,6 @@ type Props = {
     past: Row[];
     showingAll: boolean;
     hasOlder: boolean;
-    lessons: LessonOption[];
     series: Series[];
 };
 
@@ -56,7 +53,6 @@ export default function ClassroomMeetings({
     past,
     showingAll,
     hasOlder,
-    lessons,
     series,
 }: Props) {
     return (
@@ -67,20 +63,13 @@ export default function ClassroomMeetings({
                 <ClassroomHeader classroom={classroom} active="domingos" />
                 <PageHeader
                     title="Domingos"
-                    description="A lição de cada domingo, a chamada e onde a turma parou. Uma lição pode ocupar mais de um domingo."
+                    description="Todo domingo já está na agenda: escolha a lição de cada um ou marque “Sem EBD”. Uma lição pode ocupar mais de um domingo."
                     actions={
-                        <>
-                            <PlanMeetingsDialog
-                                classroom={classroom}
-                                series={series}
-                                nextSunday={nextSunday}
-                            />
-                            <AddMeetingDialog
-                                classroom={classroom}
-                                lessons={lessons}
-                                nextSunday={nextSunday}
-                            />
-                        </>
+                        <PlanMeetingsDialog
+                            classroom={classroom}
+                            series={series}
+                            nextSunday={nextSunday}
+                        />
                     }
                 />
 
@@ -89,16 +78,15 @@ export default function ClassroomMeetings({
                         icon={<CalendarPlus />}
                         title="Nenhum domingo na agenda"
                     >
-                        Use “Planejar série” para criar os domingos e distribuir
-                        as lições da revista.
+                        Use “Planejar série” para distribuir as lições da
+                        revista pelos domingos.
                     </EmptyState>
                 ) : (
                     <div className="space-y-10">
                         <Section title="Próximos">
                             {upcoming.length === 0 ? (
                                 <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                    Nenhum domingo planejado daqui para frente.
-                                    Use “Planejar série” ou “Adicionar domingo”.
+                                    Nenhum domingo daqui para frente.
                                 </p>
                             ) : (
                                 <MeetingList
@@ -141,7 +129,7 @@ function MeetingList({
     classroom: Classroom;
     rows: Row[];
 }) {
-    let month = '';
+    let month = "";
 
     return (
         <ul className="divide-y rounded-2xl border bg-card">
@@ -155,8 +143,8 @@ function MeetingList({
                         {showMonth && (
                             <p
                                 className={cn(
-                                    'bg-muted/40 px-4 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase',
-                                    index === 0 && 'rounded-t-2xl',
+                                    "bg-muted/40 px-4 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase",
+                                    index === 0 && "rounded-t-2xl",
                                 )}
                             >
                                 {rowMonth}
@@ -172,17 +160,17 @@ function MeetingList({
 
 function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
     const tile = dateTile(row.held_on);
-    const cancelled = row.status === 'cancelled';
+    const cancelled = row.status === "cancelled";
     const title = cancelled
-        ? `Sem EBD${row.title ? ` · ${row.title}` : ''}`
-        : (row.lesson?.display_title ?? row.title ?? 'Lição a definir');
+        ? `Sem EBD${row.title ? ` · ${row.title}` : ""}`
+        : (row.lesson?.display_title ?? row.title ?? "Lição a definir");
 
     return (
         <Link
             href={show({ classroom: classroom.slug, meeting: row.id })}
             className={cn(
-                'flex items-center gap-4 px-4 py-3 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none',
-                cancelled && 'text-muted-foreground',
+                "flex items-center gap-4 px-4 py-3 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none",
+                cancelled && "text-muted-foreground",
             )}
         >
             <div className="w-12 shrink-0 text-center">
@@ -191,8 +179,8 @@ function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
                 </p>
                 <p
                     className={cn(
-                        'font-serif text-2xl font-semibold tabular-nums',
-                        cancelled && 'line-through',
+                        "font-serif text-2xl font-semibold tabular-nums",
+                        cancelled && "line-through",
                     )}
                 >
                     {tile.day}
@@ -201,8 +189,8 @@ function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
             <div className="min-w-0 flex-1">
                 <p
                     className={cn(
-                        'line-clamp-2 font-medium',
-                        !row.lesson && !cancelled && 'text-muted-foreground',
+                        "line-clamp-2 font-medium",
+                        !row.lesson && !cancelled && "text-muted-foreground",
                     )}
                 >
                     {title}
@@ -213,10 +201,10 @@ function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
                     )}
                     {row.summary && (
                         <span>
-                            {row.summary.present} de {row.summary.expected}{' '}
+                            {row.summary.present} de {row.summary.expected}{" "}
                             presentes
                             {row.summary.visitors > 0 &&
-                                ` · ${row.summary.visitors} visitante${row.summary.visitors > 1 ? 's' : ''}`}
+                                ` · ${row.summary.visitors} visitante${row.summary.visitors > 1 ? "s" : ""}`}
                         </span>
                     )}
                     {row.awaiting_confirmation && (
@@ -229,7 +217,7 @@ function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
                             domingo {row.position.index} de {row.position.total}
                         </span>
                     )}
-                    {row.lesson?.status === 'draft' && (
+                    {row.lesson?.status === "draft" && (
                         <StatusBadge status="draft" label="Lição em rascunho" />
                     )}
                     {row.has_notes && (
