@@ -1,19 +1,19 @@
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router } from '@inertiajs/react';
 import {
     BookOpen,
     ChevronLeft,
     ChevronRight,
     Plus,
     Search,
-} from "lucide-react";
-import { useState } from "react";
-import { StatusBadge } from "@/components/admin/status-badge";
-import { EmptyState, Page, PageHeader, Section } from "@/components/page";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
-import { create, edit, index } from "@/routes/admin/lessons";
-import type { Classroom, Lesson, Option, Paginated } from "@/types";
+} from 'lucide-react';
+import { useState } from 'react';
+import { StatusBadge } from '@/components/admin/status-badge';
+import { EmptyState, Page, PageHeader, Section } from '@/components/page';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
+import { create, edit, index } from '@/routes/admin/lessons';
+import type { Classroom, Lesson, Option, Paginated } from '@/types';
 
 type Filters = { classe: number | null; status: string | null; q: string };
 
@@ -38,7 +38,7 @@ export default function AdminLessonsIndex({
             index.url(),
             Object.fromEntries(
                 Object.entries(next).filter(
-                    ([, value]) => value !== null && value !== "",
+                    ([, value]) => value !== null && value !== '',
                 ),
             ),
             { preserveState: true, preserveScroll: true, replace: true },
@@ -84,7 +84,7 @@ export default function AdminLessonsIndex({
                     {classrooms.length > 1 && (
                         <NativeSelect
                             aria-label="Classe"
-                            value={filters.classe ?? ""}
+                            value={filters.classe ?? ''}
                             onChange={(event) =>
                                 visit({
                                     classe: event.target.value
@@ -103,7 +103,7 @@ export default function AdminLessonsIndex({
                     )}
                     <NativeSelect
                         aria-label="Situação"
-                        value={filters.status ?? ""}
+                        value={filters.status ?? ''}
                         onChange={(event) =>
                             visit({ status: event.target.value || null })
                         }
@@ -151,7 +151,7 @@ export default function AdminLessonsIndex({
                             <ChevronLeft /> Anterior
                         </Button>
                         <span className="text-sm text-muted-foreground">
-                            {lessons.meta.current_page} /{" "}
+                            {lessons.meta.current_page} /{' '}
                             {lessons.meta.last_page}
                         </span>
                         <Button
@@ -178,7 +178,7 @@ function groupBySeries(lessons: Lesson[]): SeriesGroup[] {
     const groups: SeriesGroup[] = [];
 
     for (const lesson of lessons) {
-        const key = String(lesson.series?.id ?? "sem-serie");
+        const key = String(lesson.series?.id ?? 'sem-serie');
         const last = groups.at(-1);
 
         if (last?.key === key) {
@@ -186,7 +186,7 @@ function groupBySeries(lessons: Lesson[]): SeriesGroup[] {
         } else {
             groups.push({
                 key,
-                title: lesson.series?.title ?? "Sem série",
+                title: lesson.series?.title ?? 'Sem série',
                 lessons: [lesson],
             });
         }
@@ -204,15 +204,15 @@ function LessonRow({ lesson }: { lesson: Lesson }) {
             <div className="w-12 shrink-0 text-center">
                 <p className="text-xs text-muted-foreground uppercase">Lição</p>
                 <p className="font-serif text-2xl font-semibold tabular-nums">
-                    {lesson.number ?? "–"}
+                    {lesson.number ?? '–'}
                 </p>
             </div>
             <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 font-medium">{lesson.title}</p>
                 <p className="truncate text-sm text-muted-foreground">
-                    {[lesson.date_short ?? "Sem data", lesson.classroom?.name]
+                    {[lesson.date_short ?? 'Sem data', lesson.classroom?.name]
                         .filter(Boolean)
-                        .join(" · ")}
+                        .join(' · ')}
                 </p>
             </div>
             <StatusBadge status={lesson.status} label={lesson.status_label} />

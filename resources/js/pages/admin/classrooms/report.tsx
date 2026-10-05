@@ -1,4 +1,4 @@
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router } from '@inertiajs/react';
 import {
     BookOpen,
     CalendarCheck,
@@ -6,26 +6,26 @@ import {
     FileBarChart,
     Printer,
     Users,
-} from "lucide-react";
+} from 'lucide-react';
 import type {
     MatrixStudent,
     MatrixSunday,
-} from "@/components/admin/attendance-matrix";
+} from '@/components/admin/attendance-matrix';
 import {
     AbsentMark,
     AttendanceMatrix,
     PresentMark,
-} from "@/components/admin/attendance-matrix";
-import { ClassroomHeader } from "@/components/admin/classroom-header";
-import { Meter } from "@/components/admin/meter";
-import { StatTile } from "@/components/admin/stat-tile";
-import { EmptyState, Page, PageHeader, Section } from "@/components/page";
-import { Button } from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/native-select";
-import { dayMonth, longDate } from "@/lib/dates";
-import { report } from "@/routes/admin/classrooms";
-import { show as showMeeting } from "@/routes/admin/classrooms/meetings";
-import type { Classroom } from "@/types";
+} from '@/components/admin/attendance-matrix';
+import { ClassroomHeader } from '@/components/admin/classroom-header';
+import { Meter } from '@/components/admin/meter';
+import { StatTile } from '@/components/admin/stat-tile';
+import { EmptyState, Page, PageHeader, Section } from '@/components/page';
+import { Button } from '@/components/ui/button';
+import { NativeSelect } from '@/components/ui/native-select';
+import { dayMonth, longDate } from '@/lib/dates';
+import { report } from '@/routes/admin/classrooms';
+import { show as showMeeting } from '@/routes/admin/classrooms/meetings';
+import type { Classroom } from '@/types';
 
 type Props = {
     classroom: Classroom;
@@ -97,10 +97,10 @@ export default function ClassroomReport({
         : `até ${dayMonth(period.to)}`;
 
     const choose = (value: string) => {
-        const [kind, id] = value.split(":");
+        const [kind, id] = value.split(':');
         router.get(
             report.url(classroom.slug, {
-                query: kind === "serie" ? { serie: id } : { periodo: "3m" },
+                query: kind === 'serie' ? { serie: id } : { periodo: '3m' },
             }),
             {},
             { preserveScroll: true },
@@ -110,18 +110,18 @@ export default function ClassroomReport({
     return (
         <>
             <Head title={`Relatório · ${classroom.name}`} />
-            <style>{"@page { size: A4 landscape; margin: 12mm; }"}</style>
+            <style>{'@page { size: A4 landscape; margin: 12mm; }'}</style>
 
             <Page width="wide">
                 <ClassroomHeader classroom={classroom} active="relatorio" />
 
                 <p className="mb-2 hidden text-sm text-muted-foreground print:block">
-                    EBD · Classe {classroom.name} · impresso em{" "}
+                    EBD · Classe {classroom.name} · impresso em{' '}
                     {longDate(printedAt)}
                 </p>
                 <PageHeader
                     title={`Relatório · ${period.label}`}
-                    description={`${range} · ${totals.sundays} ${totals.sundays === 1 ? "domingo" : "domingos"} com chamada. Cada aluno conta a partir de quando entrou na classe.`}
+                    description={`${range} · ${totals.sundays} ${totals.sundays === 1 ? 'domingo' : 'domingos'} com chamada. Cada aluno conta a partir de quando entrou na classe.`}
                     actions={
                         <div className="flex flex-wrap gap-2 print:hidden">
                             <label htmlFor="report-period" className="sr-only">
@@ -168,7 +168,7 @@ export default function ClassroomReport({
                                 label="Frequência média"
                                 value={
                                     totals.rate === null
-                                        ? "—"
+                                        ? '—'
                                         : `${totals.rate}%`
                                 }
                                 hint={`${totals.present} de ${totals.expected} presenças`}
@@ -182,7 +182,7 @@ export default function ClassroomReport({
                                         (g) =>
                                             `${g.students} ${g.label.toLowerCase()}`,
                                     )
-                                    .join(" · ")}
+                                    .join(' · ')}
                             />
                             <StatTile
                                 icon={<Users />}
@@ -206,7 +206,7 @@ export default function ClassroomReport({
                                                 </span>
                                                 <span className="font-serif text-2xl font-semibold tabular-nums">
                                                     {group.rate === null
-                                                        ? "—"
+                                                        ? '—'
                                                         : `${group.rate}%`}
                                                 </span>
                                             </p>
@@ -215,11 +215,11 @@ export default function ClassroomReport({
                                                 className="mt-2"
                                             />
                                             <p className="mt-2 text-xs text-muted-foreground">
-                                                {group.students}{" "}
+                                                {group.students}{' '}
                                                 {group.students === 1
-                                                    ? "aluno"
-                                                    : "alunos"}{" "}
-                                                · {group.present} de{" "}
+                                                    ? 'aluno'
+                                                    : 'alunos'}{' '}
+                                                · {group.present} de{' '}
                                                 {group.expected} presenças
                                             </p>
                                         </li>
@@ -304,14 +304,14 @@ function SundaysSection({
             title="Domingos do período"
             icon={<CalendarDays />}
             description={[
-                plural(calendar.total, "domingo", "domingos"),
+                plural(calendar.total, 'domingo', 'domingos'),
                 `${calendar.held} com aula`,
                 `${calendar.cancelled.length} sem EBD`,
                 calendar.pending.length > 0 &&
-                    plural(calendar.pending.length, "pendente", "pendentes"),
+                    plural(calendar.pending.length, 'pendente', 'pendentes'),
             ]
                 .filter(Boolean)
-                .join(" · ")}
+                .join(' · ')}
             className="mt-10"
         >
             {calendar.cancelled.length + calendar.pending.length > 0 && (
@@ -326,7 +326,7 @@ function SundaysSection({
                             </span>
                             <span className="text-muted-foreground">
                                 Sem EBD
-                                {sunday.reason ? ` · ${sunday.reason}` : ""}
+                                {sunday.reason ? ` · ${sunday.reason}` : ''}
                             </span>
                         </li>
                     ))}
@@ -354,16 +354,16 @@ function SundaysSection({
     );
 }
 
-function studySummary(lesson: Props["homeStudy"][number]): string {
+function studySummary(lesson: Props['homeStudy'][number]): string {
     if (lesson.readers === 0) {
         return lesson.expected === 1
-            ? "O aluno não marcou leitura"
+            ? 'O aluno não marcou leitura'
             : `Nenhum dos ${lesson.expected} alunos marcou leitura`;
     }
 
-    const days = String(lesson.avg_days).replace(".", ",");
+    const days = String(lesson.avg_days).replace('.', ',');
     const plan =
-        lesson.readings_total > 1 ? ` (plano de ${lesson.readings_total})` : "";
+        lesson.readings_total > 1 ? ` (plano de ${lesson.readings_total})` : '';
 
-    return `${lesson.readers} de ${lesson.expected} leram${lesson.rate !== null ? ` (${lesson.rate}%)` : ""} · média de ${days} ${lesson.avg_days === 1 ? "dia" : "dias"}${plan}`;
+    return `${lesson.readers} de ${lesson.expected} leram${lesson.rate !== null ? ` (${lesson.rate}%)` : ''} · média de ${days} ${lesson.avg_days === 1 ? 'dia' : 'dias'}${plan}`;
 }
