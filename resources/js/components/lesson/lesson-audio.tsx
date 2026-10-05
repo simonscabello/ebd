@@ -1,11 +1,6 @@
-import { router, usePoll } from '@inertiajs/react';
-import { AlertCircle, AudioLines, Headphones, Pause, Play } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { Headphones, Pause, Play } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
-import { audio as generateAudio } from '@/routes/admin/lessons';
-import type { LessonAudio as LessonAudioData } from '@/types';
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 
@@ -19,147 +14,10 @@ function formatTime(seconds: number): string {
 }
 
 /**
- * "Ouvir estudo": player do áudio narrado do estudo. Quem gerencia a lição
- * também vê aqui o botão de gerar (ou regenerar, quando o estudo mudou) e o
- * andamento da geração, que roda no servidor.
+ * "Ouvir estudo": player do áudio narrado do estudo, com play/pause,
+ * posição, duração e velocidade. A geração fica na gestão (edição da lição).
  */
-export function LessonAudio({
-    audio,
-    lessonId,
-}: {
-    audio: LessonAudioData | null;
-    lessonId: number;
-}) {
-    const manage = audio?.manage;
-    const generating = manage?.status === 'generating';
-    const [requesting, setRequesting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // Enquanto o servidor gera, a página confere o andamento a cada 5 s.
-    const { start, stop } = usePoll(
-        5000,
-        { only: ['audio'] },
-        { autoStart: false },
-    );
-
-    useEffect(() => {
-        if (generating) {
-            start();
-        } else {
-            stop();
-        }
-
-        return stop;
-    }, [generating, start, stop]);
-
-    if (!audio) {
-        return null;
-    }
-
-    const request = () => {
-        if (requesting || generating) {
-            return;
-        }
-
-        router.post(generateAudio.url(lessonId), undefined, {
-            preserveScroll: true,
-            preserveState: true,
-            onStart: () => {
-                setRequesting(true);
-                setError(null);
-            },
-            onError: (errors) =>
-                setError(
-                    errors.audio ?? 'Não foi possível pedir o áudio agora.',
-                ),
-            onFinish: () => setRequesting(false),
-        });
-    };
-
-    return (
-        <div className="mb-6 space-y-2">
-            {audio.file && (
-                <AudioPlayer
-                    src={audio.file.url}
-                    knownDuration={audio.file.duration}
-                />
-            )}
-
-            {manage && (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-muted/60 px-4 py-3 text-sm">
-                    {generating || requesting ? (
-                        <>
-                            <Button size="sm" variant="outline" disabled>
-                                <Spinner /> Gerando áudio…
-                            </Button>
-                            <span className="text-muted-foreground">
-                                Pode levar alguns minutos. Você pode sair desta
-                                página.
-                            </span>
-                        </>
-                    ) : manage.status === 'failed' ? (
-                        <>
-                            <span className="flex min-w-0 flex-1 items-start gap-2 text-destructive">
-                                <AlertCircle className="mt-0.5 size-4 shrink-0" />
-                                {manage.error ??
-                                    'Não foi possível gerar o áudio.'}
-                            </span>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={request}
-                            >
-                                <AudioLines /> Tentar de novo
-                            </Button>
-                        </>
-                    ) : manage.stale ? (
-                        <>
-                            <Badge className="rounded-full bg-amber-500 text-white">
-                                Desatualizado
-                            </Badge>
-                            <span className="min-w-0 flex-1 text-muted-foreground">
-                                O estudo mudou depois que o áudio foi gerado.
-                            </span>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={request}
-                            >
-                                <AudioLines /> Regenerar áudio
-                            </Button>
-                        </>
-                    ) : audio.file ? (
-                        <span className="text-muted-foreground">
-                            Áudio gerado em {manage.generated_at}. Fica
-                            disponível para a classe junto com a lição.
-                        </span>
-                    ) : (
-                        <>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={request}
-                            >
-                                <AudioLines /> Gerar áudio
-                            </Button>
-                            <span className="text-muted-foreground">
-                                Narração do estudo para ouvir no celular.
-                            </span>
-                        </>
-                    )}
-                    {error && (
-                        <p className="flex w-full items-start gap-2 text-destructive">
-                            <AlertCircle className="mt-0.5 size-4 shrink-0" />
-                            {error}
-                        </p>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-}
-
-function AudioPlayer({
+export function LessonAudioPlayer({
     src,
     knownDuration,
 }: {

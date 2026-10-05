@@ -37,7 +37,12 @@ class GenerateLessonAudio
                 throw SpeechFailed::because('O estudo está vazio. Escreva o conteúdo antes de gerar o áudio.');
             }
 
-            $audio = Mp3::concat(array_map($this->speech->synthesize(...), $chunks));
+            // Os narradores se revezam a cada parte do estudo.
+            $voices = (array) config('ebd.audio.voices') ?: ['cedar'];
+            $audio = Mp3::concat(array_map(
+                fn (array $chunk) => $this->speech->synthesize($chunk['text'], (string) $voices[$chunk['part'] % count($voices)]),
+                $chunks,
+            ));
 
             $disk = (string) config('ebd.materials.disk');
             $path = config('ebd.audio.directory').'/'.$lesson->id.'/'.Str::random(32).'.mp3';

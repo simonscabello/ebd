@@ -16,6 +16,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
 use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\ClassroomResource;
+use App\Http\Resources\LessonAudioResource;
 use App\Http\Resources\LessonBlockResource;
 use App\Http\Resources\LessonMaterialResource;
 use App\Http\Resources\LessonReadingResource;
@@ -149,6 +150,8 @@ class LessonController extends Controller
                 ]),
                 'meetings_url' => route('admin.classrooms.meetings.index', $lesson->classroom),
             ],
+            // Fora de "lesson" para a página recarregar só isto enquanto o áudio é gerado.
+            'audio' => LessonAudioResource::manage($lesson),
             'series' => SeriesResource::collection($lesson->classroom->series()->orderByDesc('starts_on')->orderBy('title')->get()),
             'authors' => $lesson->classroom->members()
                 ->wherePivot('role', ClassroomRole::Teacher->value)
