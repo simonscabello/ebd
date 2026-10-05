@@ -87,4 +87,20 @@ return [
         'temporary_url_minutes' => 10,
     ],
 
+    /*
+    | Áudio do estudo ("Ouvir estudo"), narrado pela API de voz da OpenAI
+    | (chave em OPENAI_API_KEY, só no servidor). O arquivo vai para o disco
+    | dos materiais. max_chars: tamanho de cada trecho enviado; textos maiores
+    | são divididos por seção/parágrafo e os trechos viram um único MP3.
+    */
+    'audio' => [
+        'model' => env('EBD_AUDIO_MODEL', 'gpt-4o-mini-tts'),
+        'voice' => env('EBD_AUDIO_VOICE', 'cedar'),
+        'instructions' => env('EBD_AUDIO_INSTRUCTIONS', 'Narre em português do Brasil, como quem conduz um estudo bíblico: voz calma, clara e acolhedora, ritmo tranquilo, sem pressa e sem dramatizar. Faça uma pausa breve antes e depois de cada título e entre os parágrafos. Leia as referências bíblicas com naturalidade.'),
+        'directory' => 'lesson-audio',
+        'max_chars' => (int) env('EBD_AUDIO_MAX_CHARS', 3500),
+        // Segundos de espera por trecho na OpenAI.
+        'timeout' => (int) env('EBD_AUDIO_TIMEOUT', 180),
+    ],
+
 ];

@@ -3,6 +3,7 @@
 namespace App\Support\Bible;
 
 use App\Enums\BibleBook;
+use Closure;
 
 /**
  * Torna clicáveis as referências bíblicas escritas no meio do texto das lições
@@ -25,6 +26,38 @@ final class BibleLinks
 
     public static function link(string $html): string
     {
+        return self::transform($html, self::linkSequence(...));
+    }
+
+    /**
+     * Troca cada referência reconhecida no HTML pelo que $render devolver
+     * (ex.: a forma falada, na narração do estudo). Mesmas regras de link().
+     *
+     * @param  Closure(string, Reference): string  $render  recebe o texto escrito e a referência
+     */
+    public static function replace(string $html, Closure $render): string
+    {
+        return self::transform($html, function (string $sequence) use ($render) {
+            [$pieces, $resolved] = self::resolve($sequence);
+
+            foreach ($resolved as $index => $reference) {
+                if ($reference !== null) {
+                    $pieces[$index] = $render($pieces[$index], $reference);
+                }
+            }
+
+            return implode('', $pieces);
+        });
+    }
+
+    /**
+     * Aplica $sequence a cada sequência de referências do texto, fora de
+     * links, código e botões.
+     *
+     * @param  Closure(string): string  $sequence
+     */
+    private static function transform(string $html, Closure $sequence): string
+    {
         $parts = preg_split('/(<[^>]*>)/', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
 
         if ($parts === false) {
@@ -45,7 +78,7 @@ final class BibleLinks
             if ($skip === 0 && $part !== '') {
                 $parts[$index] = (string) preg_replace_callback(
                     self::pattern(),
-                    fn (array $match) => self::linkSequence($match[0]),
+                    fn (array $match) => $sequence($match[0]),
                     $part,
                 );
             }
@@ -54,14 +87,17 @@ final class BibleLinks
         return implode('', $parts);
     }
 
-    private static function linkSequence(string $sequence): string
+    /**
+     * Separa a sequência em peças (índices pares; os ímpares são os ";") e
+     * interpreta cada peça. Peças não reconhecidas ficam com null.
+     *
+     * @return array{0: list<string>, 1: array<int, Reference|null>}
+     */
+    private static function resolve(string $sequence): array
     {
         $pieces = preg_split('/(\s*;\s*)/u', $sequence, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$sequence];
         $book = null;
         $bookText = '';
-        $labels = [];
-
-        // Índice da peça => forma canônica (null = fica como texto).
         $resolved = [];
 
         foreach ($pieces as $index => $piece) {
@@ -80,16 +116,21 @@ final class BibleLinks
             $wholeChapters = ! preg_match('/\d\s*[.:]\s*\d/', $rest);
             $shortName = mb_strlen((string) preg_replace('/[^\p{L}]/u', '', $bookText)) < 4;
 
-            $reference = $book === null || ($wholeChapters && $shortName)
+            $resolved[$index] = $book === null || ($wholeChapters && $shortName)
                 ? null
                 : Reference::parse($book->label().' '.$rest);
-
-            $resolved[$index] = $reference?->label();
-
-            if ($reference !== null) {
-                $labels[] = $reference->label();
-            }
         }
+
+        return [$pieces, $resolved];
+    }
+
+    private static function linkSequence(string $sequence): string
+    {
+        [$pieces, $references] = self::resolve($sequence);
+
+        // Índice da peça => forma canônica (null = fica como texto).
+        $resolved = array_map(fn (?Reference $reference) => $reference?->label(), $references);
+        $labels = array_values(array_filter($resolved));
 
         if ($labels === []) {
             return $sequence;
