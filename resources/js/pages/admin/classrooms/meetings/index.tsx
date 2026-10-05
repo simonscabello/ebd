@@ -1,7 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { CalendarPlus, ChevronRight, StickyNote } from 'lucide-react';
 import { ClassroomHeader } from '@/components/admin/classroom-header';
-import { AddMeetingDialog } from '@/components/admin/meetings/add-meeting-dialog';
 import { PlanMeetingsDialog } from '@/components/admin/meetings/plan-meetings-dialog';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
@@ -11,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { index, show } from '@/routes/admin/classrooms/meetings';
 import type {
     Classroom,
-    LessonOption,
     LessonStatus,
     MeetingStatus,
     Series,
@@ -41,7 +39,6 @@ type Props = {
     past: Row[];
     showingAll: boolean;
     hasOlder: boolean;
-    lessons: LessonOption[];
     series: Series[];
 };
 
@@ -56,7 +53,6 @@ export default function ClassroomMeetings({
     past,
     showingAll,
     hasOlder,
-    lessons,
     series,
 }: Props) {
     return (
@@ -67,20 +63,13 @@ export default function ClassroomMeetings({
                 <ClassroomHeader classroom={classroom} active="domingos" />
                 <PageHeader
                     title="Domingos"
-                    description="A lição de cada domingo, a chamada e onde a turma parou. Uma lição pode ocupar mais de um domingo."
+                    description="Todo domingo já está na agenda: escolha a lição de cada um ou marque “Sem EBD”. Uma lição pode ocupar mais de um domingo."
                     actions={
-                        <>
-                            <PlanMeetingsDialog
-                                classroom={classroom}
-                                series={series}
-                                nextSunday={nextSunday}
-                            />
-                            <AddMeetingDialog
-                                classroom={classroom}
-                                lessons={lessons}
-                                nextSunday={nextSunday}
-                            />
-                        </>
+                        <PlanMeetingsDialog
+                            classroom={classroom}
+                            series={series}
+                            nextSunday={nextSunday}
+                        />
                     }
                 />
 
@@ -89,16 +78,15 @@ export default function ClassroomMeetings({
                         icon={<CalendarPlus />}
                         title="Nenhum domingo na agenda"
                     >
-                        Use “Planejar série” para criar os domingos e distribuir
-                        as lições da revista.
+                        Use “Planejar série” para distribuir as lições da
+                        revista pelos domingos.
                     </EmptyState>
                 ) : (
                     <div className="space-y-10">
                         <Section title="Próximos">
                             {upcoming.length === 0 ? (
                                 <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                    Nenhum domingo planejado daqui para frente.
-                                    Use “Planejar série” ou “Adicionar domingo”.
+                                    Nenhum domingo daqui para frente.
                                 </p>
                             ) : (
                                 <MeetingList

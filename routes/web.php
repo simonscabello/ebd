@@ -106,14 +106,12 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('classes/{classroom}', Admin\ClassroomOverviewController::class)->name('classrooms.show');
 
         Route::get('classes/{classroom}/domingos', [Admin\ClassMeetingController::class, 'index'])->name('classrooms.meetings.index');
-        Route::post('classes/{classroom}/domingos', [Admin\ClassMeetingController::class, 'store'])->name('classrooms.meetings.store');
         Route::post('classes/{classroom}/domingos/planejar', [Admin\ClassMeetingController::class, 'plan'])->name('classrooms.meetings.plan');
         Route::get('classes/{classroom}/domingos/{meeting}', [Admin\ClassMeetingController::class, 'show'])
             ->scopeBindings()
             ->name('classrooms.meetings.show');
         Route::put('encontros/{meeting}', [Admin\ClassMeetingController::class, 'update'])->name('meetings.update');
         Route::put('encontros/{meeting}/anotacao', [Admin\MeetingNoteController::class, 'update'])->name('meetings.notes.update');
-        Route::delete('encontros/{meeting}', [Admin\ClassMeetingController::class, 'destroy'])->name('meetings.destroy');
         Route::post('encontros/{meeting}/cancelar', [Admin\MeetingStatusController::class, 'cancel'])->name('meetings.cancel');
         Route::post('encontros/{meeting}/restaurar', [Admin\MeetingStatusController::class, 'restore'])->name('meetings.restore');
         Route::post('encontros/{meeting}/continuar', [Admin\MeetingStatusController::class, 'continue'])->name('meetings.continue');

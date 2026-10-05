@@ -13,7 +13,6 @@ import {
     Presentation,
     RotateCcw,
     StickyNote,
-    Trash2,
     Users,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -22,7 +21,6 @@ import { CancelMeetingDialog } from '@/components/admin/meetings/cancel-meeting-
 import { EditMeetingDialog } from '@/components/admin/meetings/edit-meeting-dialog';
 import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
 import { AutosaveStatus } from '@/components/autosave-status';
-import { useConfirm } from '@/components/confirm-dialog';
 import type { Roster } from '@/components/lesson/attendance-sheet';
 import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
 import { Page, PageHeader, Section } from '@/components/page';
@@ -35,7 +33,6 @@ import { show } from '@/routes/admin/classrooms/meetings';
 import { edit as editLesson } from '@/routes/admin/lessons';
 import {
     continueMethod as continueMeeting,
-    destroy,
     held,
     restore,
     update,
@@ -82,7 +79,6 @@ export default function MeetingPage({
     attendance,
     lessons,
 }: Props) {
-    const confirm = useConfirm();
     const [cancelOpen, setCancelOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const cancelled = meeting.status === 'cancelled';
@@ -92,19 +88,6 @@ export default function MeetingPage({
 
     const post = (url: string) =>
         router.post(url, {}, { preserveScroll: true });
-
-    const remove = async () => {
-        if (
-            await confirm({
-                title: 'Excluir este domingo?',
-                description: `${title}. Use "Sem EBD" se não houve aula; excluir é para domingos criados por engano.`,
-                confirmLabel: 'Excluir',
-                destructive: true,
-            })
-        ) {
-            router.delete(destroy.url(meeting.id));
-        }
-    };
 
     return (
         <>
@@ -314,15 +297,6 @@ export default function MeetingPage({
                                 >
                                     <Pencil /> Editar data e título
                                 </Button>
-                                {!meeting.has_attendance && (
-                                    <Button
-                                        variant="ghost"
-                                        className="text-destructive hover:text-destructive"
-                                        onClick={remove}
-                                    >
-                                        <Trash2 /> Excluir
-                                    </Button>
-                                )}
                             </div>
                         </Section>
                     </div>

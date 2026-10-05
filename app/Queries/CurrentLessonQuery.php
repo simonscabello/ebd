@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Gate;
  * "O que eu preciso estudar para o próximo domingo?"
  *
  * A lição da semana é a do próximo encontro (hoje incluído) que não foi
- * cancelado. Uma lição que ocupa dois domingos tem dois encontros ("2 de 2").
+ * cancelado e já tem lição ou evento: domingo ainda vazio na agenda é pulado. Uma lição que ocupa dois domingos tem dois encontros ("2 de 2").
  * Sem encontro futuro, vale a do último encontro realizado.
  */
 class CurrentLessonQuery
@@ -29,6 +29,7 @@ class CurrentLessonQuery
         $meeting = ClassMeeting::query()
             ->whereBelongsTo($classroom)
             ->active()
+            ->where(fn ($q) => $q->whereNotNull('lesson_id')->orWhereNotNull('title'))
             ->fromDate($today)
             ->chronological()
             ->with(['lesson.series', 'lesson.classroom'])

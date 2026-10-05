@@ -51,14 +51,21 @@ class LessonController extends Controller
         $manageable = $request->user()->manageableClassroomIds();
 
         $lessons = Lesson::query()
-            ->when($manageable !== null, fn ($q) => $q->whereIn('classroom_id', $manageable))
-            ->when($filters['classe'] ?? null, fn ($q, $id) => $q->where('classroom_id', $id))
-            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
-            ->when($filters['q'] ?? null, fn ($q, $term) => $q->whereRaw('unaccent(title) ILIKE unaccent(?)', ['%'.addcslashes($term, '%_\\').'%']))
+            ->select('lessons.*')
+            ->leftJoin('series', 'series.id', '=', 'lessons.series_id')
+            ->when($manageable !== null, fn ($q) => $q->whereIn('lessons.classroom_id', $manageable))
+            ->when($filters['classe'] ?? null, fn ($q, $id) => $q->where('lessons.classroom_id', $id))
+            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('lessons.status', $status))
+            ->when($filters['q'] ?? null, fn ($q, $term) => $q->whereRaw('unaccent(lessons.title) ILIKE unaccent(?)', ['%'.addcslashes($term, '%_\\').'%']))
             ->with(['classroom', 'series'])
             ->withCount(['materials'])
-            ->orderByRaw('scheduled_for IS NULL DESC, scheduled_for DESC')
-            ->paginate(20)
+            // Agrupadas por série (a mais recente primeiro; sem série no fim), na ordem da revista.
+            ->orderByRaw('lessons.series_id IS NULL')
+            ->orderByRaw('series.starts_on DESC NULLS LAST')
+            ->orderByDesc('lessons.series_id')
+            ->orderByRaw('lessons.number IS NULL, lessons.number')
+            ->orderBy('lessons.title')
+            ->paginate(50)
             ->withQueryString();
 
         return Inertia::render('admin/lessons/index', [

@@ -1,7 +1,8 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     BookOpen,
     CalendarCheck,
+    CalendarDays,
     FileBarChart,
     Printer,
     Users,
@@ -23,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
 import { dayMonth, longDate } from '@/lib/dates';
 import { report } from '@/routes/admin/classrooms';
+import { show as showMeeting } from '@/routes/admin/classrooms/meetings';
 import type { Classroom } from '@/types';
 
 type Props = {
@@ -37,6 +39,7 @@ type Props = {
     selected: string;
     sundays: MatrixSunday[];
     students: (MatrixStudent & { gender: string | null })[];
+    calendar: Calendar;
     totals: {
         sundays: number;
         present: number;
@@ -64,6 +67,13 @@ type Props = {
     printedAt: string;
 };
 
+type Calendar = {
+    total: number;
+    held: number;
+    cancelled: { id: number; held_on: string; reason: string | null }[];
+    pending: { id: number; held_on: string }[];
+};
+
 /**
  * Relatório da classe por série (revista): a chamada de cada aluno em cada
  * domingo, a frequência por gênero e o estudo em casa por lição. Imprime em
@@ -76,6 +86,7 @@ export default function ClassroomReport({
     selected,
     sundays,
     students,
+    calendar,
     totals,
     byGender,
     homeStudy,
@@ -269,8 +280,77 @@ export default function ClassroomReport({
                         )}
                     </div>
                 )}
+
+                {calendar.total > 0 && (
+                    <SundaysSection classroom={classroom} calendar={calendar} />
+                )}
             </Page>
         </>
+    );
+}
+
+function SundaysSection({
+    classroom,
+    calendar,
+}: {
+    classroom: Classroom;
+    calendar: Calendar;
+}) {
+    const plural = (n: number, one: string, many: string) =>
+        `${n} ${n === 1 ? one : many}`;
+
+    return (
+        <Section
+            title="Domingos do período"
+            icon={<CalendarDays />}
+            description={[
+                plural(calendar.total, 'domingo', 'domingos'),
+                `${calendar.held} com aula`,
+                `${calendar.cancelled.length} sem EBD`,
+                calendar.pending.length > 0 &&
+                    plural(calendar.pending.length, 'pendente', 'pendentes'),
+            ]
+                .filter(Boolean)
+                .join(' · ')}
+            className="mt-10"
+        >
+            {calendar.cancelled.length + calendar.pending.length > 0 && (
+                <ul className="divide-y rounded-2xl border bg-card text-sm">
+                    {calendar.cancelled.map((sunday) => (
+                        <li
+                            key={sunday.id}
+                            className="flex flex-wrap gap-x-3 px-4 py-2.5"
+                        >
+                            <span className="w-28 font-medium tabular-nums">
+                                {dayMonth(sunday.held_on)}
+                            </span>
+                            <span className="text-muted-foreground">
+                                Sem EBD
+                                {sunday.reason ? ` · ${sunday.reason}` : ''}
+                            </span>
+                        </li>
+                    ))}
+                    {calendar.pending.map((sunday) => (
+                        <li key={sunday.id}>
+                            <Link
+                                href={showMeeting({
+                                    classroom: classroom.slug,
+                                    meeting: sunday.id,
+                                })}
+                                className="flex flex-wrap gap-x-3 px-4 py-2.5 hover:bg-muted/50"
+                            >
+                                <span className="w-28 font-medium tabular-nums">
+                                    {dayMonth(sunday.held_on)}
+                                </span>
+                                <span className="font-medium text-warning-foreground">
+                                    Pendente: faça a chamada ou marque “Sem EBD”
+                                </span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </Section>
     );
 }
 

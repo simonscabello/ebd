@@ -147,4 +147,24 @@ class ClassroomReportTest extends TestCase
             ->get('/admin/classes/jovens/relatorio')
             ->assertForbidden();
     }
+
+    public function test_report_counts_sundays_with_class_without_ebd_and_pending(): void
+    {
+        $series = Series::factory()->for($this->classroom)->create(['title' => 'Efésios', 'starts_on' => '2026-09-06', 'ends_on' => null]);
+        $ana = $this->student('Ana', '2026-08-01', Gender::Female);
+
+        $this->lessonOn($series, '2026-09-06', [$ana]);
+        ClassMeeting::factory()->for($this->classroom)->on('2026-09-13')->cancelled()->create(['title' => 'Retiro']);
+        $pending = ClassMeeting::factory()->for($this->classroom)->on('2026-09-20')->create();
+        $this->lessonOn($series, '2026-09-27', [$ana]);
+        ClassMeeting::factory()->for($this->classroom)->on('2026-10-04')->create();
+
+        $this->actingAs($this->teacher)->get("/admin/classes/jovens/relatorio?serie={$series->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('calendar.total', 4)
+                ->where('calendar.held', 2)
+                ->where('calendar.cancelled', [['id' => ClassMeeting::query()->whereDate('held_on', '2026-09-13')->value('id'), 'held_on' => '2026-09-13', 'reason' => 'Retiro']])
+                ->where('calendar.pending', [['id' => $pending->id, 'held_on' => '2026-09-20']]));
+    }
 }
