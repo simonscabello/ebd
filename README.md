@@ -260,7 +260,7 @@ Horários no fuso da igreja (`EBD_TIMEZONE`), definidos em `routes/console.php`.
 - A pessoa ativa em **Perfil → Notificações** ou no convite que aparece no Início. Vale por aparelho; no iPhone só funciona com o app instalado na tela inicial. O botão **Testar** manda uma notificação só para os aparelhos da própria pessoa.
 - Chaves VAPID: `php artisan ebd:vapid-keys` gera o par; `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` vão no `.env` (ou no Railway). Sem chaves, as inscrições são aceitas mas nada é enviado. Trocar as chaves invalida as inscrições existentes.
 - Inscrições expiradas (o serviço de push responde 404/410) são apagadas no envio seguinte.
-- A assinatura VAPID usa BCMath (`ext-bcmath` no `composer.json`, que o Railpack instala). Sem ela a biblioteca só avisa no log e usa a implementação lenta.
+- A assinatura VAPID usa BCMath (`ext-bcmath` no `composer.json` e no `Dockerfile`). Sem ela a biblioteca só avisa no log e usa a implementação lenta.
 - O service worker (`public/sw.js`) mostra a notificação e, ao tocar, abre a página indicada. Ao mudar o `sw.js`, aumente a `VERSION`.
 
 ## Agentes de IA (MCP)
@@ -299,12 +299,12 @@ Limites de upload: PDF/arquivos 30 MB, áudio 60 MB (`EBD_MAX_UPLOAD_KB`, `EBD_M
 
 Produção: **https://ebd.up.railway.app** (healthcheck em `/up`).
 
-Produção roda no [Railway](https://railway.com), no projeto **EBD** (região `us-east4`), seguindo o mesmo modelo dos outros projetos Laravel da conta: build automático pelo **Railpack**, sem Dockerfile de produção. O `compose.yaml` e o `docker/php/Dockerfile` continuam sendo **só para desenvolvimento local**.
+Produção roda no [Railway](https://railway.com), no projeto **EBD** (região `us-east4`), com a imagem montada pelo `Dockerfile` da raiz (`railway.json` fixa esse builder para o `app` e o `scheduler`). Até 2026-10-05 o build era o automático do **Railpack**; ele quebrou ao baixar o plugin do PHP pelo mise, e o `Dockerfile` reproduz o que ele fazia. O `compose.yaml` e o `docker/php/Dockerfile` continuam sendo **só para desenvolvimento local**.
 
 ### Arquitetura
 
 ```
-GitHub (main) ──push──▶ Railway build (Railpack) ──▶ serviço "app" (FrankenPHP)
+GitHub (main) ──push──▶ Railway build (Dockerfile) ─▶ serviço "app" (FrankenPHP)
                                                         │   └─ volume: /app/storage/app (uploads)
                                                         ▼
                                                   serviço "Postgres" (PostgreSQL 18 + volume)
@@ -317,10 +317,10 @@ GitHub (main) ──push──▶ Railway build (Railpack) ──▶ serviço "a
 
 Não há Redis nem worker: cache e sessões ficam no PostgreSQL e a fila é `sync` (os pushes de uma classe saem em paralelo, em poucos segundos). Existe um serviço **`scheduler`** com o mesmo repositório e o start command `php artisan schedule:work`, que dispara os lembretes push (ver [Notificações push](#notificações-push)). Ele usa as mesmas variáveis do `app` por referência (`${{app.APP_KEY}}`, `${{Postgres.DATABASE_URL}}`…), sem domínio público nem healthcheck. Se um dia houver jobs pesados, crie um serviço `worker` com o start command `php artisan queue:work --tries=3 --backoff=10 --timeout=90` e troque para `QUEUE_CONNECTION=database`.
 
-### Como o Railpack builda e inicia
+### Como a imagem é montada e iniciada
 
-- Detecta Laravel pelo `artisan` e usa a imagem `dunglas/frankenphp` na versão de PHP do `composer.json` (`^8.4`).
-- Instala as extensões declaradas como `ext-*` no `composer.json` (`intl`, `pdo_pgsql`) mais as exigidas pelo Laravel.
+- Usa a imagem `dunglas/frankenphp` com PHP 8.4. O `Caddyfile`, o `php.ini` e o `start-container.sh` em `docker/frankenphp/` são os do Railpack v0.40.1.
+- Instala as extensões declaradas como `ext-*` no `composer.json` (`bcmath`, `intl`, `pdo_pgsql`) mais as exigidas pelo Laravel. Extensão nova no `composer.json` precisa entrar também no `Dockerfile`.
 - Roda `composer install`, `npm ci` e `npm run build` na mesma imagem (o Wayfinder precisa do PHP durante o build do Vite).
 - No start, roda `storage:link`, `optimize:clear` e `optimize`. Os caches são refeitos **em runtime**, com as variáveis reais do ambiente, e só então sobe o FrankenPHP.
 
@@ -329,7 +329,7 @@ Não há Redis nem worker: cache e sessões ficam no PostgreSQL e a fila é `syn
 | Configuração       | Valor                                                                     |
 | ------------------ | ------------------------------------------------------------------------- |
 | Source             | GitHub `simonscabello/ebd`, branch `main` (deploy automático a cada push) |
-| Builder            | Railpack                                                                  |
+| Builder            | Dockerfile (`railway.json`)                                               |
 | Pre-deploy command | `php artisan ebd:predeploy` (migrations + `ebd:promote-admins`)           |
 | Healthcheck        | `/up`, timeout de 300 s                                                   |
 | Volume             | montado em `/app/storage/app`                                             |
@@ -407,7 +407,7 @@ Os materiais enviados (PDFs, áudios) ficam no **volume** do serviço `app`, mon
 - `APP_DEBUG=false`: erros aparecem como página genérica, com detalhes só no log.
 - O Laravel confia no proxy do Railway (`trustProxies`), então reconhece HTTPS e o host público. Em produção, todas as URLs são geradas em `https`.
 - Cookies de sessão são `secure` e `SameSite=Lax`. O CSRF é o padrão do Laravel.
-- `.env` não existe na imagem (as variáveis vêm do Railway), e o Caddy do Railpack esconde `.env*` e `.git`. O cabeçalho `X-Powered-By` é removido.
+- `.env` não existe na imagem (as variáveis vêm do Railway), e o Caddy (`docker/frankenphp/Caddyfile`) esconde `.env*` e `.git`. O cabeçalho `X-Powered-By` é removido.
 - Uploads ficam fora de `public/`; os arquivos só saem pelo controller, depois de checar a permissão da lição.
 - O OAuth do servidor MCP só aceita aplicativos com retorno em `claude.ai`, `claude.com` ou `localhost` (`config/mcp.php`), e o token só funciona para professores e administradores.
 
