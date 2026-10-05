@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\BibleController;
 use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LessonController;
@@ -28,6 +29,9 @@ Route::get('/', HomeController::class)->name('home');
 
 Route::get('licoes/{lesson:slug}', [LessonController::class, 'show'])->name('lessons.show');
 Route::get('licoes/{lesson:slug}/domingo', [LessonController::class, 'sunday'])->name('lessons.sunday');
+
+// Texto das referências bíblicas clicáveis no estudo (painel com os versículos).
+Route::get('biblia', BibleController::class)->middleware('throttle:library')->name('bible.show');
 
 /*
 | Estudo do aluno (exige login): semana de estudo, leituras marcadas e anotações.

@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { BlockIcon } from '@/components/lesson/block-icon';
+import { RichText } from '@/components/lesson/rich-text';
 import { cn } from '@/lib/utils';
 import type { LessonBlock } from '@/types';
 
@@ -42,14 +43,12 @@ export function BlockCards({
                         {block.display_title}
                     </h3>
                     {block.body_html && (
-                        <div
+                        <RichText
                             className={cn(
                                 'reading mt-3',
                                 size === 'default' && 'text-base',
                             )}
-                            dangerouslySetInnerHTML={{
-                                __html: block.body_html,
-                            }}
+                            html={block.body_html}
                         />
                     )}
                 </article>
@@ -81,11 +80,9 @@ export function BlockAccordion({
                         <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
                     </summary>
                     {block.body_html && (
-                        <div
+                        <RichText
                             className="reading px-4 pb-5 text-base"
-                            dangerouslySetInnerHTML={{
-                                __html: block.body_html,
-                            }}
+                            html={block.body_html}
                         />
                     )}
                 </details>

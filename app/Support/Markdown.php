@@ -2,12 +2,14 @@
 
 namespace App\Support;
 
+use App\Support\Bible\BibleLinks;
 use Illuminate\Support\Str;
 
 /**
  * Conteúdo das lições é escrito em Markdown e convertido no servidor.
  * HTML bruto é removido e links inseguros (javascript:, data:) são bloqueados,
- * então o resultado pode ser exibido com segurança no front-end.
+ * então o resultado pode ser exibido com segurança no front-end. Referências
+ * bíblicas no texto viram botões que abrem o trecho (ver BibleLinks).
  */
 class Markdown
 {
@@ -17,11 +19,11 @@ class Markdown
             return null;
         }
 
-        return trim(Str::markdown($markdown, [
+        return trim(BibleLinks::link(Str::markdown($markdown, [
             'html_input' => 'strip',
             'allow_unsafe_links' => false,
             'max_nesting_level' => 20,
-        ]));
+        ])));
     }
 
     /**

@@ -10,10 +10,13 @@ import type { BiblePassage } from '@/types';
 export function PassageVerses({
     passage,
     size = 'default',
+    credit = true,
     className,
 }: {
     passage: BiblePassage;
     size?: 'default' | 'large' | 'reader';
+    /** Falso quando vários trechos aparecem juntos e o crédito vai uma vez só. */
+    credit?: boolean;
     className?: string;
 }) {
     const chapters = groupByChapter(passage);
@@ -44,7 +47,11 @@ export function PassageVerses({
                     ))}
                 </p>
             ))}
-            <p className="text-xs text-muted-foreground">{passage.credit}</p>
+            {credit && (
+                <p className="text-xs text-muted-foreground">
+                    {passage.credit}
+                </p>
+            )}
         </div>
     );
 }

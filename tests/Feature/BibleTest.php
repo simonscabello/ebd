@@ -166,4 +166,28 @@ class BibleTest extends TestCase
 
         unlink($path);
     }
+
+    public function test_public_endpoint_returns_each_reference_of_a_group(): void
+    {
+        FakeBible::seed([BibleBook::Hebrews->value => [2 => 4]]);
+
+        $this->getJson('/biblia?ref='.urlencode('Hebreus 2.3-4|Atos 5.12'))
+            ->assertOk()
+            ->assertJsonPath('passages.0.reference', 'Hebreus 2.3-4')
+            ->assertJsonPath('passages.0.passage.label', 'Hebreus 2.3-4')
+            ->assertJsonCount(2, 'passages.0.passage.verses')
+            ->assertJsonPath('passages.1.reference', 'Atos 5.12')
+            ->assertJsonPath('passages.1.passage', null);
+
+        $this->getJson('/biblia')->assertUnprocessable();
+    }
+
+    public function test_lesson_content_links_bible_references(): void
+    {
+        $lesson = Lesson::factory()->published()->for(Classroom::factory()->create())->create(['content' => 'O sinal chama a atenção (At 5.12-13; At 8.6-8).']);
+
+        $this->get("/licoes/{$lesson->slug}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('lesson.content_html', fn (string $html) => str_contains($html, 'data-bible="Atos 5.12-13|Atos 8.6-8"')));
+    }
 }
