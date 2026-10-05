@@ -23,7 +23,7 @@ class OpenAiSpeech
     /**
      * @throws SpeechFailed com mensagem amigável
      */
-    public function synthesize(string $text): string
+    public function synthesize(string $text, string $voice): string
     {
         if (! $this->isConfigured()) {
             throw SpeechFailed::because('A geração de áudio não está configurada no servidor (falta a chave da OpenAI).');
@@ -37,7 +37,7 @@ class OpenAiSpeech
                         && ! $this->isQuotaError($exception->response)))
                 ->post(self::ENDPOINT, array_filter([
                     'model' => config('ebd.audio.model'),
-                    'voice' => config('ebd.audio.voice'),
+                    'voice' => $voice,
                     'input' => $text,
                     'instructions' => config('ebd.audio.instructions'),
                     'response_format' => 'mp3',

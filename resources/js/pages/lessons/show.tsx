@@ -20,7 +20,7 @@ import {
 import { useEffect, useState } from 'react';
 import { BiblePassage } from '@/components/lesson/bible-passage';
 import { countdownLabel } from '@/components/lesson/countdown';
-import { LessonAudio } from '@/components/lesson/lesson-audio';
+import { LessonAudioPlayer } from '@/components/lesson/lesson-audio';
 import {
     BlockAccordion,
     BlockCards,
@@ -40,7 +40,7 @@ import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { home, library, login } from '@/routes';
 import { edit } from '@/routes/admin/lessons';
 import { sunday } from '@/routes/lessons';
-import type { Lesson, LessonAudio as LessonAudioData } from '@/types';
+import type { Lesson, LessonAudioFile } from '@/types';
 
 type Study = {
     checked_weekdays: number[];
@@ -54,8 +54,8 @@ type Props = {
     shareText: string;
     /** Estudo da própria pessoa; só para membros da classe. */
     study: Study | null;
-    /** "Ouvir estudo"; null quando não há áudio (e a pessoa não gerencia a lição). */
-    audio: LessonAudioData | null;
+    /** "Ouvir estudo"; null enquanto não há áudio gerado. */
+    audio: LessonAudioFile | null;
 };
 
 export default function LessonShow({
@@ -366,7 +366,14 @@ export default function LessonShow({
 
                     {lesson.content_html && (
                         <Section id="estudo" title="Estudo" icon={<BookText />}>
-                            <LessonAudio audio={audio} lessonId={lesson.id} />
+                            {audio && (
+                                <div className="mb-6">
+                                    <LessonAudioPlayer
+                                        src={audio.url}
+                                        knownDuration={audio.duration}
+                                    />
+                                </div>
+                            )}
                             <RichText
                                 className="reading"
                                 html={lesson.content_html}

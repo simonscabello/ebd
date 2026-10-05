@@ -185,16 +185,17 @@ export type Lesson = {
     headline?: string | null;
 };
 
-/** "Ouvir estudo": áudio narrado do estudo (LessonController::audio). */
-export type LessonAudio = {
-    file: { url: string; duration: number | null } | null;
-    /** Só para quem gerencia a lição. */
-    manage?: {
-        status: 'none' | 'generating' | 'ready' | 'failed';
-        stale: boolean;
-        error: string | null;
-        generated_at: string | null;
-    };
+/** "Ouvir estudo": arquivo do áudio narrado do estudo. */
+export type LessonAudioFile = { url: string; duration: number | null };
+
+/** Áudio do estudo na gestão (LessonAudioResource::manage). */
+export type LessonAudioManage = {
+    file: LessonAudioFile | null;
+    status: 'none' | 'generating' | 'ready' | 'failed';
+    stale: boolean;
+    error: string | null;
+    generated_at: string | null;
+    has_content: boolean;
 };
 
 export type Option<T = string> = { value: T; label: string };

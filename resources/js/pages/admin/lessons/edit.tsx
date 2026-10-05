@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    AudioLines,
     CalendarCheck,
     CalendarDays,
     ExternalLink,
@@ -14,6 +15,7 @@ import {
 import type { ReactNode } from 'react';
 import type { BlockKindOption } from '@/components/admin/blocks-manager';
 import { BlocksManager } from '@/components/admin/blocks-manager';
+import { LessonAudioManager } from '@/components/admin/lesson-audio-manager';
 import { LessonForm } from '@/components/admin/lesson-form';
 import type { MaterialTypeOption } from '@/components/admin/materials-manager';
 import { MaterialsManager } from '@/components/admin/materials-manager';
@@ -33,6 +35,7 @@ import {
 import type {
     ClassMeeting,
     Classroom,
+    LessonAudioManage,
     LessonBlock,
     LessonMaterial,
     LessonReading,
@@ -76,6 +79,7 @@ type Props = {
     materialTypes: MaterialTypeOption[];
     weekdays: Option<number>[];
     blockKinds: BlockKindOption[];
+    audio: LessonAudioManage;
 };
 
 const transitionButtons: Record<
@@ -104,6 +108,7 @@ export default function EditLesson({
     materialTypes,
     weekdays,
     blockKinds,
+    audio,
 }: Props) {
     const confirm = useConfirm();
 
@@ -198,6 +203,7 @@ export default function EditLesson({
                     className="mb-8"
                     sections={[
                         { id: 'dados', label: 'Dados' },
+                        { id: 'audio', label: 'Áudio' },
                         {
                             id: 'domingos',
                             label: `Domingos (${lesson.meetings.length})`,
@@ -243,6 +249,18 @@ export default function EditLesson({
                                 visibility: lesson.visibility,
                                 author_ids: lesson.author_ids,
                             }}
+                        />
+                    </Section>
+
+                    <Section
+                        id="audio"
+                        title="Áudio do estudo"
+                        icon={<AudioLines />}
+                        description="Narração do estudo para a classe ouvir no celular. Gerada uma vez; depois de editar o estudo, regenere."
+                    >
+                        <LessonAudioManager
+                            lessonId={lesson.id}
+                            audio={audio}
                         />
                     </Section>
 

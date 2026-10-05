@@ -68,30 +68,36 @@ class LessonAudioTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        Http::assertSentCount(1);
-        Http::assertSent(function (Request $request) {
-            $input = (string) $request['input'];
+        // Duas partes (Introdução e Aplicação), cada uma com um narrador.
+        Http::assertSentCount(2);
+        Http::assertSentInOrder([
+            function (Request $request) {
+                $input = (string) $request['input'];
 
-            return $request->hasHeader('Authorization', 'Bearer sk-test')
-                && $request['model'] === config('ebd.audio.model')
-                && $request['response_format'] === 'mp3'
-                && str_starts_with($input, "Lição 3 — O sinal de Jonas.\n\nIntrodução.")
-                && str_contains($input, 'Os fariseus pedem um sinal.')
-                && ! str_contains($input, '12.38')
-                && ! str_contains($input, '**')
-                && ! str_contains($input, '##');
-        });
+                return $request->hasHeader('Authorization', 'Bearer sk-test')
+                    && $request['model'] === config('ebd.audio.model')
+                    && $request['voice'] === 'cedar'
+                    && $request['response_format'] === 'mp3'
+                    && str_starts_with($input, "Lição 3 — O sinal de Jonas.\n\nIntrodução.")
+                    && str_contains($input, 'Os fariseus pedem um sinal.')
+                    && ! str_contains($input, '12.38')
+                    && ! str_contains($input, '**')
+                    && ! str_contains($input, '##');
+            },
+            fn (Request $request) => $request['voice'] === 'marin'
+                && $request['input'] === "Aplicação.\n\nJesus é maior que Jonas.",
+        ]);
 
         $lesson->refresh();
         $this->assertTrue($lesson->hasAudio());
         $this->assertNull($lesson->audio_status);
-        $this->assertSame(6, $lesson->audio_duration);
+        $this->assertSame(12, $lesson->audio_duration);
         $this->assertFalse($lesson->isAudioStale());
         Storage::disk('local')->assertExists($lesson->audio_path);
 
         // Já existe e está atualizado: não gera de novo.
         $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
-        Http::assertSentCount(1);
+        Http::assertSentCount(2);
     }
 
     public function test_long_study_is_split_by_sections_into_a_single_file(): void
@@ -126,14 +132,14 @@ class LessonAudioTest extends TestCase
 
         $lesson->update(['content' => $lesson->content."\n\nUm parágrafo novo."]);
 
-        $this->actingAs($this->teacher)->get(route('lessons.show', $lesson->slug))
+        $this->actingAs($this->teacher)->get(route('admin.lessons.edit', $lesson))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('audio.manage.stale', true)
-                ->where('audio.manage.status', 'ready'));
+                ->where('audio.stale', true)
+                ->where('audio.status', 'ready'));
 
         $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
 
-        Http::assertSentCount(2);
+        Http::assertSentCount(4);
         $lesson->refresh();
         $this->assertFalse($lesson->isAudioStale());
         $this->assertNotSame($oldPath, $lesson->audio_path);
@@ -153,8 +159,8 @@ class LessonAudioTest extends TestCase
         Http::assertNothingSent();
         $this->assertSame(Lesson::AUDIO_GENERATING, $lesson->refresh()->audio_status);
 
-        $this->actingAs($this->teacher)->get(route('lessons.show', $lesson->slug))
-            ->assertInertia(fn (Assert $page) => $page->where('audio.manage.status', 'generating'));
+        $this->actingAs($this->teacher)->get(route('admin.lessons.edit', $lesson))
+            ->assertInertia(fn (Assert $page) => $page->where('audio.status', 'generating'));
     }
 
     public function test_api_errors_become_a_friendly_message(): void
@@ -170,11 +176,11 @@ class LessonAudioTest extends TestCase
         $this->assertFalse($lesson->hasAudio());
         $this->assertSame(Lesson::AUDIO_FAILED, $lesson->audio_status);
 
-        $this->actingAs($this->teacher)->get(route('lessons.show', $lesson->slug))
+        $this->actingAs($this->teacher)->get(route('admin.lessons.edit', $lesson))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('audio.file', null)
-                ->where('audio.manage.status', 'failed')
-                ->where('audio.manage.error', 'A conta da OpenAI está sem créditos ou passou do limite de uso.'));
+                ->where('audio.status', 'failed')
+                ->where('audio.error', 'A conta da OpenAI está sem créditos ou passou do limite de uso.'));
     }
 
     public function test_generation_needs_the_key_and_a_study(): void
@@ -191,7 +197,7 @@ class LessonAudioTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_students_only_get_the_player_and_cannot_generate(): void
+    public function test_lesson_page_only_has_the_player_and_students_cannot_generate(): void
     {
         $this->fakeOpenAi();
         $lesson = $this->lesson();
@@ -204,10 +210,13 @@ class LessonAudioTest extends TestCase
         $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
         $lesson->refresh();
 
-        $this->actingAs($student)->get(route('lessons.show', $lesson->slug))
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('audio.file.duration', 6)
-                ->missing('audio.manage'));
+        // Na página da lição, professor e aluno veem só o arquivo; a geração fica na gestão.
+        foreach ([$student, $this->teacher] as $user) {
+            $this->actingAs($user)->get(route('lessons.show', $lesson->slug))
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('audio.duration', 12)
+                    ->missing('audio.status'));
+        }
 
         $this->actingAs($student)->get(route('lessons.audio', $lesson->slug))
             ->assertOk()

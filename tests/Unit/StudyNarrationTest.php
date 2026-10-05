@@ -52,7 +52,7 @@ class StudyNarrationTest extends TestCase
         $paragraph = str_repeat('Palavra de estudo. ', 5);
         $narration = StudyNarration::make(null, "## Um\n\n{$paragraph}\n\n{$paragraph}\n\n## Dois\n\n{$paragraph}\n\n".str_repeat('Frase longa demais. ', 20));
 
-        $chunks = $narration->chunks(200);
+        $chunks = array_column($narration->chunks(200), 'text');
 
         foreach ($chunks as $chunk) {
             $this->assertLessThanOrEqual(200, mb_strlen($chunk));
@@ -63,6 +63,39 @@ class StudyNarrationTest extends TestCase
             preg_replace('/\s+/', ' ', $narration->text()),
             preg_replace('/\s+/', ' ', implode(' ', $chunks)),
         );
+    }
+
+    public function test_each_main_topic_is_a_part_for_the_next_narrator(): void
+    {
+        $narration = StudyNarration::make('Lição 17 — Milagres', implode("\n\n", [
+            'Introdução da lição.',
+            '## I. O propósito', '### 1. Autenticar', 'Texto um.', '### 2. Glorificar', 'Texto dois.',
+            '## II. A distorção', 'Texto três.',
+            '## Conclusão', 'Fim.',
+        ]));
+
+        $this->assertSame([
+            [0, 'Lição 17 — Milagres.'], [0, 'Introdução da lição.'],
+            [1, 'I. O propósito.'], [1, '1. Autenticar.'], [1, 'Texto um.'], [1, '2. Glorificar.'], [1, 'Texto dois.'],
+            [2, 'II. A distorção.'], [2, 'Texto três.'],
+            [3, 'Conclusão.'], [3, 'Fim.'],
+        ], array_merge(...array_map(
+            fn (array $blocks, int $part) => array_map(fn (array $block) => [$part, $block['text']], $blocks),
+            $narration->parts(),
+            array_keys($narration->parts()),
+        )));
+
+        // Um trecho nunca junta duas partes, mesmo cabendo no limite.
+        $this->assertSame([0, 1, 2, 3], array_column($narration->chunks(3500), 'part'));
+    }
+
+    public function test_title_alone_goes_with_the_first_topic_and_studies_without_topics_are_one_part(): void
+    {
+        $withTopics = StudyNarration::make('Título', "## Um\n\nA.\n\n## Dois\n\nB.");
+        $this->assertSame(["Título.\n\nUm.\n\nA.", "Dois.\n\nB."], array_column($withTopics->chunks(3500), 'text'));
+
+        $single = StudyNarration::make('Título', "Parágrafo.\n\n## Só um tópico\n\nTexto.");
+        $this->assertCount(1, $single->parts());
     }
 
     public function test_mp3_parts_are_joined_without_tags_and_timed_by_frames(): void

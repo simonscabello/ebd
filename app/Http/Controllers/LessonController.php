@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ContentAudience;
 use App\Http\Resources\ClassMeetingResource;
+use App\Http\Resources\LessonAudioResource;
 use App\Http\Resources\LessonResource;
 use App\Models\Lesson;
 use App\Queries\MeetingForLessonQuery;
@@ -24,14 +25,13 @@ class LessonController extends Controller
     {
         $this->authorizeView($request, $lesson);
 
-        $canManage = $request->user()?->can('update', $lesson) ?? false;
-
         return Inertia::render('lessons/show', [
             'lesson' => $this->present($request, $lesson),
-            'canManage' => $canManage,
+            'canManage' => $request->user()?->can('update', $lesson) ?? false,
             'shareText' => app(WeeklyMessage::class)->share($lesson),
             'study' => $this->personalStudy($request, $lesson),
-            'audio' => $this->audio($lesson, $canManage),
+            // "Ouvir estudo"; a geração fica na gestão (edição da lição).
+            'audio' => LessonAudioResource::file($lesson),
         ]);
     }
 
@@ -54,41 +54,6 @@ class LessonController extends Controller
             // "Sair" volta para a gestão quando o Modo Domingo foi aberto de lá.
             'backUrl' => $canManage && is_string($back) && str_starts_with($back, '/admin/') && ! str_contains($back, '//') ? $back : null,
         ]);
-    }
-
-    /**
-     * "Ouvir estudo": o arquivo, quando existe. Quem gerencia a lição também
-     * recebe o andamento da geração e se o áudio ficou desatualizado.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function audio(Lesson $lesson, bool $canManage): ?array
-    {
-        $file = $lesson->hasAudio() ? [
-            // ?v= muda a cada geração: o navegador não reaproveita o áudio antigo.
-            'url' => route('lessons.audio', [$lesson->slug, 'v' => $lesson->audio_generated_at?->timestamp]),
-            'duration' => $lesson->audio_duration,
-        ] : null;
-
-        if (! $canManage) {
-            return $file ? ['file' => $file] : null;
-        }
-
-        return [
-            'file' => $file,
-            'manage' => [
-                'status' => match (true) {
-                    $lesson->isGeneratingAudio() => 'generating',
-                    $lesson->audio_status === Lesson::AUDIO_FAILED => 'failed',
-                    default => $file ? 'ready' : 'none',
-                },
-                'stale' => $lesson->isAudioStale(),
-                'error' => $lesson->audio_status === Lesson::AUDIO_FAILED ? $lesson->audio_error : null,
-                'generated_at' => $lesson->audio_generated_at
-                    ? ChurchCalendar::formatShort($lesson->audio_generated_at->timezone(ChurchCalendar::timezone()))
-                    : null,
-            ],
-        ];
     }
 
     private function authorizeView(Request $request, Lesson $lesson): void

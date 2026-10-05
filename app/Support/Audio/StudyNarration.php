@@ -25,8 +25,11 @@ final readonly class StudyNarration
 
     private const REF_END = "\u{E001}";
 
+    /** Nível do título da lição: é título, mas nunca abre uma parte. */
+    private const TITLE_LEVEL = 9;
+
     /**
-     * @param  list<array{heading: bool, text: string}>  $blocks
+     * @param  list<array{level: int|null, text: string}>  $blocks  level: nível do título (null = texto)
      */
     private function __construct(private array $blocks) {}
 
@@ -35,7 +38,7 @@ final readonly class StudyNarration
         $blocks = [];
 
         if (filled($title)) {
-            $blocks[] = ['heading' => true, 'text' => self::sentence(self::clean((string) $title))];
+            $blocks[] = ['level' => self::TITLE_LEVEL, 'text' => self::sentence(self::clean((string) $title))];
         }
 
         if (filled($markdown)) {
@@ -75,40 +78,86 @@ final readonly class StudyNarration
     }
 
     /**
-     * Trechos de até $maxChars caracteres. Uma seção nova começa trecho novo
-     * quando o atual já passou da metade; parágrafos nunca são cortados, a
-     * não ser que sozinhos passem do limite (aí o corte é por frase).
+     * Partes do estudo, uma por narrador: o que vem antes do primeiro tópico
+     * principal (com o título da lição), cada tópico principal com os seus
+     * subtópicos e a conclusão. Tópico principal é o nível de título mais alto
+     * que se repete; sem ele, o estudo é uma parte só.
      *
-     * @return list<string>
+     * @return list<list<array{level: int|null, text: string}>>
+     */
+    public function parts(): array
+    {
+        $levels = array_count_values(array_filter(
+            array_map(fn (array $block) => $block['level'], $this->blocks),
+            fn (?int $level) => $level !== null && $level !== self::TITLE_LEVEL,
+        ));
+        ksort($levels);
+        $top = array_key_first(array_filter($levels, fn (int $count) => $count >= 2));
+
+        $parts = [];
+        $current = [];
+
+        foreach ($this->blocks as $block) {
+            if ($top !== null && $block['level'] === $top && $current !== []) {
+                $parts[] = $current;
+                $current = [];
+            }
+
+            $current[] = $block;
+        }
+
+        if ($current !== []) {
+            $parts[] = $current;
+        }
+
+        // Só o título antes do primeiro tópico: quem lê o tópico lê o título.
+        if (count($parts) > 1 && count($parts[0]) === 1 && $parts[0][0]['level'] === self::TITLE_LEVEL) {
+            array_unshift($parts[1], $parts[0][0]);
+            array_shift($parts);
+        }
+
+        return $parts;
+    }
+
+    /**
+     * Trechos de até $maxChars caracteres, marcados com a parte (narrador) a
+     * que pertencem; um trecho nunca junta duas partes. Uma seção nova começa
+     * trecho novo quando o atual já passou da metade; parágrafos nunca são
+     * cortados, a não ser que sozinhos passem do limite (aí o corte é por frase).
+     *
+     * @return list<array{part: int, text: string}>
      */
     public function chunks(int $maxChars): array
     {
         $chunks = [];
-        $current = '';
 
-        $flush = function () use (&$chunks, &$current) {
-            if (trim($current) !== '') {
-                $chunks[] = trim($current);
-            }
-
+        foreach ($this->parts() as $part => $blocks) {
             $current = '';
-        };
 
-        foreach ($this->blocks as $block) {
-            if ($block['heading'] && mb_strlen($current) > $maxChars / 2) {
-                $flush();
-            }
+            $flush = function () use (&$chunks, &$current, $part) {
+                if (trim($current) !== '') {
+                    $chunks[] = ['part' => $part, 'text' => trim($current)];
+                }
 
-            foreach (self::split($block['text'], $maxChars) as $piece) {
-                if ($current !== '' && mb_strlen($current) + 2 + mb_strlen($piece) > $maxChars) {
+                $current = '';
+            };
+
+            foreach ($blocks as $block) {
+                if ($block['level'] !== null && mb_strlen($current) > $maxChars / 2) {
                     $flush();
                 }
 
-                $current .= ($current === '' ? '' : "\n\n").$piece;
-            }
-        }
+                foreach (self::split($block['text'], $maxChars) as $piece) {
+                    if ($current !== '' && mb_strlen($current) + 2 + mb_strlen($piece) > $maxChars) {
+                        $flush();
+                    }
 
-        $flush();
+                    $current .= ($current === '' ? '' : "\n\n").$piece;
+                }
+            }
+
+            $flush();
+        }
 
         return $chunks;
     }
@@ -182,7 +231,7 @@ final readonly class StudyNarration
      * Percorre os blocos do HTML: títulos, parágrafos, itens de lista,
      * citações e tabelas viram blocos de texto separados.
      *
-     * @param  list<array{heading: bool, text: string}>  $blocks
+     * @param  list<array{level: int|null, text: string}>  $blocks
      */
     private static function collect(DOMNode $parent, array &$blocks): void
     {
@@ -191,7 +240,7 @@ final readonly class StudyNarration
                 $text = self::clean((string) $node->textContent);
 
                 if ($text !== '') {
-                    $blocks[] = ['heading' => false, 'text' => self::sentence($text)];
+                    $blocks[] = ['level' => null, 'text' => self::sentence($text)];
                 }
 
                 continue;
@@ -200,15 +249,15 @@ final readonly class StudyNarration
             $tag = strtolower($node->tagName);
 
             match (true) {
-                (bool) preg_match('/^h[1-6]$/', $tag) => $blocks[] = ['heading' => true, 'text' => self::sentence(self::clean((string) $node->textContent))],
+                (bool) preg_match('/^h([1-6])$/', $tag, $heading) => $blocks[] = ['level' => (int) $heading[1], 'text' => self::sentence(self::clean((string) $node->textContent))],
                 in_array($tag, ['ul', 'ol', 'blockquote', 'div', 'section', 'table', 'thead', 'tbody'], true) => self::collect($node, $blocks),
                 in_array($tag, ['li', 'tr'], true) && self::hasBlockChildren($node) => self::collect($node, $blocks),
-                $tag === 'tr' => $blocks[] = ['heading' => false, 'text' => self::sentence(self::clean(implode(', ', array_map(
+                $tag === 'tr' => $blocks[] = ['level' => null, 'text' => self::sentence(self::clean(implode(', ', array_map(
                     fn (DOMNode $cell) => (string) $cell->textContent,
                     iterator_to_array($node->childNodes),
                 ))))],
                 $tag === 'hr', $tag === 'img' => null,
-                default => $blocks[] = ['heading' => false, 'text' => self::sentence(self::clean((string) $node->textContent))],
+                default => $blocks[] = ['level' => null, 'text' => self::sentence(self::clean((string) $node->textContent))],
             };
         }
     }
