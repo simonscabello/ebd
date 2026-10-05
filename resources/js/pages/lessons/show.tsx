@@ -29,6 +29,7 @@ import { MaterialCard, MaterialIcon } from '@/components/lesson/material-card';
 import { ReadingPlan } from '@/components/lesson/reading-plan';
 import { PersonalNote } from '@/components/lesson/personal-note';
 import { RevistaHeader } from '@/components/lesson/revista-header';
+import { RichText } from '@/components/lesson/rich-text';
 import { ShareButton } from '@/components/lesson/share-button';
 import { Page, Section } from '@/components/page';
 import { SectionNav } from '@/components/section-nav';
@@ -361,12 +362,9 @@ export default function LessonShow({
 
                     {lesson.content_html && (
                         <Section id="estudo" title="Estudo" icon={<BookText />}>
-                            <div
+                            <RichText
                                 className="reading"
-                                // HTML gerado no servidor a partir de Markdown, com HTML bruto removido.
-                                dangerouslySetInnerHTML={{
-                                    __html: lesson.content_html,
-                                }}
+                                html={lesson.content_html}
                             />
                         </Section>
                     )}

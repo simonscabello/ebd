@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BlockIcon } from '@/components/lesson/block-icon';
+import { RichText } from '@/components/lesson/rich-text';
 import { cn } from '@/lib/utils';
 import type { LessonBlock } from '@/types';
 
@@ -31,12 +32,12 @@ function DailyBlock({ block }: { block: LessonBlock }) {
             </h2>
             {block.body_html && (
                 <>
-                    <div
+                    <RichText
                         className={cn(
                             'reading mt-2 text-base [&>:first-child]:mt-0',
                             !open && 'line-clamp-3',
                         )}
-                        dangerouslySetInnerHTML={{ __html: block.body_html }}
+                        html={block.body_html}
                     />
                     <button
                         type="button"

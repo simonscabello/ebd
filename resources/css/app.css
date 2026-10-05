@@ -288,4 +288,13 @@
     & mark {
         @apply rounded bg-highlight px-0.5 text-highlight-foreground;
     }
+
+    /* Referência bíblica clicável (BibleLinks): abre o trecho num painel. */
+    & .bible-ref-group {
+        @apply whitespace-nowrap;
+    }
+
+    & .bible-ref {
+        @apply cursor-pointer rounded-sm font-medium text-primary underline decoration-primary/40 decoration-dotted underline-offset-4 hover:decoration-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none;
+    }
 }

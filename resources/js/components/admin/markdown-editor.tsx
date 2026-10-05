@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { RichText } from '@/components/lesson/rich-text';
 import { preview } from '@/routes/admin/markdown';
 
 type Props = {
@@ -231,11 +232,7 @@ export function MarkdownEditor({
                             “Escrever” e tente de novo.
                         </p>
                     ) : html ? (
-                        <div
-                            className="reading text-base"
-                            // HTML gerado no servidor, com HTML bruto removido (App\Support\Markdown).
-                            dangerouslySetInnerHTML={{ __html: html }}
-                        />
+                        <RichText className="reading text-base" html={html} />
                     ) : (
                         <p className="text-sm text-muted-foreground">
                             Nada para mostrar ainda.

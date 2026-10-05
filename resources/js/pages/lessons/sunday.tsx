@@ -7,6 +7,7 @@ import { BiblePassage } from '@/components/lesson/bible-passage';
 import { FinishMeetingDialog } from '@/components/lesson/finish-meeting-dialog';
 import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
 import { RevistaHeader } from '@/components/lesson/revista-header';
+import { RichText } from '@/components/lesson/rich-text';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -263,11 +264,9 @@ export default function SundayMode({
                         <summary className="cursor-pointer text-[0.9em] font-semibold marker:text-muted-foreground">
                             Estudo completo
                         </summary>
-                        <div
+                        <RichText
                             className="reading mt-4 text-[1em]"
-                            dangerouslySetInnerHTML={{
-                                __html: lesson.content_html,
-                            }}
+                            html={lesson.content_html}
                         />
                     </details>
                 )}
