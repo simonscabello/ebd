@@ -1,7 +1,0 @@
-# O builder do Railway (Railpack) instala o PHP pelo mise, que ainda procura o
-# plugin em github.com/jdx/vfox-php, repositório removido. Aponta para o novo.
-[settings]
-url_replacements = { "github.com/jdx/vfox-php" = "github.com/mise-plugins/vfox-php" }
-
-[plugins]
-php = "https://github.com/mise-plugins/vfox-php"
