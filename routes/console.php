@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\AuditLog;
+use Illuminate\Console\Scheduling\Event;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -15,21 +17,20 @@ Artisan::command('inspire', function () {
 */
 $timezone = (string) config('ebd.timezone');
 
-// Por padrão o scheduler joga a saída dos comandos em /dev/null. No container,
-// o stdout do processo principal é o que aparece nos logs do Railway: assim dá
-// para ver quantos aparelhos cada lembrete alcançou e o que o push recusou.
-$containerLog = is_writable('/proc/1/fd/1') ? '/proc/1/fd/1' : null;
-
+// Os lembretes rodam dentro do próprio `schedule:run`, não num processo filho:
+// o filho teria stdout e stderr jogados em /dev/null, e com eles a contagem de
+// aparelhos e os avisos do push (LOG_CHANNEL=stderr). Daqui, `schedule:work`
+// repassa tudo para o stdout do container, que é o que o Railway mostra.
 foreach ([
-    Schedule::command('ebd:remind-readings morning')->dailyAt('09:00'),
-    Schedule::command('ebd:remind-readings evening')->dailyAt('20:00'),
-    Schedule::command('ebd:remind-lesson')->saturdays()->at('08:00'),
-] as $reminder) {
-    $reminder->timezone($timezone)->onOneServer()->withoutOverlapping();
-
-    if ($containerLog !== null) {
-        $reminder->appendOutputTo($containerLog);
-    }
+    'ebd:remind-readings morning' => fn (Event $event) => $event->dailyAt('09:00'),
+    'ebd:remind-readings evening' => fn (Event $event) => $event->dailyAt('20:00'),
+    'ebd:remind-lesson' => fn (Event $event) => $event->saturdays()->at('08:00'),
+] as $command => $when) {
+    $when(Schedule::call(fn () => Artisan::call($command, [], new ConsoleOutput))
+        ->name($command))
+        ->timezone($timezone)
+        ->onOneServer()
+        ->withoutOverlapping();
 }
 
 // Limpeza: histórico de ações dos agentes com mais de um ano e tokens OAuth vencidos ou revogados.

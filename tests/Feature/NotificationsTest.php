@@ -258,7 +258,7 @@ class NotificationsTest extends TestCase
         // O agendamento é montado quando o console é carregado (antes do setUp
         // trocar a config), com o fuso do phpunit.xml.
         $events = collect(app(Schedule::class)->events())
-            ->mapWithKeys(fn ($event) => [trim(str_replace(['artisan', "'", '"'], '', substr($event->command ?? '', strpos($event->command ?? '', 'artisan')))) => [$event->expression, $event->timezone]]);
+            ->mapWithKeys(fn ($event) => [$event->description => [$event->expression, $event->timezone]]);
 
         $this->assertSame(['0 9 * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings morning']);
         $this->assertSame(['0 20 * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings evening']);
