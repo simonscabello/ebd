@@ -29,16 +29,21 @@ class StudyNarrationTest extends TestCase
         ]), $narration->text());
     }
 
-    public function test_bible_references_are_read_in_full(): void
+    public function test_verse_citations_are_left_out_and_references_in_the_sentence_are_read_in_full(): void
     {
-        $text = StudyNarration::make(null, 'Veja (Mt 12.38-40; Jo 3.16,18), 1 Co 13.1, Salmo 23 e Gn 1.1-2.3.')->text();
+        $text = StudyNarration::make(null, implode("\n\n", [
+            'Os fariseus pedem um sinal (Mt 12.38-40; Jo 3.16,18). Ele lembra Jonas (cf. Jn 1.17).',
+            'No v. 40, Jesus fala do ventre do peixe (v. 40). Leia também 1 Co 13.1 e Salmo 23, cf. Jo 2.19.',
+            'Gn 1.1-2.3.',
+            'O Salmo 23 consola.',
+        ]))->text();
 
-        $this->assertSame(
-            'Veja (Mateus, capítulo 12, versículos 38 a 40; João, capítulo 3, versículo 16, e versículo 18), '
-            .'Primeira Coríntios, capítulo 13, versículo 1, Salmo 23 e '
-            .'Gênesis, capítulo 1, versículo 1, até o capítulo 2, versículo 3.',
-            $text,
-        );
+        $this->assertSame(implode("\n\n", [
+            'Os fariseus pedem um sinal. Ele lembra Jonas.',
+            'No versículo 40, Jesus fala do ventre do peixe. Leia também Primeira Coríntios, capítulo 13, versículo 1 e Salmo 23.',
+            'Gênesis, capítulo 1, versículo 1, até o capítulo 2, versículo 3.',
+            'O Salmo 23 consola.',
+        ]), $text);
         $this->assertSame('Segundo Reis, capítulos 2 a 4', StudyNarration::speakReference(Reference::parse('2Rs 2-4')));
     }
 

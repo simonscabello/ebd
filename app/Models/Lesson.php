@@ -66,6 +66,9 @@ class Lesson extends Model
 
     public const AUDIO_FAILED = 'failed';
 
+    /** 2: sem as citações de versículos na narração. */
+    public const AUDIO_NARRATION_VERSION = 2;
+
     /** Depois disso, uma geração "em andamento" é dada como perdida (processo caiu). */
     public const AUDIO_GENERATION_TIMEOUT_MINUTES = 15;
 
@@ -195,10 +198,14 @@ class Lesson extends Model
         return StudyNarration::make($this->displayTitle(), $this->content);
     }
 
-    /** Impressão digital do texto narrado; muda quando o estudo é editado. */
+    /**
+     * Impressão digital do texto narrado; muda quando o estudo é editado.
+     * Mude AUDIO_NARRATION_VERSION quando a conversão do texto (StudyNarration)
+     * mudar: os áudios já gerados ficam desatualizados e podem ser regenerados.
+     */
     public function audioSourceHash(): string
     {
-        return sha1($this->displayTitle()."\n".$this->content);
+        return sha1(self::AUDIO_NARRATION_VERSION."\n".$this->displayTitle()."\n".$this->content);
     }
 
     public function hasAudio(): bool

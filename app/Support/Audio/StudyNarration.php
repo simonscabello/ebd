@@ -12,13 +12,19 @@ use Illuminate\Support\Str;
 
 /**
  * Transforma o Markdown do estudo em texto para ser lido em voz alta: sem
- * marcações, com as referências bíblicas por extenso ("Mt 12.38-40" vira
- * "Mateus, capítulo 12, versículos 38 a 40") e com os títulos separados do
- * texto para a narração fazer pausa. Também divide o texto em trechos que
+ * marcações, sem as citações de versículos ("(Mt 12.38-40; Jo 3.16)" e
+ * "cf. Jo 2.19" somem: em voz alta uma lista de referências só atrapalha),
+ * com as referências que fazem parte da frase por extenso ("o Salmo 23")
+ * e com os títulos separados do texto para a narração fazer pausa. Também divide o texto em trechos que
  * cabem no limite da API, de preferência nas seções e nos parágrafos.
  */
 final readonly class StudyNarration
 {
+    /** Delimitam cada referência bíblica (já por extenso) até clean() decidir se ela fica. */
+    private const REF_START = "\u{E000}";
+
+    private const REF_END = "\u{E001}";
+
     /**
      * @param  list<array{heading: bool, text: string}>  $blocks
      */
@@ -39,7 +45,10 @@ final readonly class StudyNarration
                 'max_nesting_level' => 20,
             ]);
 
-            $html = BibleLinks::replace($html, fn (string $written, Reference $reference) => e(self::speakReference($reference)));
+            $html = BibleLinks::replace(
+                $html,
+                fn (string $written, Reference $reference) => self::REF_START.e(self::speakReference($reference)).self::REF_END,
+            );
 
             $document = new DOMDocument;
             @$document->loadHTML('<?xml encoding="utf-8"?><div id="narration">'.$html.'</div>', LIBXML_NOERROR | LIBXML_NONET);
@@ -51,7 +60,7 @@ final readonly class StudyNarration
             }
         }
 
-        return new self(array_values(array_filter($blocks, fn (array $block) => $block['text'] !== '')));
+        return new self(array_values(array_filter($blocks, fn (array $block) => (bool) preg_match('/\p{L}/u', $block['text']))));
     }
 
     public function isEmpty(): bool
@@ -220,6 +229,7 @@ final readonly class StudyNarration
     {
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = (string) preg_replace('/[*_`#>|~]+/u', ' ', $text);
+        $text = self::dropCitations($text);
         $text = (string) preg_replace('/\bcf\.\s*/iu', 'conforme ', $text);
         $text = (string) preg_replace('/\bvv\.\s*(?=\d)/u', 'versículos ', $text);
         $text = (string) preg_replace('/\bv\.\s*(?=\d)/u', 'versículo ', $text);
@@ -227,6 +237,23 @@ final readonly class StudyNarration
         $text = (string) preg_replace('/\bd\.\s?C\./u', 'depois de Cristo', $text);
 
         return trim((string) preg_replace('/\s+/u', ' ', $text));
+    }
+
+    /**
+     * Citações saem: parênteses só com referências ou números de versículo
+     * ("(Mt 12.38-40; Jo 3.16)", "(cf. Jn 1.17)", "(v. 40)") e referências
+     * depois de "cf.". As demais fazem parte da frase e ficam por extenso.
+     */
+    private static function dropCitations(string $text): string
+    {
+        $reference = self::REF_START.'[^'.self::REF_END.']*'.self::REF_END;
+        $filler = '(?:'.$reference.'|[\s\d.,;:–—\-]|\be\b)';
+
+        $text = (string) preg_replace('/\s*[(\[]\s*(?:(?:cf\.|conforme|veja|ver|vv?\.)\s*)?(?:'.$reference.'|\d)'.$filler.'*[)\]]/iu', '', $text);
+        $text = (string) preg_replace('/,?\s*\b(?:cf\.|conforme)\s*'.$reference.'(?:\s*(?:[;,]|\be\b)\s*'.$reference.')*/iu', '', $text);
+        $text = str_replace([self::REF_START, self::REF_END], '', $text);
+
+        return (string) preg_replace('/\s+([,.;:!?…])/u', '$1', $text);
     }
 
     /** Termina com pontuação, para a voz fechar a frase (títulos e itens de lista). */
