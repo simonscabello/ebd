@@ -3,22 +3,29 @@
 namespace App\Actions\Lessons;
 
 use App\Models\Lesson;
+use App\Support\Audio\ListeningScript;
 use App\Support\Audio\Mp3;
 use App\Support\Audio\OpenAiSpeech;
 use App\Support\Audio\SpeechFailed;
+use App\Support\Audio\StudyNarration;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
 /**
  * Narra o estudo pela OpenAI e guarda um único MP3 no disco dos materiais.
+ * Cada parte do estudo vira roteiro para ouvir (ListeningScript) e é lida
+ * por um narrador, revezando entre as vozes configuradas.
  * Roda depois da resposta (ver RequestLessonAudio): leva de segundos a alguns
  * minutos, conforme o tamanho do estudo. O áudio anterior continua valendo
  * até o novo ficar pronto.
  */
 class GenerateLessonAudio
 {
-    public function __construct(private OpenAiSpeech $speech) {}
+    public function __construct(
+        private OpenAiSpeech $speech,
+        private ListeningScript $script,
+    ) {}
 
     public function handle(Lesson $lesson): void
     {
@@ -31,7 +38,7 @@ class GenerateLessonAudio
         $hash = $lesson->audioSourceHash();
 
         try {
-            $chunks = $lesson->narration()->chunks((int) config('ebd.audio.max_chars'));
+            $chunks = $this->chunks($lesson);
 
             if ($chunks === []) {
                 throw SpeechFailed::because('O estudo está vazio. Escreva o conteúdo antes de gerar o áudio.');
@@ -76,5 +83,31 @@ class GenerateLessonAudio
         if ($previous !== null) {
             Storage::disk((string) $previous[0])->delete((string) $previous[1]);
         }
+    }
+
+    /**
+     * Trechos para a voz, cada um com a parte (narrador) a que pertence. Com
+     * o roteiro ligado, cada parte é reescrita para ser ouvida antes.
+     *
+     * @return list<array{part: int, text: string}>
+     */
+    private function chunks(Lesson $lesson): array
+    {
+        $narration = $lesson->narration();
+        $maxChars = (int) config('ebd.audio.max_chars');
+
+        if (! config('ebd.audio.script') || $narration->isEmpty()) {
+            return $narration->chunks($maxChars);
+        }
+
+        $chunks = [];
+
+        foreach ($this->script->write($narration->partTexts()) as $part => $text) {
+            foreach (StudyNarration::chunkText($text, $maxChars) as $piece) {
+                $chunks[] = ['part' => $part, 'text' => $piece];
+            }
+        }
+
+        return $chunks;
     }
 }

@@ -96,9 +96,13 @@ return [
     | por seção/parágrafo e os trechos viram um único MP3.
     */
     'audio' => [
-        'model' => env('EBD_AUDIO_MODEL', 'gpt-4o-mini-tts'),
+        'model' => env('EBD_AUDIO_MODEL', 'gpt-4o-mini-tts-2025-12-15'),
+        // Antes da voz, um modelo de texto reescreve cada parte para ser ouvida
+        // (ListeningScript). false = narra o texto do estudo como está.
+        'script' => (bool) env('EBD_AUDIO_SCRIPT', true),
+        'script_model' => env('EBD_AUDIO_SCRIPT_MODEL', 'gpt-5.4-mini'),
         'voices' => array_values(array_filter(array_map('trim', explode(',', (string) env('EBD_AUDIO_VOICES', 'cedar,marin,ash'))))),
-        'instructions' => env('EBD_AUDIO_INSTRUCTIONS', 'Narre em português do Brasil, como quem conduz um estudo bíblico: voz calma, clara e acolhedora, ritmo tranquilo, sem pressa e sem dramatizar. Faça uma pausa breve antes e depois de cada título e entre os parágrafos. Leia as referências bíblicas com naturalidade.'),
+        'instructions' => env('EBD_AUDIO_INSTRUCTIONS', 'Fale em português do Brasil como um professor de escola bíblica que gosta do assunto e conversa com jovens: voz calorosa, envolvente e próxima, com entonação variada e ênfase nas ideias principais. Ritmo natural e fluido, nem lento nem apressado. Perguntas soam como perguntas de verdade, e as frases de impacto ganham uma pausa curta depois. Mude levemente o tom nas transições entre os tópicos. Expressivo, mas sem exagero teatral.'),
         'directory' => 'lesson-audio',
         'max_chars' => (int) env('EBD_AUDIO_MAX_CHARS', 3500),
         // Segundos de espera por trecho na OpenAI.

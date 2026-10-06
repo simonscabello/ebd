@@ -66,8 +66,8 @@ class Lesson extends Model
 
     public const AUDIO_FAILED = 'failed';
 
-    /** 2: sem as citações de versículos; 3: narradores revezando por parte. */
-    public const AUDIO_NARRATION_VERSION = 3;
+    /** 2: sem citações de versículos; 3: narradores por parte; 4: roteiro para ouvir. */
+    public const AUDIO_NARRATION_VERSION = 4;
 
     /** Depois disso, uma geração "em andamento" é dada como perdida (processo caiu). */
     public const AUDIO_GENERATION_TIMEOUT_MINUTES = 15;
