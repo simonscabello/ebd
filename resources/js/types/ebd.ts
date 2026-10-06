@@ -186,7 +186,12 @@ export type Lesson = {
 };
 
 /** "Ouvir estudo": arquivo do áudio narrado do estudo. */
-export type LessonAudioFile = { url: string; duration: number | null };
+export type LessonAudioFile = {
+    url: string;
+    duration: number | null;
+    /** Mensagem pronta para o WhatsApp, com o link que abre a lição no player. */
+    share_text: string;
+};
 
 /** Áudio do estudo na gestão (LessonAudioResource::manage). */
 export type LessonAudioManage = {
