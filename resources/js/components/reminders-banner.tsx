@@ -61,7 +61,7 @@ export function RemindersBanner() {
             <button
                 type="button"
                 onClick={dismiss}
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background text-muted-foreground hover:bg-muted"
                 aria-label="Dispensar aviso"
             >
                 <X className="size-4" />

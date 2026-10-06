@@ -82,9 +82,9 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
                                             </p>
                                         )}
                                     </div>
-                                    <div className="flex shrink-0 flex-col sm:flex-row">
+                                    <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row">
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="icon"
                                             onClick={() =>
                                                 setEditing(reading.id)
@@ -94,7 +94,7 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
                                             <Pencil />
                                         </Button>
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="icon"
                                             aria-label="Remover leitura"
                                             onClick={async () => {
@@ -262,7 +262,7 @@ function ReadingEditor({
                 )}
                 <Button
                     type="submit"
-                    variant={reading ? 'default' : 'secondary'}
+                    variant={reading ? 'default' : 'outline'}
                     disabled={form.processing}
                 >
                     {!reading && <Plus />}{' '}

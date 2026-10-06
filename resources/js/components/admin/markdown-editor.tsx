@@ -165,7 +165,7 @@ export function MarkdownEditor({
 
     return (
         <div className="overflow-hidden rounded-lg border bg-card shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
-            <div className="flex flex-wrap items-center gap-1 border-b bg-muted/40 px-1.5 py-1">
+            <div className="flex items-center gap-1 overflow-x-auto border-b bg-muted/40 px-1.5 py-1">
                 <div role="tablist" className="mr-1 flex gap-1">
                     {(
                         [

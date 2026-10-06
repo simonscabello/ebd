@@ -504,7 +504,7 @@ function UpcomingLessons({
                         )}
                         {item.message && (
                             <details className="group mt-2">
-                                <summary className="flex min-h-9 cursor-pointer items-center gap-2 text-sm font-medium text-primary marker:content-none">
+                                <summary className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium text-primary shadow-xs marker:content-none hover:bg-accent [&::-webkit-details-marker]:hidden">
                                     <MessageSquareText className="size-4" />
                                     Mensagem para o grupo
                                     <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
@@ -556,7 +556,7 @@ function UpcomingLessons({
                     </Button>
                 </nav>
             )}
-            <Button asChild variant="outline" size="sm" className="mt-2">
+            <Button asChild variant="outline" className="mt-3">
                 <Link href={meetingsIndex(classroom.slug)}>
                     Planejar domingos <ChevronRight />
                 </Link>

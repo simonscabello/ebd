@@ -99,9 +99,9 @@ export function BlocksManager({ lessonId, blocks, kinds, weekdays }: Props) {
                                             {block.body}
                                         </p>
                                     </div>
-                                    <div className="flex shrink-0 flex-col sm:flex-row">
+                                    <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row">
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="icon"
                                             onClick={() => setEditing(block.id)}
                                             aria-label="Editar bloco"
@@ -109,7 +109,7 @@ export function BlocksManager({ lessonId, blocks, kinds, weekdays }: Props) {
                                             <Pencil />
                                         </Button>
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="icon"
                                             aria-label="Remover bloco"
                                             onClick={async () => {
@@ -352,7 +352,7 @@ function BlockEditor({
                 )}
                 <Button
                     type="submit"
-                    variant={block ? 'default' : 'secondary'}
+                    variant={block ? 'default' : 'outline'}
                     disabled={processing}
                 >
                     {!block && <Plus />} {block ? 'Salvar' : 'Adicionar bloco'}
