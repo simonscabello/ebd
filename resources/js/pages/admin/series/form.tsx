@@ -157,8 +157,8 @@ export default function SeriesForm({
                         {series ? (
                             <Button
                                 type="button"
-                                variant="ghost"
-                                className="text-destructive hover:text-destructive"
+                                variant="outline"
+                                className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 onClick={async () => {
                                     if (
                                         await confirm({

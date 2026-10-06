@@ -91,7 +91,7 @@ export default function ClassroomsIndex({
                                         <Button
                                             asChild
                                             size="sm"
-                                            variant="ghost"
+                                            variant="outline"
                                         >
                                             <Link href={edit(classroom.slug)}>
                                                 Editar

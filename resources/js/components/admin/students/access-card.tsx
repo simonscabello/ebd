@@ -153,7 +153,7 @@ export function AccessCard({
                           : 'Gerar link de acesso'}
                 </Button>
                 {access.link && (
-                    <Button size="sm" variant="ghost" onClick={block}>
+                    <Button size="sm" variant="outline" onClick={block}>
                         <ShieldOff /> Bloquear acesso
                     </Button>
                 )}

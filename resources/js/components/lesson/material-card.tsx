@@ -9,6 +9,7 @@ import {
     Star,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { LessonMaterial, MaterialTypeValue } from '@/types';
 
@@ -131,12 +132,11 @@ export function MaterialCard({ material }: { material: LessonMaterial }) {
 
             {material.file && (
                 <div className="flex justify-end">
-                    <a
-                        href={material.file.download_url}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <Download className="size-4" /> Baixar
-                    </a>
+                    <Button asChild variant="outline" size="sm">
+                        <a href={material.file.download_url}>
+                            <Download /> Baixar
+                        </a>
+                    </Button>
                 </div>
             )}
         </div>

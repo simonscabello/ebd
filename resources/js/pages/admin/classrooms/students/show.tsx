@@ -297,7 +297,7 @@ export default function StudentPage({
                                     </ul>
                                     {sundays.length > RECENT && !allSundays && (
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="sm"
                                             className="mt-2"
                                             onClick={() => setAllSundays(true)}
@@ -356,8 +356,8 @@ export default function StudentPage({
                                     />
                                 )}
                                 <Button
-                                    variant="ghost"
-                                    className="text-destructive hover:text-destructive"
+                                    variant="outline"
+                                    className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                     onClick={remove}
                                 >
                                     <UserMinus /> Remover da classe

@@ -280,7 +280,7 @@ export default function LessonShow({
                         </Link>
                     </Button>
                     {canManage && (
-                        <Button asChild variant="ghost">
+                        <Button asChild variant="outline">
                             <Link href={edit(lesson.id)}>
                                 <PenLine /> Editar
                             </Link>
@@ -408,7 +408,7 @@ export default function LessonShow({
                                         <ShareButton
                                             title={lesson.display_title}
                                             text={audio.share_text}
-                                            variant="ghost"
+                                            variant="outline"
                                             size="sm"
                                             label="Compartilhar áudio"
                                         />
