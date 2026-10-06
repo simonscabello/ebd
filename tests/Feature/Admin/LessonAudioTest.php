@@ -29,7 +29,8 @@ class LessonAudioTest extends TestCase
 
         Storage::fake('local');
         Http::preventStrayRequests();
-        config(['services.openai.key' => 'sk-test', 'ebd.materials.disk' => 'local']);
+        // O roteiro para ouvir tem testes próprios; aqui a voz lê o texto do estudo.
+        config(['services.openai.key' => 'sk-test', 'ebd.materials.disk' => 'local', 'ebd.audio.script' => false]);
 
         $this->classroom = Classroom::factory()->create();
         $this->teacher = User::factory()->teacherOf($this->classroom)->create();
@@ -227,5 +228,53 @@ class LessonAudioTest extends TestCase
         $lesson->forceFill(['status' => 'draft'])->save();
         auth()->logout();
         $this->get(route('lessons.audio', $lesson->slug))->assertNotFound();
+    }
+
+    public function test_each_part_is_rewritten_for_listening_before_the_voice(): void
+    {
+        config(['ebd.audio.script' => true]);
+        $applicationScript = 'Agora, a aplicação. Pense nisso: Jesus é maior que Jonas! Será que a gente vive como quem acredita nisso?';
+        Http::fake([
+            'api.openai.com/v1/responses' => Http::sequence()
+                // Introdução: roteiro de tamanho normal.
+                ->push(['output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'Bem-vindo à lição 3, O sinal de Jonas. Os fariseus pedem um sinal a Jesus. Vamos entender por quê?']]]]])
+                ->push(['output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => $applicationScript]]]]]),
+            'api.openai.com/v1/audio/speech' => Http::response($this->mp3(100), 200, ['Content-Type' => 'audio/mpeg']),
+        ]);
+        $lesson = $this->lesson();
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
+
+        $requests = Http::recorded()->map(fn (array $pair) => $pair[0]);
+        $scripts = $requests->filter(fn (Request $r) => str_ends_with($r->url(), '/responses'))->values();
+        $speech = $requests->filter(fn (Request $r) => str_ends_with($r->url(), '/speech'))->values();
+
+        $this->assertCount(2, $scripts);
+        $this->assertSame(config('ebd.audio.script_model'), $scripts[0]['model']);
+        $this->assertStringContainsString('Introdução (parte 1 de 2)', (string) $scripts[0]['input']);
+        $this->assertStringContainsString("Aplicação.\n\nJesus é maior que Jonas.", (string) $scripts[1]['input']);
+        $this->assertStringContainsString('Conclusão (parte 2 de 2)', (string) $scripts[1]['input']);
+
+        $this->assertSame(['cedar', 'marin'], $speech->map(fn (Request $r) => $r['voice'])->all());
+        $this->assertStringStartsWith('Bem-vindo à lição 3', (string) $speech[0]['input']);
+        $this->assertSame($applicationScript, $speech[1]['input']);
+        $this->assertTrue($lesson->refresh()->hasAudio());
+    }
+
+    public function test_a_script_that_drops_content_falls_back_to_the_study_text(): void
+    {
+        config(['ebd.audio.script' => true]);
+        $paragraph = str_repeat('Jesus ensinava às multidões com parábolas e explicava tudo aos discípulos. ', 8);
+        Http::fake([
+            'api.openai.com/v1/responses' => Http::response(['output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'Resumo curto.']]]]]),
+            'api.openai.com/v1/audio/speech' => Http::response($this->mp3(100), 200, ['Content-Type' => 'audio/mpeg']),
+        ]);
+        $lesson = $this->lesson(['content' => $paragraph]);
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
+
+        $speech = Http::recorded()->map(fn (array $pair) => $pair[0])->filter(fn (Request $r) => str_ends_with($r->url(), '/speech'))->values();
+        $this->assertStringContainsString('Jesus ensinava às multidões', (string) $speech[0]['input']);
+        $this->assertStringNotContainsString('Resumo curto', (string) $speech[0]['input']);
     }
 }

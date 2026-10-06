@@ -163,6 +163,52 @@ final readonly class StudyNarration
     }
 
     /**
+     * Texto de cada parte (ver parts()), na ordem.
+     *
+     * @return list<string>
+     */
+    public function partTexts(): array
+    {
+        return array_map(
+            fn (array $blocks) => implode("\n\n", array_map(fn (array $block) => $block['text'], $blocks)),
+            $this->parts(),
+        );
+    }
+
+    /**
+     * Divide um texto corrido (o roteiro de uma parte) em trechos de até
+     * $maxChars, juntando parágrafos inteiros sempre que couberem.
+     *
+     * @return list<string>
+     */
+    public static function chunkText(string $text, int $maxChars): array
+    {
+        $chunks = [];
+        $current = '';
+
+        foreach (preg_split('/\n\s*\n/u', trim($text)) ?: [] as $paragraph) {
+            foreach (self::split(trim((string) preg_replace('/\s+/u', ' ', $paragraph)), $maxChars) as $piece) {
+                if ($piece === '') {
+                    continue;
+                }
+
+                if ($current !== '' && mb_strlen($current) + 2 + mb_strlen($piece) > $maxChars) {
+                    $chunks[] = $current;
+                    $current = '';
+                }
+
+                $current .= ($current === '' ? '' : "\n\n").$piece;
+            }
+        }
+
+        if ($current !== '') {
+            $chunks[] = $current;
+        }
+
+        return $chunks;
+    }
+
+    /**
      * "Mateus, capítulo 12, versículos 38 a 40"; "Salmo 23";
      * "João, capítulo 3, versículo 16, e versículo 18".
      */
