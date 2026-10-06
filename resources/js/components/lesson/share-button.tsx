@@ -11,18 +11,25 @@ export function ShareButton({
     title,
     text,
     variant = 'outline',
+    size = 'default',
+    label = 'Compartilhar',
 }: {
-    url: string;
+    /** Sem url, o link vai só dentro do texto (evita link repetido no WhatsApp). */
+    url?: string;
     title: string;
     text: string;
-    variant?: 'outline' | 'default' | 'secondary';
+    variant?: 'outline' | 'default' | 'secondary' | 'ghost';
+    size?: 'default' | 'sm';
+    label?: string;
 }) {
     const [copied, setCopied] = useState(false);
 
     const share = async () => {
         if (typeof navigator !== 'undefined' && navigator.share) {
             try {
-                await navigator.share({ title, text, url });
+                await navigator.share(
+                    url ? { title, text, url } : { title, text },
+                );
 
                 return;
             } catch {
@@ -45,9 +52,9 @@ export function ShareButton({
     };
 
     return (
-        <Button type="button" variant={variant} onClick={share}>
+        <Button type="button" variant={variant} size={size} onClick={share}>
             {copied ? <Check /> : <Share2 />}
-            {copied ? 'Link copiado' : 'Compartilhar'}
+            {copied ? 'Link copiado' : label}
         </Button>
     );
 }

@@ -100,6 +100,37 @@ export default function LessonShow({
 
         return () => window.removeEventListener('hashchange', expandOnHash);
     }, []);
+
+    // Link "Ouvir" compartilhado no WhatsApp (#ouvir): leva direto ao player e
+    // destaca o play. Tocar sozinho o navegador não deixa.
+    const [listenHighlight, setListenHighlight] = useState(false);
+
+    useEffect(() => {
+        if (window.location.hash !== '#ouvir' || !audio) {
+            return;
+        }
+
+        let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+        // Espera a tela de abertura sair, senão o destaque passa despercebido.
+        const waitSplash = setInterval(() => {
+            if (document.getElementById('splash')) {
+                return;
+            }
+
+            clearInterval(waitSplash);
+            document
+                .getElementById('ouvir')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setListenHighlight(true);
+            hideTimer = setTimeout(() => setListenHighlight(false), 5000);
+        }, 150);
+
+        return () => {
+            clearInterval(waitSplash);
+            clearTimeout(hideTimer);
+        };
+    }, [audio]);
     const { deepen, curiosities, concepts, other } = groupStudentBlocks(
         lesson.blocks ?? [],
     );
@@ -367,11 +398,21 @@ export default function LessonShow({
                     {lesson.content_html && (
                         <Section id="estudo" title="Estudo" icon={<BookText />}>
                             {audio && (
-                                <div className="mb-6">
+                                <div id="ouvir" className="mb-6 scroll-mt-24">
                                     <LessonAudioPlayer
                                         src={audio.url}
                                         knownDuration={audio.duration}
+                                        highlight={listenHighlight}
                                     />
+                                    <div className="mt-1 flex justify-end">
+                                        <ShareButton
+                                            title={lesson.display_title}
+                                            text={audio.share_text}
+                                            variant="ghost"
+                                            size="sm"
+                                            label="Compartilhar áudio"
+                                        />
+                                    </div>
                                 </div>
                             )}
                             <RichText

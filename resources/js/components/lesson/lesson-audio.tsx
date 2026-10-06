@@ -1,6 +1,7 @@
 import { Headphones, Pause, Play } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 
@@ -20,9 +21,12 @@ function formatTime(seconds: number): string {
 export function LessonAudioPlayer({
     src,
     knownDuration,
+    highlight = false,
 }: {
     src: string;
     knownDuration: number | null;
+    /** Chegou pelo link "Ouvir" (#ouvir): destaca o player e o play. */
+    highlight?: boolean;
 }) {
     const ref = useRef<HTMLAudioElement>(null);
     const [playing, setPlaying] = useState(false);
@@ -56,7 +60,13 @@ export function LessonAudioPlayer({
     };
 
     return (
-        <div className="rounded-2xl border bg-card p-3.5 shadow-xs">
+        <div
+            className={cn(
+                'rounded-2xl border bg-card p-3.5 shadow-xs transition-shadow duration-500',
+                highlight &&
+                    'ring-2 ring-primary ring-offset-2 ring-offset-background',
+            )}
+        >
             <audio
                 ref={ref}
                 src={src}
@@ -79,7 +89,10 @@ export function LessonAudioPlayer({
                     type="button"
                     onClick={toggle}
                     aria-label={playing ? 'Pausar' : 'Ouvir estudo'}
-                    className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                    className={cn(
+                        'flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
+                        highlight && !playing && 'animate-pulse',
+                    )}
                 >
                     {playing ? (
                         <Pause className="size-5 fill-current" />

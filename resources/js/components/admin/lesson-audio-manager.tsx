@@ -1,6 +1,7 @@
 import { router, usePoll } from '@inertiajs/react';
 import { AlertCircle, AudioLines } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { CopyWhatsAppButtons } from '@/components/copy-whatsapp-button';
 import { LessonAudioPlayer } from '@/components/lesson/lesson-audio';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,10 +70,24 @@ export function LessonAudioManager({
     return (
         <div className="space-y-3">
             {audio.file && (
-                <LessonAudioPlayer
-                    src={audio.file.url}
-                    knownDuration={audio.file.duration}
-                />
+                <>
+                    <LessonAudioPlayer
+                        src={audio.file.url}
+                        knownDuration={audio.file.duration}
+                    />
+                    <div className="space-y-2 rounded-2xl bg-muted/60 p-4">
+                        <p className="text-sm font-medium">
+                            Mensagem para a classe
+                        </p>
+                        <p className="text-sm whitespace-pre-line text-muted-foreground">
+                            {audio.file.share_text}
+                        </p>
+                        <CopyWhatsAppButtons
+                            text={audio.file.share_text}
+                            copyLabel="Copiar mensagem"
+                        />
+                    </div>
+                </>
             )}
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">

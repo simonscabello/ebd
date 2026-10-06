@@ -277,4 +277,31 @@ class LessonAudioTest extends TestCase
         $this->assertStringContainsString('Jesus ensinava às multidões', (string) $speech[0]['input']);
         $this->assertStringNotContainsString('Resumo curto', (string) $speech[0]['input']);
     }
+
+    public function test_share_message_points_to_the_player_on_the_lesson_page(): void
+    {
+        $this->fakeOpenAi();
+        $lesson = $this->lesson(['bible_reference' => 'Mt 12.38-40; Lc 11.29-30']);
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
+        $lesson->refresh();
+
+        $expected = implode("\n", [
+            [
+                '🎧 O estudo da semana também está em áudio!',
+                '🎧 Sem tempo para ler? Dá para ouvir a lição.',
+                '🎧 Ouça a lição no caminho, no trabalho ou em casa.',
+            ][$lesson->id % 3],
+            '',
+            '*Lição 3 — O sinal de Jonas*',
+            'Texto base: Mt 12.38-40; Lc 11.29-30',
+            '',
+            // 12 s de áudio arredondam para 1 min.
+            '▶️ Ouvir (1 min): '.route('lessons.show', $lesson->slug).'#ouvir',
+        ]);
+
+        $this->get(route('lessons.show', $lesson->slug))
+            ->assertInertia(fn (Assert $page) => $page->where('audio.share_text', $expected));
+        $this->actingAs($this->teacher)->get(route('admin.lessons.edit', $lesson))
+            ->assertInertia(fn (Assert $page) => $page->where('audio.file.share_text', $expected));
+    }
 }

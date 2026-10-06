@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Lesson;
 use App\Support\ChurchCalendar;
+use App\Support\WeeklyMessage;
 
 /**
  * Áudio do estudo. Na página da lição vai só o arquivo ("Ouvir estudo"); na
@@ -13,7 +14,7 @@ use App\Support\ChurchCalendar;
 final class LessonAudioResource
 {
     /**
-     * @return array{url: string, duration: int|null}|null
+     * @return array{url: string, duration: int|null, share_text: string}|null
      */
     public static function file(Lesson $lesson): ?array
     {
@@ -21,6 +22,8 @@ final class LessonAudioResource
             // ?v= muda a cada geração: o navegador não reaproveita o áudio antigo.
             'url' => route('lessons.audio', [$lesson->slug, 'v' => $lesson->audio_generated_at?->timestamp]),
             'duration' => $lesson->audio_duration,
+            // Mensagem para o WhatsApp com o link que abre a lição no player.
+            'share_text' => app(WeeklyMessage::class)->shareAudio($lesson),
         ] : null;
     }
 

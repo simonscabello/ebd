@@ -88,4 +88,28 @@ class WeeklyMessage
             route('lessons.show', $lesson->slug),
         ]));
     }
+
+    /**
+     * Convite para ouvir o estudo, com o link que abre a lição já no player.
+     * Três versões, escolhidas pela lição, para a mensagem não ficar sempre igual.
+     */
+    public function shareAudio(Lesson $lesson): string
+    {
+        $minutes = $lesson->audio_duration ? ' ('.max(1, (int) round($lesson->audio_duration / 60)).' min)' : '';
+
+        $opening = [
+            '🎧 O estudo da semana também está em áudio!',
+            '🎧 Sem tempo para ler? Dá para ouvir a lição.',
+            '🎧 Ouça a lição no caminho, no trabalho ou em casa.',
+        ][$lesson->id % 3];
+
+        return implode("\n", array_filter([
+            $opening,
+            '',
+            '*'.$lesson->displayTitle().'*',
+            $lesson->bible_reference ? "Texto base: {$lesson->bible_reference}" : null,
+            '',
+            "▶️ Ouvir{$minutes}: ".route('lessons.show', $lesson->slug).'#ouvir',
+        ], fn (?string $line) => $line !== null));
+    }
 }
