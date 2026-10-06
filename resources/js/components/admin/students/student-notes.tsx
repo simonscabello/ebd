@@ -165,7 +165,7 @@ function NoteItem({ note }: { note: StudentNote }) {
                         <Button
                             type="button"
                             size="sm"
-                            variant="ghost"
+                            variant="outline"
                             onClick={() => {
                                 form.reset();
                                 setEditing(false);

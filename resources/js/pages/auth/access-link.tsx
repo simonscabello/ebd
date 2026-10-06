@@ -136,7 +136,7 @@ export default function AccessLink({ currentUser }: Props) {
                     <Button type="submit" disabled={processing}>
                         {processing && <Spinner />} Entrar
                     </Button>
-                    <Button asChild variant="ghost">
+                    <Button asChild variant="outline">
                         <Link href={home()}>Voltar ao início</Link>
                     </Button>
                 </form>
@@ -171,7 +171,7 @@ export default function AccessLink({ currentUser }: Props) {
                             <Button onClick={() => submit(token)}>
                                 Trocar e entrar
                             </Button>
-                            <Button asChild variant="ghost">
+                            <Button asChild variant="outline">
                                 <Link href={home()}>Cancelar</Link>
                             </Button>
                         </div>

@@ -346,7 +346,7 @@ function BlockEditor({
             <div className="flex items-center justify-end gap-2">
                 {unsaved && <UnsavedHint />}
                 {onDone && (
-                    <Button type="button" variant="ghost" onClick={onDone}>
+                    <Button type="button" variant="outline" onClick={onDone}>
                         Cancelar
                     </Button>
                 )}

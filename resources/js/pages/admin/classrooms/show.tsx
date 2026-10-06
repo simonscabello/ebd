@@ -177,7 +177,7 @@ export default function ClassroomOverview({
                     description={`${plural(stats.students, 'aluno', 'alunos')}${stats.period.series_id ? ` · ${stats.period.label}` : ''}`}
                     actions={
                         canEdit && (
-                            <Button asChild variant="ghost">
+                            <Button asChild variant="outline">
                                 <Link href={edit(classroom.slug)}>
                                     <Pencil /> Editar classe
                                 </Link>
@@ -556,7 +556,7 @@ function UpcomingLessons({
                     </Button>
                 </nav>
             )}
-            <Button asChild variant="ghost" size="sm" className="mt-2">
+            <Button asChild variant="outline" size="sm" className="mt-2">
                 <Link href={meetingsIndex(classroom.slug)}>
                     Planejar domingos <ChevronRight />
                 </Link>
@@ -583,7 +583,7 @@ function LastSunday({
                         {last.lesson ?? last.title ?? 'Sem lição'}
                     </p>
                 </div>
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild variant="outline" size="sm">
                     <Link
                         href={meetingPage({
                             classroom: classroom.slug,
@@ -669,7 +669,7 @@ function Attention({
                                     student.name,
                                     classroom.name,
                                 )}
-                                variant="ghost"
+                                variant="outline"
                             />
                         </li>
                     ))}
@@ -720,7 +720,9 @@ function Birthdays({
                                 phone={person.phone}
                                 text={birthdayMessage(person.name)}
                                 label="Parabéns"
-                                variant={person.is_today ? 'default' : 'ghost'}
+                                variant={
+                                    person.is_today ? 'default' : 'outline'
+                                }
                             />
                         </li>
                     );

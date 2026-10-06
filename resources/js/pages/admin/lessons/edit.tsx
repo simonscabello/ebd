@@ -179,12 +179,12 @@ export default function EditLesson({
                                 </Button>
                             );
                         })}
-                        <Button asChild variant="ghost">
+                        <Button asChild variant="outline">
                             <a href={lesson.url} target="_blank" rel="noopener">
                                 <ExternalLink /> Ver lição
                             </a>
                         </Button>
-                        <Button asChild variant="ghost">
+                        <Button asChild variant="outline">
                             <Link href={lesson.sunday_url}>
                                 <Presentation /> Modo Domingo
                             </Link>
@@ -345,8 +345,8 @@ export default function EditLesson({
 
                     <div className="border-t pt-6">
                         <Button
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
+                            variant="outline"
+                            className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             onClick={async () => {
                                 if (
                                     await confirm({

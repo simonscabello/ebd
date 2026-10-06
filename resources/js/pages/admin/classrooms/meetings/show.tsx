@@ -169,7 +169,7 @@ export default function MeetingPage({
                                         <Button
                                             asChild
                                             size="sm"
-                                            variant="ghost"
+                                            variant="outline"
                                         >
                                             <Link
                                                 href={editLesson(
@@ -292,7 +292,7 @@ export default function MeetingPage({
                                     </Button>
                                 )}
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     onClick={() => setEditOpen(true)}
                                 >
                                     <Pencil /> Editar data e título
