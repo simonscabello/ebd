@@ -90,7 +90,7 @@ export function CancelMeetingDialog({
                     <DialogFooter>
                         <Button
                             type="button"
-                            variant="secondary"
+                            variant="outline"
                             onClick={() => onOpenChange(false)}
                         >
                             Voltar

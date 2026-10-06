@@ -268,7 +268,7 @@ export default function LessonShow({
                     </div>
                 )}
 
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-5 flex flex-wrap gap-2 *:flex-1 sm:*:flex-none">
                     <ShareButton
                         url={lesson.url}
                         title={lesson.title}
@@ -404,7 +404,7 @@ export default function LessonShow({
                                         knownDuration={audio.duration}
                                         highlight={listenHighlight}
                                     />
-                                    <div className="mt-1 flex justify-end">
+                                    <div className="mt-2 flex justify-end">
                                         <ShareButton
                                             title={lesson.display_title}
                                             text={audio.share_text}

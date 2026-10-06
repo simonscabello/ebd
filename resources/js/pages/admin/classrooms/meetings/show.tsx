@@ -256,7 +256,7 @@ export default function MeetingPage({
                         )}
 
                         <Section title="Outras ações">
-                            <div className="flex flex-wrap gap-2">
+                            <div className="grid gap-2 *:justify-start sm:flex sm:flex-wrap">
                                 {!cancelled && past && meeting.lesson_id && (
                                     <Button
                                         variant="outline"

@@ -103,9 +103,9 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                             </p>
                                         )}
                                     </div>
-                                    <div className="flex shrink-0 flex-col sm:flex-row">
+                                    <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row">
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="icon"
                                             onClick={() =>
                                                 setEditing(material.id)
@@ -115,7 +115,7 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                             <Pencil />
                                         </Button>
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="icon"
                                             aria-label="Remover material"
                                             onClick={async () => {
@@ -243,7 +243,7 @@ function MaterialEditor({
                     <legend className="mb-2 text-sm font-medium">
                         Adicionar material
                     </legend>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                         {types.map((option) => (
                             <button
                                 key={option.value}
@@ -257,7 +257,7 @@ function MaterialEditor({
                                 }
                                 aria-pressed={data.type === option.value}
                                 className={cn(
-                                    'inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-sm',
+                                    'inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-left text-sm leading-tight',
                                     data.type === option.value &&
                                         'border-primary bg-primary text-primary-foreground',
                                 )}
@@ -397,7 +397,7 @@ function MaterialEditor({
                 )}
                 <Button
                     type="submit"
-                    variant={material ? 'default' : 'secondary'}
+                    variant={material ? 'default' : 'outline'}
                     disabled={processing}
                 >
                     {!material && <Plus />}{' '}

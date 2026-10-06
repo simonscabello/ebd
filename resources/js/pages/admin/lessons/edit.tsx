@@ -165,7 +165,7 @@ export default function EditLesson({
                         )}
                     </div>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2 *:flex-1 sm:*:flex-none">
                         {lesson.transitions.map((target) => {
                             const config = transitionButtons[target];
 

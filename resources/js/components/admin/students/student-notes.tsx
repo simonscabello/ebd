@@ -74,7 +74,6 @@ export function StudentNotes({
                 <div className="flex justify-end">
                     <Button
                         type="submit"
-                        size="sm"
                         disabled={
                             form.processing || form.data.body.trim() === ''
                         }
@@ -120,7 +119,7 @@ function NoteItem({ note }: { note: StudentNote }) {
                 {note.can_edit && !editing && (
                     <span className="ml-auto flex gap-1">
                         <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
                             className="size-8"
                             onClick={() => setEditing(true)}
@@ -129,9 +128,9 @@ function NoteItem({ note }: { note: StudentNote }) {
                             <Pencil />
                         </Button>
                         <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
-                            className="size-8 text-destructive hover:text-destructive"
+                            className="size-8 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             onClick={remove}
                             aria-label="Apagar anotação"
                         >

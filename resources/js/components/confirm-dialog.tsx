@@ -75,7 +75,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                             </DialogHeader>
                             <DialogFooter>
                                 <Button
-                                    variant="secondary"
+                                    variant="outline"
                                     onClick={() => settle(false)}
                                 >
                                     {options.cancelLabel ?? 'Cancelar'}

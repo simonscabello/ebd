@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { Link } from '@inertiajs/react';
 import { CircleHelp, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -35,27 +36,35 @@ export function HelpHint() {
     };
 
     return (
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/25 bg-card p-3 shadow-xs">
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-primary/25 bg-card p-3 shadow-xs">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                 <CircleHelp className="size-5" />
             </span>
-            <p className="min-w-0 flex-1 text-sm leading-snug">
-                <span className="font-medium">Primeira vez aqui?</span>
-                <span className="block text-muted-foreground">
-                    Séries, lições, domingos e chamada em poucos minutos.
-                </span>
-            </p>
-            <Link
-                href={help({ query: { para: 'professores' } })}
-                onClick={dismiss}
-                className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-primary hover:bg-accent"
-            >
-                Ver como funciona
-            </Link>
+            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <p className="min-w-0 flex-1 text-sm leading-snug">
+                    <span className="font-medium">Primeira vez aqui?</span>
+                    <span className="block text-muted-foreground">
+                        Séries, lições, domingos e chamada em poucos minutos.
+                    </span>
+                </p>
+                <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="self-start sm:self-auto"
+                >
+                    <Link
+                        href={help({ query: { para: 'professores' } })}
+                        onClick={dismiss}
+                    >
+                        Ver como funciona
+                    </Link>
+                </Button>
+            </div>
             <button
                 type="button"
                 onClick={dismiss}
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background text-muted-foreground hover:bg-muted"
                 aria-label="Dispensar aviso"
             >
                 <X className="size-4" />

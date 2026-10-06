@@ -57,36 +57,47 @@ export default function SeriesIndex({ series }: { series: Series[] }) {
                                             ? 'lição'
                                             : 'lições'}
                                     </span>
-                                    <span className="flex gap-3">
+                                    <span className="flex gap-2">
                                         {item.classroom && (
-                                            <Link
-                                                href={report(
-                                                    {
-                                                        classroom:
-                                                            item.classroom.slug,
-                                                    },
-                                                    {
-                                                        query: {
-                                                            serie: item.id,
-                                                        },
-                                                    },
-                                                )}
-                                                className="font-medium text-primary"
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                size="sm"
                                             >
-                                                Relatório
-                                            </Link>
+                                                <Link
+                                                    href={report(
+                                                        {
+                                                            classroom:
+                                                                item.classroom
+                                                                    .slug,
+                                                        },
+                                                        {
+                                                            query: {
+                                                                serie: item.id,
+                                                            },
+                                                        },
+                                                    )}
+                                                >
+                                                    Relatório
+                                                </Link>
+                                            </Button>
                                         )}
-                                        <Link
-                                            href={createLesson({
-                                                query: {
-                                                    classe: item.classroom_id,
-                                                    serie: item.id,
-                                                },
-                                            })}
-                                            className="font-medium text-primary"
+                                        <Button
+                                            asChild
+                                            variant="outline"
+                                            size="sm"
                                         >
-                                            + Lição
-                                        </Link>
+                                            <Link
+                                                href={createLesson({
+                                                    query: {
+                                                        classe: item.classroom_id,
+                                                        serie: item.id,
+                                                    },
+                                                })}
+                                            >
+                                                <Plus /> Lição
+                                            </Link>
+                                        </Button>
                                     </span>
                                 </div>
                             </li>

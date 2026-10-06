@@ -143,8 +143,8 @@ export function AccessCard({
                     )}
                 </li>
             </ul>
-            <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={generate}>
+            <div className="mt-4 flex flex-wrap gap-2 *:flex-1 sm:*:flex-none">
+                <Button variant="outline" onClick={generate}>
                     <Link2 />
                     {student.has_password
                         ? 'Novo link de acesso'
@@ -153,7 +153,7 @@ export function AccessCard({
                           : 'Gerar link de acesso'}
                 </Button>
                 {access.link && (
-                    <Button size="sm" variant="outline" onClick={block}>
+                    <Button variant="outline" onClick={block}>
                         <ShieldOff /> Bloquear acesso
                     </Button>
                 )}

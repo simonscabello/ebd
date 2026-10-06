@@ -185,7 +185,7 @@ function Teachers({
                                 </p>
                             </div>
                             <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon"
                                 onClick={() => remove(teacher)}
                                 aria-label={`Tirar ${teacher.name} dos professores`}
@@ -227,6 +227,7 @@ function Teachers({
                 </div>
                 <Button
                     type="submit"
+                    variant="outline"
                     disabled={form.processing}
                     className="sm:mt-7"
                 >
