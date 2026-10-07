@@ -49,7 +49,7 @@ final class SendLessonReminder
             $message = new PushMessage(
                 title: 'Amanhã tem EBD!',
                 body: $visible
-                    ? $lesson->displayTitle().($lesson->bible_reference ? " · {$lesson->bible_reference}" : '')
+                    ? PushMessage::excerpt($lesson->displayTitle().($lesson->bible_reference ? " · {$lesson->bible_reference}" : ''))
                     : "Nos vemos amanhã na classe {$classroom->name}.",
                 url: $visible ? route('lessons.show', $lesson->slug) : route('home', ['classe' => $classroom->slug]),
                 tag: "meeting:{$meeting->id}",

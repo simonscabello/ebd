@@ -208,8 +208,8 @@ class NotificationsTest extends TestCase
         $this->assertSame(4, $this->push->count());
         $this->assertCount(1, $this->push->sentTo($this->teacher));
         $message = $this->push->sentTo($this->ana)->first();
-        $this->assertSame('Nova lição: Lição 4 — Nova', $message->title);
-        $this->assertSame('Resumo da lição nova.', $message->body);
+        $this->assertSame('Nova lição · Lição 4', $message->title);
+        $this->assertSame("Nova\nResumo da lição nova.", $message->body);
         $this->assertSame(route('lessons.show', $lesson->slug), $message->url);
 
         // Despublicar e publicar de novo avisa outra vez: é uma nova publicação.

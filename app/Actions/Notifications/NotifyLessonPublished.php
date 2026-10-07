@@ -26,12 +26,14 @@ final class NotifyLessonPublished
             return 0;
         }
 
-        $body = PushMessage::excerpt($lesson->summary)
+        // O título da notificação cabe numa linha só: o nome da lição vai no
+        // começo do corpo, que o celular mostra inteiro ao abrir o aviso.
+        $details = PushMessage::excerpt($lesson->summary)
             ?? ($lesson->bible_reference ? "Texto base: {$lesson->bible_reference}" : 'Já está disponível para estudo.');
 
         return $this->sender->send($recipients->flatMap->pushSubscriptions->values(), new PushMessage(
-            title: 'Nova lição: '.$lesson->displayTitle(),
-            body: $body,
+            title: $lesson->number ? "Nova lição · Lição {$lesson->number}" : 'Nova lição',
+            body: PushMessage::excerpt($lesson->title, 120)."\n".$details,
             url: route('lessons.show', $lesson->slug),
             tag: "lesson:{$lesson->id}",
         ));
