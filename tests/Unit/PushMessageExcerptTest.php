@@ -18,7 +18,7 @@ class PushMessageExcerptTest extends TestCase
     {
         $text = 'A relação de Deus com o ser humano sempre teve o objetivo de revelar quem Ele é. As Escrituras mostram que Deus se dá a conhecer aos poucos.';
 
-        $this->assertSame('A relação de Deus com o ser humano sempre teve o objetivo de revelar quem Ele é.', PushMessage::excerpt($text));
+        $this->assertSame('A relação de Deus com o ser humano sempre teve o objetivo de revelar quem Ele é.', PushMessage::excerpt($text, 120));
     }
 
     public function test_without_a_short_sentence_it_cuts_at_a_word_boundary(): void
@@ -29,5 +29,24 @@ class PushMessageExcerptTest extends TestCase
 
         $this->assertSame('Uma frase longa sem ponto que segue falando sobre a…', $excerpt);
         $this->assertLessThanOrEqual(61, mb_strlen($excerpt));
+    }
+
+    public function test_a_long_sentence_ends_at_the_end_of_a_clause(): void
+    {
+        $text = 'Abrindo Efésios: uma visão geral da carta e as bênçãos espirituais que recebemos em Cristo — escolhidos pelo Pai, redimidos pelo Filho e selados pelo Espírito para o louvor da sua glória';
+
+        $excerpt = PushMessage::excerpt($text, 140);
+
+        $this->assertSame('Abrindo Efésios: uma visão geral da carta e as bênçãos espirituais que recebemos em Cristo — escolhidos pelo Pai…', $excerpt);
+        $this->assertLessThanOrEqual(140, mb_strlen($excerpt));
+    }
+
+    public function test_the_title_fits_in_one_line(): void
+    {
+        $message = new PushMessage('Nova lição: Lição 1 — Bênçãos espirituais para a igreja', 'corpo', '/');
+
+        $this->assertSame('Nova lição: Lição 1 — Bênçãos…', $message->title);
+        $this->assertLessThanOrEqual(PushMessage::TITLE_LIMIT, mb_strlen($message->title));
+        $this->assertSame('Leitura de hoje: Mt 13.53-58', (new PushMessage('Leitura de hoje: Mt 13.53-58', 'corpo', '/'))->title);
     }
 }
