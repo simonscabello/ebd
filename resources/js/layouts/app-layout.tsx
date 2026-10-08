@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { BottomNav, TopBar } from '@/components/app-navigation';
+import { MiniAudioPlayer } from '@/components/lesson/mini-audio-player';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
     return (
@@ -13,10 +14,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <TopBar />
             <main
                 id="conteudo"
-                className="flex-1 pb-[calc(var(--app-bottom-nav)+2rem)] md:pb-16"
+                className="flex-1 pb-[calc(var(--app-bottom-nav)+var(--app-mini-player,0px)+2rem)] md:pb-[calc(var(--app-mini-player,0px)+4rem)]"
             >
                 {children}
             </main>
+            <MiniAudioPlayer />
             <BottomNav />
         </div>
     );

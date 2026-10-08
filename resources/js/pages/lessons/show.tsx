@@ -39,7 +39,7 @@ import { Button } from '@/components/ui/button';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { home, library, login } from '@/routes';
 import { edit } from '@/routes/admin/lessons';
-import { sunday } from '@/routes/lessons';
+import { show, sunday } from '@/routes/lessons';
 import type { Lesson, LessonAudioFile } from '@/types';
 
 type Study = {
@@ -402,6 +402,7 @@ export default function LessonShow({
                                     <LessonAudioPlayer
                                         src={audio.url}
                                         title={lesson.display_title}
+                                        href={show.url(lesson.slug)}
                                         knownDuration={audio.duration}
                                         highlight={listenHighlight}
                                     />

@@ -14,6 +14,7 @@ import {
     TopNavLinks,
     UserMenu,
 } from '@/components/app-navigation';
+import { MiniAudioPlayer } from '@/components/lesson/mini-audio-player';
 import { Button } from '@/components/ui/button';
 import { home } from '@/routes';
 import { dashboard } from '@/routes/admin';
@@ -91,11 +92,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
             <main
                 id="conteudo"
-                className="flex-1 pb-[calc(var(--app-bottom-nav)+2rem)] md:pb-16"
+                className="flex-1 pb-[calc(var(--app-bottom-nav)+var(--app-mini-player,0px)+2rem)] md:pb-[calc(var(--app-mini-player,0px)+4rem)]"
             >
                 {children}
             </main>
 
+            <MiniAudioPlayer />
             <BottomNavBar items={items} label="Gestão" />
         </div>
     );

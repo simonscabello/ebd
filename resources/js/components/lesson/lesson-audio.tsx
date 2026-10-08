@@ -1,40 +1,15 @@
 import { Headphones, Pause, Play, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import {
+    SKIP_SECONDS,
+    savedPosition,
+    useAudioPlayer,
+} from '@/components/lesson/audio-player-provider';
+import type { AudioTrack } from '@/components/lesson/audio-player-provider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
-const SPEED_KEY = 'ebd:audio-speed';
-const SKIP_SECONDS = 15;
-
-/** A URL muda a cada geração (?v=), então um áudio novo começa do zero. */
-function positionKey(src: string): string {
-    return `ebd:audio-pos:${src}`;
-}
-
-function readNumber(key: string): number {
-    try {
-        const value = Number(window.localStorage.getItem(key));
-
-        return Number.isFinite(value) ? value : 0;
-    } catch {
-        return 0;
-    }
-}
-
-function writeStorage(key: string, value: string | null): void {
-    try {
-        if (value === null) {
-            window.localStorage.removeItem(key);
-        } else {
-            window.localStorage.setItem(key, value);
-        }
-    } catch {
-        // Navegação privada ou armazenamento cheio: só não lembra.
-    }
-}
-
-function formatTime(seconds: number): string {
+export function formatTime(seconds: number): string {
     const total = Math.max(0, Math.floor(seconds));
     const h = Math.floor(total / 3600);
     const m = Math.floor((total % 3600) / 60);
@@ -45,238 +20,97 @@ function formatTime(seconds: number): string {
 
 /**
  * "Ouvir estudo": player do áudio narrado do estudo, com play/pause,
- * posição, duração e velocidade. Lembra no aparelho onde a pessoa parou
- * (e a velocidade), para continuar dali se sair da tela. A geração fica na
- * gestão (edição da lição).
+ * posição, duração e velocidade. O som sai do player único do app
+ * (AudioPlayerProvider), então continua tocando se a pessoa navegar e
+ * retoma de onde ela parou. A geração fica na gestão (edição da lição).
  */
 export function LessonAudioPlayer({
     src,
     title = 'Estudo da lição',
+    href = null,
     knownDuration,
     highlight = false,
 }: {
     src: string;
-    /** Título da lição, para os controles da tela de bloqueio. */
+    /** Título da lição, para o mini player e a tela de bloqueio. */
     title?: string;
+    /** Página da lição, para o mini player levar de volta. */
+    href?: string | null;
     knownDuration: number | null;
     /** Chegou pelo link "Ouvir" (#ouvir): destaca o player e o play. */
     highlight?: boolean;
 }) {
-    const ref = useRef<HTMLAudioElement>(null);
-    const [playing, setPlaying] = useState(false);
-    const [current, setCurrent] = useState(0);
-    const [duration, setDuration] = useState(knownDuration ?? 0);
-    const [speed, setSpeed] = useState(1);
-    const [failed, setFailed] = useState(false);
-    // Posição salva da última vez; aplicada quando o áudio carrega.
-    const pendingResume = useRef(0);
-    const lastSaved = useRef(0);
+    const player = useAudioPlayer();
+    const rootRef = useRef<HTMLDivElement>(null);
+    const bound = player.track?.src === src;
+    const track: AudioTrack = { src, title, href, knownDuration };
+
+    // Enquanto outro áudio (ou nenhum) está no player, mostra onde parou.
+    const [idlePosition, setIdlePosition] = useState(0);
     const [resumedFrom, setResumedFrom] = useState(0);
 
     useEffect(() => {
-        const saved = readNumber(positionKey(src));
-        const savedSpeed = readNumber(SPEED_KEY);
-
-        if (SPEEDS.includes(savedSpeed)) {
-            setSpeed(savedSpeed);
-        }
-
-        if (saved > 5) {
-            pendingResume.current = saved;
-            lastSaved.current = saved;
-            setCurrent(saved);
+        if (!bound) {
+            const saved = savedPosition(src);
+            setIdlePosition(saved);
             setResumedFrom(saved);
         }
-    }, [src]);
+    }, [src, bound]);
 
-    const savePosition = (time: number) => {
-        lastSaved.current = time;
-        writeStorage(
-            positionKey(src),
-            time > 5 ? String(Math.floor(time)) : null,
-        );
-    };
+    const playing = bound && player.playing;
+    const current = bound ? player.current : idlePosition;
+    const duration = (bound && player.duration) || knownDuration || 0;
 
-    // Ao sair da tela (trocar de página, fechar a aba, ir para outro app).
+    // Avisa o player se este está na tela, para o mini player se esconder.
+    const { setInlineVisible } = player;
+
     useEffect(() => {
-        const element = ref.current;
-        const flush = () => {
-            if (element && element.currentTime > 0 && !element.ended) {
-                savePosition(element.currentTime);
-            }
-        };
-        const onHidden = () => {
-            if (document.visibilityState === 'hidden') {
-                flush();
-            }
-        };
+        const element = rootRef.current;
 
-        window.addEventListener('pagehide', flush);
-        document.addEventListener('visibilitychange', onHidden);
-
-        return () => {
-            flush();
-            window.removeEventListener('pagehide', flush);
-            document.removeEventListener('visibilitychange', onHidden);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [src]);
-
-    const seekTo = (time: number) => {
-        const element = ref.current;
-        const max = duration || element?.duration || time;
-        const target = Math.max(0, Math.min(time, max));
-        setCurrent(target);
-        pendingResume.current = 0;
-
-        if (element) {
-            element.currentTime = target;
-        }
-    };
-
-    // Controles na tela de bloqueio e na central de mídia do celular.
-    useEffect(() => {
-        if (!('mediaSession' in navigator)) {
+        if (!element || !bound || !('IntersectionObserver' in window)) {
             return;
         }
 
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title,
-            artist: 'Ouvir estudo · EBD',
-        });
-
-        const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
-            ['play', () => ref.current?.play().catch(() => setFailed(true))],
-            ['pause', () => ref.current?.pause()],
-            [
-                'seekbackward',
-                (d) =>
-                    seekTo(
-                        (ref.current?.currentTime ?? 0) -
-                            (d.seekOffset ?? SKIP_SECONDS),
-                    ),
-            ],
-            [
-                'seekforward',
-                (d) =>
-                    seekTo(
-                        (ref.current?.currentTime ?? 0) +
-                            (d.seekOffset ?? SKIP_SECONDS),
-                    ),
-            ],
-            ['seekto', (d) => d.seekTime !== undefined && seekTo(d.seekTime)],
-        ];
-
-        for (const [action, handler] of handlers) {
-            try {
-                navigator.mediaSession.setActionHandler(action, handler);
-            } catch {
-                // Ação não suportada neste navegador.
-            }
-        }
+        const observer = new IntersectionObserver(([entry]) =>
+            setInlineVisible(src, entry.isIntersecting),
+        );
+        observer.observe(element);
 
         return () => {
-            for (const [action] of handlers) {
-                try {
-                    navigator.mediaSession.setActionHandler(action, null);
-                } catch {
-                    // idem
-                }
-            }
+            observer.disconnect();
+            setInlineVisible(src, false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [title, duration]);
+    }, [src, bound]);
 
     const toggle = () => {
-        const element = ref.current;
-
-        if (!element) {
-            return;
-        }
-
-        if (element.paused) {
-            setFailed(false);
-            element.play().catch(() => setFailed(true));
+        if (playing) {
+            player.pause();
         } else {
-            element.pause();
+            setResumedFrom(0);
+            player.play(track);
         }
     };
 
-    const changeSpeed = () => {
-        const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
-        setSpeed(next);
-        writeStorage(SPEED_KEY, String(next));
-
-        if (ref.current) {
-            ref.current.playbackRate = next;
+    const seekTo = (time: number) => {
+        if (bound) {
+            player.seekTo(time);
+        } else {
+            setIdlePosition(Math.max(0, time));
+            player.play(track);
+            player.seekTo(time);
         }
     };
 
     return (
         <div
+            ref={rootRef}
             className={cn(
                 'rounded-2xl border bg-card p-3.5 shadow-xs transition-shadow duration-500',
                 highlight &&
                     'ring-2 ring-primary ring-offset-2 ring-offset-background',
             )}
         >
-            <audio
-                ref={ref}
-                src={src}
-                preload="metadata"
-                onPlay={() => {
-                    setPlaying(true);
-                    setResumedFrom(0);
-                }}
-                onPause={(e) => {
-                    setPlaying(false);
-
-                    if (!e.currentTarget.ended) {
-                        savePosition(e.currentTarget.currentTime);
-                    }
-                }}
-                onEnded={() => {
-                    setPlaying(false);
-                    setResumedFrom(0);
-                    savePosition(0);
-                }}
-                onTimeUpdate={(e) => {
-                    const time = e.currentTarget.currentTime;
-                    setCurrent(time);
-
-                    if (Math.abs(time - lastSaved.current) >= 5) {
-                        savePosition(time);
-                    }
-                }}
-                onLoadedMetadata={(e) => {
-                    const element = e.currentTarget;
-
-                    if (Number.isFinite(element.duration)) {
-                        setDuration(element.duration);
-                    }
-
-                    // Perto do fim não retoma: a pessoa já ouviu tudo.
-                    const resume = pendingResume.current;
-                    pendingResume.current = 0;
-
-                    if (
-                        resume > 0 &&
-                        !(
-                            Number.isFinite(element.duration) &&
-                            resume > element.duration - 10
-                        )
-                    ) {
-                        element.currentTime = resume;
-                    } else if (resume > 0) {
-                        setCurrent(0);
-                        setResumedFrom(0);
-                        savePosition(0);
-                    }
-
-                    element.playbackRate = speed;
-                }}
-                onError={() => setFailed(true)}
-            />
             <div className="flex items-center gap-3.5">
                 <button
                     type="button"
@@ -329,23 +163,24 @@ export function LessonAudioPlayer({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={changeSpeed}
-                    aria-label={`Velocidade ${speed}x. Toque para mudar.`}
+                    onClick={player.changeSpeed}
+                    aria-label={`Velocidade ${player.speed}x. Toque para mudar.`}
                     className="min-w-14 shrink-0 rounded-full tabular-nums"
                 >
-                    {String(speed).replace('.', ',')}x
+                    {String(player.speed).replace('.', ',')}x
                 </Button>
             </div>
-            {resumedFrom > 0 && (
+            {!bound && resumedFrom > 0 && (
                 <p className="mt-2 text-xs text-muted-foreground">
                     Você parou em {formatTime(resumedFrom)}. O áudio continua
                     daqui.{' '}
                     <button
                         type="button"
                         onClick={() => {
-                            seekTo(0);
                             setResumedFrom(0);
-                            savePosition(0);
+                            setIdlePosition(0);
+                            player.play(track);
+                            player.seekTo(0);
                         }}
                         className="font-medium text-primary underline-offset-2 hover:underline"
                     >
@@ -353,7 +188,7 @@ export function LessonAudioPlayer({
                     </button>
                 </p>
             )}
-            {failed && (
+            {bound && player.failed && (
                 <p className="mt-2 text-sm text-destructive">
                     Não foi possível tocar o áudio. Confira a conexão e tente de
                     novo.
