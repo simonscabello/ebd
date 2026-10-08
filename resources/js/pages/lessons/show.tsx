@@ -401,6 +401,7 @@ export default function LessonShow({
                                 <div id="ouvir" className="mb-6 scroll-mt-24">
                                     <LessonAudioPlayer
                                         src={audio.url}
+                                        title={lesson.display_title}
                                         knownDuration={audio.duration}
                                         highlight={listenHighlight}
                                     />
