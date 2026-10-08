@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 // Registra o JS dos componentes do Flowbite (drawer, dropdown, tooltip...).
 import 'flowbite';
 import { ConfirmProvider } from '@/components/confirm-dialog';
+import { AudioPlayerProvider } from '@/components/lesson/audio-player-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -44,7 +45,9 @@ void createInertiaApp({
     withApp(app) {
         return (
             <TooltipProvider delayDuration={0}>
-                <ConfirmProvider>{app}</ConfirmProvider>
+                <AudioPlayerProvider>
+                    <ConfirmProvider>{app}</ConfirmProvider>
+                </AudioPlayerProvider>
                 <Toaster position="top-center" />
                 <SplashDismisser />
             </TooltipProvider>
