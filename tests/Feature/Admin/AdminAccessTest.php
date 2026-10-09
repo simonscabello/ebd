@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class AdminAccessTest extends TestCase
@@ -32,12 +33,44 @@ class AdminAccessTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())->get('/admin')->assertOk();
     }
 
+    public function test_teachers_also_get_my_week_in_the_navigation(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $teacher = User::factory()->teacherOf($classroom)->create();
+
+        // A semana de estudo vale para qualquer membro de classe, não só para alunos.
+        $this->actingAs($teacher)
+            ->get('/')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.can_access_admin', true)
+                ->where('auth.user.is_student', false)
+                ->where('auth.user.is_member', true));
+
+        $this->actingAs($teacher)->get('/minha-semana')->assertOk();
+
+        // Administrador sem classe entra na gestão, mas não tem semana de estudo.
+        $this->actingAs(User::factory()->admin()->create())
+            ->get('/')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.can_access_admin', true)
+                ->where('auth.user.is_member', false));
+    }
+
     public function test_only_admins_manage_classrooms(): void
     {
-        $teacher = User::factory()->teacherOf(Classroom::factory()->create())->create();
+        $classroom = Classroom::factory()->create();
+        $teacher = User::factory()->teacherOf($classroom)->create();
+        Classroom::factory()->create();
 
-        $this->actingAs($teacher)->get('/admin/classes')->assertForbidden();
+        // Professor vê só as próprias classes; com uma só, vai direto para ela.
+        $this->actingAs($teacher)->get('/admin/classes')->assertRedirect("/admin/classes/{$classroom->slug}");
+        $this->actingAs($teacher)->get('/admin/classes/criar')->assertForbidden();
         $this->actingAs($teacher)->post('/admin/classes', ['name' => 'Casais'])->assertForbidden();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get('/admin/classes')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('admin/classrooms/index')->has('classrooms', 2)->where('canCreate', true));
 
         $this->actingAs(User::factory()->admin()->create())
             ->post('/admin/classes', ['name' => 'Casais', 'is_active' => true])

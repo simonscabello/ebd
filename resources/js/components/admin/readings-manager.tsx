@@ -1,12 +1,16 @@
 import { router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { CircleAlert, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { BiblePreview } from '@/components/admin/bible-preview';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
+import { useConfirm } from '@/components/confirm-dialog';
+import { UnsavedHint } from '@/components/admin/unsaved-hint';
 import { Field } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { destroy, store, update } from '@/routes/admin/lessons/readings';
 import type { LessonReading, Option } from '@/types';
 
@@ -19,6 +23,7 @@ type Props = {
 type ReadingForm = { weekday: number | ''; reference: string; notes: string };
 
 export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
+    const confirm = useConfirm();
     const [editing, setEditing] = useState<number | null>(null);
     const ids = readings.map((r) => r.id);
 
@@ -65,37 +70,56 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
                                                 {reading.notes}
                                             </p>
                                         )}
+                                        {reading.passage ? (
+                                            <p className="mt-1 line-clamp-1 font-serif text-sm text-muted-foreground">
+                                                {reading.passage.verses[0].text}
+                                            </p>
+                                        ) : (
+                                            <p className="mt-1 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+                                                <CircleAlert className="size-3.5" />
+                                                Sem texto: referência não
+                                                reconhecida.
+                                            </p>
+                                        )}
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setEditing(reading.id)}
-                                        aria-label="Editar leitura"
-                                    >
-                                        <Pencil />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Remover leitura"
-                                        onClick={() => {
-                                            if (
-                                                confirm(
-                                                    `Remover a leitura "${reading.reference}"?`,
-                                                )
-                                            ) {
-                                                router.delete(
-                                                    destroy.url({
-                                                        lesson: lessonId,
-                                                        reading: reading.id,
-                                                    }),
-                                                    { preserveScroll: true },
-                                                );
+                                    <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() =>
+                                                setEditing(reading.id)
                                             }
-                                        }}
-                                    >
-                                        <Trash2 />
-                                    </Button>
+                                            aria-label="Editar leitura"
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label="Remover leitura"
+                                            onClick={async () => {
+                                                if (
+                                                    await confirm({
+                                                        title: `Remover a leitura "${reading.reference}"?`,
+                                                        confirmLabel: 'Remover',
+                                                        destructive: true,
+                                                    })
+                                                ) {
+                                                    router.delete(
+                                                        destroy.url({
+                                                            lesson: lessonId,
+                                                            reading: reading.id,
+                                                        }),
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </div>
                                 </>
                             )}
                         </li>
@@ -131,6 +155,12 @@ function ReadingEditor({
         reference: reading?.reference ?? '',
         notes: reading?.notes ?? '',
     });
+    const unsaved =
+        form.isDirty &&
+        (reading !== undefined ||
+            Boolean(form.data.reference || form.data.notes));
+
+    useUnsavedChangesGuard(unsaved && !form.processing);
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -154,6 +184,7 @@ function ReadingEditor({
 
     return (
         <form
+            noValidate
             onSubmit={submit}
             className={
                 reading
@@ -206,6 +237,7 @@ function ReadingEditor({
                     />
                 </Field>
             </div>
+            <BiblePreview reference={form.data.reference} />
             <Field
                 label="Orientação (opcional)"
                 htmlFor={`notes-${reading?.id ?? 'new'}`}
@@ -221,15 +253,16 @@ function ReadingEditor({
                     className="min-h-16"
                 />
             </Field>
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center justify-end gap-2">
+                {unsaved && <UnsavedHint />}
                 {onDone && (
-                    <Button type="button" variant="ghost" onClick={onDone}>
+                    <Button type="button" variant="outline" onClick={onDone}>
                         Cancelar
                     </Button>
                 )}
                 <Button
                     type="submit"
-                    variant={reading ? 'default' : 'secondary'}
+                    variant={reading ? 'default' : 'outline'}
                     disabled={form.processing}
                 >
                     {!reading && <Plus />}{' '}

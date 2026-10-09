@@ -1,10 +1,22 @@
 <?php
 
+use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\BibleController;
+use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LessonAudioController;
 use App\Http\Controllers\LessonController;
+use App\Http\Controllers\LessonNoteController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\MaterialFileController;
+use App\Http\Controllers\MyProgressController;
+use App\Http\Controllers\MyWeekController;
+use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\ReadingCheckinController;
+use App\Http\Controllers\StudyQuestionController;
+use App\Models\Classroom;
+use App\Models\Series;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,9 +32,67 @@ Route::get('/', HomeController::class)->name('home');
 Route::get('licoes/{lesson:slug}', [LessonController::class, 'show'])->name('lessons.show');
 Route::get('licoes/{lesson:slug}/domingo', [LessonController::class, 'sunday'])->name('lessons.sunday');
 
+// Texto das referências bíblicas clicáveis no estudo (painel com os versículos).
+Route::get('biblia', BibleController::class)->middleware('throttle:library')->name('bible.show');
+
+/*
+| Estudo do aluno (exige login): semana de estudo, leituras marcadas e anotações.
+*/
+Route::middleware(['auth', 'throttle:engagement'])->group(function () {
+    Route::get('minha-semana', MyWeekController::class)->name('my-week');
+    Route::get('meu-progresso', MyProgressController::class)->name('my-progress');
+
+    Route::post('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'store'])->name('lessons.checkins.store');
+    Route::delete('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'destroy'])->name('lessons.checkins.destroy');
+    Route::put('licoes/{lesson:slug}/anotacao', [LessonNoteController::class, 'update'])->name('lessons.note.update');
+
+    // "Tirar dúvida" com a IA (limite diário na ação; aqui só contra rajadas).
+    Route::post('licoes/{lesson:slug}/duvidas', [StudyQuestionController::class, 'store'])
+        ->middleware('throttle:study-helper')
+        ->name('lessons.questions.store');
+
+    // Lembretes push: o aparelho se inscreve/desinscreve.
+    Route::post('notificacoes/inscricao', [PushSubscriptionController::class, 'store'])->name('push.store');
+    Route::delete('notificacoes/inscricao', [PushSubscriptionController::class, 'destroy'])->name('push.destroy');
+    Route::post('notificacoes/teste', [PushSubscriptionController::class, 'test'])->name('push.test');
+});
+
+/*
+| Chamadas do service worker quando o navegador troca a inscrição de push
+| (pushsubscriptionchange). Sem CSRF: o SW não tem o token da página. A
+| inscrição antiga identifica o aparelho; sem ela, vale a sessão (cookie
+| SameSite=Lax, que não vai em POST de outro site).
+*/
+Route::middleware('throttle:engagement')->group(function () {
+    Route::get('notificacoes/chave', [PushSubscriptionController::class, 'key'])->name('push.key');
+    Route::post('notificacoes/renovacao', [PushSubscriptionController::class, 'renew'])->name('push.renew');
+});
+
 Route::get('materiais/{material}/arquivo', MaterialFileController::class)
     ->middleware('throttle:downloads')
     ->name('materials.file');
+
+Route::get('licoes/{lesson:slug}/audio', LessonAudioController::class)
+    ->middleware('throttle:downloads')
+    ->name('lessons.audio');
+
+// Link pessoal de acesso dos alunos: /entrar#token (ver AccessLinkController).
+Route::get('entrar', [AccessLinkController::class, 'show'])->name('access-link.show');
+Route::post('entrar', [AccessLinkController::class, 'store'])
+    ->middleware('throttle:access-link')
+    ->name('access-link.store');
+
+// Cadastro que o aluno completa no primeiro acesso (ver EnsureProfileIsComplete).
+Route::middleware('auth')->group(function () {
+    Route::get('completar-cadastro', [CompleteProfileController::class, 'show'])->name('onboarding.show');
+    Route::post('completar-cadastro', [CompleteProfileController::class, 'store'])->name('onboarding.store');
+});
+
+// Tutorial para instalar o app (PWA) no Android e no iPhone.
+Route::inertia('instalar', 'install')->name('install');
+
+// "Como funciona": ajuda para alunos e professores.
+Route::inertia('ajuda', 'help')->name('help');
 
 Route::get('biblioteca', LibraryController::class)
     ->middleware('throttle:library')
@@ -39,15 +109,59 @@ Route::middleware(['auth', 'can:access-admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', Admin\DashboardController::class)->name('dashboard');
+        Route::get('biblia/previa', Admin\BiblePreviewController::class)->name('bible.preview');
+        Route::post('markdown/previa', Admin\MarkdownPreviewController::class)->name('markdown.preview');
 
         Route::resource('classes', Admin\ClassroomController::class)
             ->parameters(['classes' => 'classroom'])
             ->names('classrooms')
             ->except(['show', 'destroy']);
 
-        Route::get('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'index'])->name('classrooms.members.index');
+        // Página da classe (Resumo). Depois do resource, para "classes/criar" continuar valendo.
+        Route::get('classes/{classroom}', Admin\ClassroomOverviewController::class)->name('classrooms.show');
+
+        Route::get('classes/{classroom}/domingos', [Admin\ClassMeetingController::class, 'index'])->name('classrooms.meetings.index');
+        Route::post('classes/{classroom}/domingos/planejar', [Admin\ClassMeetingController::class, 'plan'])->name('classrooms.meetings.plan');
+        Route::get('classes/{classroom}/domingos/{meeting}', [Admin\ClassMeetingController::class, 'show'])
+            ->scopeBindings()
+            ->name('classrooms.meetings.show');
+        Route::put('encontros/{meeting}', [Admin\ClassMeetingController::class, 'update'])->name('meetings.update');
+        Route::put('encontros/{meeting}/anotacao', [Admin\MeetingNoteController::class, 'update'])->name('meetings.notes.update');
+        Route::post('encontros/{meeting}/cancelar', [Admin\MeetingStatusController::class, 'cancel'])->name('meetings.cancel');
+        Route::post('encontros/{meeting}/restaurar', [Admin\MeetingStatusController::class, 'restore'])->name('meetings.restore');
+        Route::post('encontros/{meeting}/continuar', [Admin\MeetingStatusController::class, 'continue'])->name('meetings.continue');
+        Route::post('encontros/{meeting}/realizado', [Admin\MeetingStatusController::class, 'held'])->name('meetings.held');
+        Route::put('encontros/{meeting}/chamada', [Admin\AttendanceController::class, 'update'])->name('meetings.attendance.update');
+        Route::post('encontros/{meeting}/encerrar', [Admin\AttendanceController::class, 'finish'])->name('meetings.finish');
+
+        // Endereços antigos (atalhos salvos no app instalado). Só GET: Route::redirect
+        // aceitaria qualquer verbo e engoliria envios de formulário.
+        Route::get('classes/{classroom}/agenda', fn (Classroom $classroom) => redirect()->route('admin.classrooms.meetings.index', $classroom, 301));
+        Route::get('classes/{classroom}/evolucao', fn (Classroom $classroom) => redirect()->route('admin.classrooms.show', $classroom, 301));
+
+        // Alunos: a lista, a ficha de cada um e as anotações do professor.
+        Route::get('classes/{classroom}/alunos', [Admin\StudentController::class, 'index'])->name('classrooms.students.index');
+        Route::post('classes/{classroom}/alunos', [Admin\StudentAccessController::class, 'store'])->name('classrooms.students.store');
+        Route::get('classes/{classroom}/alunos/{user}', [Admin\StudentController::class, 'show'])->name('classrooms.students.show');
+        Route::put('classes/{classroom}/alunos/{user}', [Admin\StudentController::class, 'update'])->name('classrooms.students.update');
+        Route::post('classes/{classroom}/alunos/{user}/mover', [Admin\StudentController::class, 'move'])->name('classrooms.students.move');
+        Route::post('classes/{classroom}/alunos/{user}/anotacoes', [Admin\StudentNoteController::class, 'store'])->name('classrooms.students.notes.store');
+        Route::put('anotacoes/{note}', [Admin\StudentNoteController::class, 'update'])->name('notes.update');
+        Route::delete('anotacoes/{note}', [Admin\StudentNoteController::class, 'destroy'])->name('notes.destroy');
+
+        // Vínculos (adicionar por e-mail, remover da classe) e link pessoal.
         Route::post('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'store'])->name('classrooms.members.store');
         Route::delete('classes/{classroom}/membros/{user}', [Admin\ClassroomMemberController::class, 'destroy'])->name('classrooms.members.destroy');
+        Route::post('classes/{classroom}/membros/{user}/restaurar', [Admin\ClassroomMemberController::class, 'restore'])
+            ->middleware('signed')
+            ->name('classrooms.members.restore');
+        Route::post('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'issue'])->name('classrooms.members.link.store');
+        Route::delete('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'revoke'])->name('classrooms.members.link.destroy');
+
+        Route::get('classes/{classroom}/relatorio', Admin\ClassroomReportController::class)->name('classrooms.report');
+
+        Route::get('classes/{classroom}/membros', fn (Classroom $classroom) => redirect()->route('admin.classrooms.students.index', $classroom, 301));
+        Route::get('series/{series}/relatorio', fn (Series $series) => redirect()->route('admin.classrooms.report', [$series->classroom, 'serie' => $series->id], 301));
 
         Route::resource('series', Admin\SeriesController::class)
             ->parameters(['series' => 'series'])
@@ -59,8 +173,9 @@ Route::middleware(['auth', 'can:access-admin'])
             ->except(['show']);
 
         Route::post('licoes/{lesson}/status', Admin\LessonStatusController::class)->name('lessons.status');
+        Route::post('licoes/{lesson}/audio', Admin\LessonAudioController::class)->name('lessons.audio');
         Route::put('licoes/{lesson}/ordem/{relation}', Admin\LessonOrderController::class)
-            ->whereIn('relation', ['materials', 'questions', 'readings'])
+            ->whereIn('relation', ['materials', 'readings', 'blocks'])
             ->name('lessons.reorder');
 
         Route::scopeBindings()->group(function () {
@@ -69,9 +184,9 @@ Route::middleware(['auth', 'can:access-admin'])
             Route::post('licoes/{lesson}/materiais/{material}', [Admin\LessonMaterialController::class, 'update'])->name('lessons.materials.update');
             Route::delete('licoes/{lesson}/materiais/{material}', [Admin\LessonMaterialController::class, 'destroy'])->name('lessons.materials.destroy');
 
-            Route::post('licoes/{lesson}/perguntas', [Admin\LessonQuestionController::class, 'store'])->name('lessons.questions.store');
-            Route::put('licoes/{lesson}/perguntas/{question}', [Admin\LessonQuestionController::class, 'update'])->name('lessons.questions.update');
-            Route::delete('licoes/{lesson}/perguntas/{question}', [Admin\LessonQuestionController::class, 'destroy'])->name('lessons.questions.destroy');
+            Route::post('licoes/{lesson}/blocos', [Admin\LessonBlockController::class, 'store'])->name('lessons.blocks.store');
+            Route::put('licoes/{lesson}/blocos/{block}', [Admin\LessonBlockController::class, 'update'])->name('lessons.blocks.update');
+            Route::delete('licoes/{lesson}/blocos/{block}', [Admin\LessonBlockController::class, 'destroy'])->name('lessons.blocks.destroy');
 
             Route::post('licoes/{lesson}/leituras', [Admin\LessonReadingController::class, 'store'])->name('lessons.readings.store');
             Route::put('licoes/{lesson}/leituras/{reading}', [Admin\LessonReadingController::class, 'update'])->name('lessons.readings.update');

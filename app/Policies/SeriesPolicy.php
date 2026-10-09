@@ -21,4 +21,9 @@ class SeriesPolicy
     {
         return $user->canManageClassroom($series->classroom_id);
     }
+
+    public function viewReport(User $user, Series $series): bool
+    {
+        return $user->canManageClassroom($series->classroom_id);
+    }
 }

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { StatusBadge } from '@/components/admin/status-badge';
-import { EmptyState, Page, PageHeader } from '@/components/page';
+import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -62,6 +62,7 @@ export default function AdminLessonsIndex({
                 />
 
                 <form
+                    noValidate
                     onSubmit={(event) => {
                         event.preventDefault();
                         visit({});
@@ -122,35 +123,19 @@ export default function AdminLessonsIndex({
                         title="Nenhuma lição encontrada"
                     />
                 ) : (
-                    <ul className="divide-y rounded-2xl border bg-card">
-                        {lessons.data.map((lesson) => (
-                            <li key={lesson.id}>
-                                <Link
-                                    href={edit(lesson.id)}
-                                    className="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="line-clamp-2 font-medium">
-                                            {lesson.title}
-                                        </p>
-                                        <p className="truncate text-sm text-muted-foreground">
-                                            {[
-                                                lesson.date_short ?? 'Sem data',
-                                                lesson.classroom?.name,
-                                                lesson.series?.title,
-                                            ]
-                                                .filter(Boolean)
-                                                .join(' · ')}
-                                        </p>
-                                    </div>
-                                    <StatusBadge
-                                        status={lesson.status}
-                                        label={lesson.status_label}
-                                    />
-                                </Link>
-                            </li>
+                    <div className="space-y-8">
+                        {groupBySeries(lessons.data).map((group) => (
+                            <Section key={group.key} title={group.title}>
+                                <ul className="divide-y rounded-2xl border bg-card">
+                                    {group.lessons.map((lesson) => (
+                                        <li key={lesson.id}>
+                                            <LessonRow lesson={lesson} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            </Section>
                         ))}
-                    </ul>
+                    </div>
                 )}
 
                 {lessons.meta.last_page > 1 && (
@@ -183,5 +168,54 @@ export default function AdminLessonsIndex({
                 )}
             </Page>
         </>
+    );
+}
+
+type SeriesGroup = { key: string; title: string; lessons: Lesson[] };
+
+/** A lista já vem ordenada por série e número: agrupa as lições vizinhas. */
+function groupBySeries(lessons: Lesson[]): SeriesGroup[] {
+    const groups: SeriesGroup[] = [];
+
+    for (const lesson of lessons) {
+        const key = String(lesson.series?.id ?? 'sem-serie');
+        const last = groups.at(-1);
+
+        if (last?.key === key) {
+            last.lessons.push(lesson);
+        } else {
+            groups.push({
+                key,
+                title: lesson.series?.title ?? 'Sem série',
+                lessons: [lesson],
+            });
+        }
+    }
+
+    return groups;
+}
+
+function LessonRow({ lesson }: { lesson: Lesson }) {
+    return (
+        <Link
+            href={edit(lesson.id)}
+            className="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50"
+        >
+            <div className="w-12 shrink-0 text-center">
+                <p className="text-xs text-muted-foreground uppercase">Lição</p>
+                <p className="font-serif text-2xl font-semibold tabular-nums">
+                    {lesson.number ?? '–'}
+                </p>
+            </div>
+            <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 font-medium">{lesson.title}</p>
+                <p className="truncate text-sm text-muted-foreground">
+                    {[lesson.date_short ?? 'Sem data', lesson.classroom?.name]
+                        .filter(Boolean)
+                        .join(' · ')}
+                </p>
+            </div>
+            <StatusBadge status={lesson.status} label={lesson.status_label} />
+        </Link>
     );
 }

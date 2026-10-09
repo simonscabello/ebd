@@ -1,0 +1,154 @@
+<?php
+
+namespace App\Queries;
+
+use App\Enums\ContentAudience;
+use App\Enums\Weekday;
+use App\Http\Resources\LessonBlockResource;
+use App\Http\Resources\LessonReadingResource;
+use App\Models\Classroom;
+use App\Models\LessonBlock;
+use App\Models\User;
+use App\Queries\Data\CurrentLesson;
+use App\Support\ChurchCalendar;
+use App\Support\StudyStreak;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * A semana de estudo (segunda a domingo) da lição atual da classe, usada no
+ * Início e em "Leituras da semana".
+ *
+ * - leitura de cada dia (lesson_readings.weekday) e se a pessoa marcou como
+ *   lida (vale marcar qualquer dia, a qualquer momento: adiantar ou recuperar);
+ * - conteúdo do dia (curiosidade/conceito): blocos com dia definido ou, sem
+ *   dia, distribuídos automaticamente de segunda a sábado;
+ * - progresso da semana e sequência de dias.
+ */
+class StudyWeekQuery
+{
+    public function __construct(
+        private readonly CurrentLessonQuery $current,
+        private readonly StudyStreak $streak,
+    ) {}
+
+    /**
+     * @param  CurrentLesson|null  $current  a lição atual já calculada (o Início já tem), para não buscar de novo
+     * @return array<string, mixed>
+     */
+    public function for(User $user, Classroom $classroom, Request $request, ?CurrentLesson $current = null): array
+    {
+        $today = ChurchCalendar::today();
+        $current ??= $this->current->for($classroom, $user);
+        $lesson = $current->lesson;
+
+        // A semana de leitura é a do encontro (segunda até o domingo da aula),
+        // não a semana do calendário: no domingo à noite, a lição seguinte
+        // ainda não tem "leitura de hoje".
+        $meetingOn = $current->meeting?->held_on;
+        $monday = $meetingOn ? ChurchCalendar::readingWeekStart($meetingOn) : $today->startOfWeek(CarbonImmutable::MONDAY);
+        $todayWeekday = ChurchCalendar::readingWeekday($meetingOn, $today);
+
+        $base = [
+            'today' => $today->toDateString(),
+            'weekday' => $today->dayOfWeekIso,
+            'streak' => $this->streak->for($user, $today),
+            'meeting' => $current->meeting && ! $current->isFallback ? [
+                'held_on' => $current->meeting->held_on->toDateString(),
+                'date_label' => ChurchCalendar::formatLong($current->meeting->held_on),
+                'days_until' => ChurchCalendar::daysUntil($current->meeting->held_on),
+                'index' => $current->meetingIndex,
+                'total' => $current->meetingTotal,
+            ] : null,
+            'preparing' => $current->preparing,
+        ];
+
+        if ($lesson === null) {
+            return [...$base, 'lesson' => null];
+        }
+
+        $lesson->load([
+            'readings',
+            'blocks' => fn ($q) => $q->where('audience', ContentAudience::Student),
+        ]);
+
+        $checked = DB::table('reading_checkins')
+            ->where('user_id', $user->id)
+            ->where('lesson_id', $lesson->id)
+            ->pluck('weekday')
+            ->map(fn ($d) => (int) $d)
+            ->all();
+
+        $blocksByDay = $this->dripSchedule($lesson->blocks);
+        $days = [];
+
+        foreach (Weekday::cases() as $weekday) {
+            $date = $monday->addDays($weekday->value - 1);
+            $days[] = [
+                'date' => $date->toDateString(),
+                'weekday' => $weekday->value,
+                'label' => $weekday->label(),
+                'short' => $weekday->shortLabel(),
+                'is_today' => $weekday->value === $todayWeekday,
+                'is_future' => $date->gt($today),
+                'done' => in_array($weekday->value, $checked, true),
+                'readings' => LessonReadingResource::forWeek(
+                    $lesson->readings->filter(fn ($r) => $r->weekday === $weekday)->values(),
+                    $todayWeekday,
+                )->resolve($request),
+                'blocks_count' => count($blocksByDay[$weekday->value] ?? []),
+            ];
+        }
+
+        $readingDays = $lesson->readings->filter(fn ($r) => $r->weekday !== null && $r->weekday !== Weekday::Sunday)
+            ->pluck('weekday')->unique()->count();
+        $weekDone = collect($days)->filter(fn ($d) => $d['done'] && $d['weekday'] <= 6)->count();
+
+        return [
+            ...$base,
+            'lesson' => [
+                'id' => $lesson->id,
+                'slug' => $lesson->slug,
+                'url' => route('lessons.show', $lesson->slug),
+                'display_title' => $lesson->displayTitle(),
+                'number' => $lesson->number,
+                'title' => $lesson->title,
+                'bible_reference' => $lesson->bible_reference,
+            ],
+            'days' => $days,
+            'todayBlocks' => LessonBlockResource::collection($todayWeekday ? ($blocksByDay[$todayWeekday] ?? []) : [])->resolve($request),
+            'progress' => [
+                'days_done' => $weekDone,
+                'days_total' => max($readingDays, 1),
+            ],
+        ];
+    }
+
+    /**
+     * Distribui os blocos pelos dias: dia definido pelo professor ou, para
+     * curiosidades/conceitos sem dia, um por dia de segunda a sábado.
+     *
+     * @param  Collection<int, LessonBlock>  $blocks
+     * @return array<int, list<LessonBlock>>
+     */
+    private function dripSchedule(Collection $blocks): array
+    {
+        $schedule = [];
+        $auto = 0;
+
+        foreach ($blocks as $block) {
+            if ($block->drip_weekday !== null) {
+                $schedule[$block->drip_weekday->value][] = $block;
+            } elseif ($block->kind->isDrippable() && in_array($block->kind->value, ['curiosity', 'concept'], true)) {
+                $schedule[($auto % 6) + 1][] = $block;
+                $auto++;
+            }
+        }
+
+        ksort($schedule);
+
+        return $schedule;
+    }
+}

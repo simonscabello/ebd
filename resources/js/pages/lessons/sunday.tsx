@@ -1,14 +1,34 @@
 import { Head, Link } from '@inertiajs/react';
-import { Check, Minus, Plus, X } from 'lucide-react';
+import { CalendarClock, Flag, Minus, Plus, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { Roster } from '@/components/lesson/attendance-sheet';
+import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
 import { BiblePassage } from '@/components/lesson/bible-passage';
+import { FinishMeetingDialog } from '@/components/lesson/finish-meeting-dialog';
+import { BlockAccordion, BlockCards } from '@/components/lesson/lesson-blocks';
+import { RevistaHeader } from '@/components/lesson/revista-header';
+import { RichText } from '@/components/lesson/rich-text';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { index as meetingsIndex } from '@/routes/admin/classrooms/meetings';
 import { show } from '@/routes/lessons';
-import type { Lesson } from '@/types';
+import type { ClassMeeting, Lesson } from '@/types';
 
 type Props = {
     lesson: Lesson;
     canManage: boolean;
+    /** Chamada e encerramento: só para quem conduz a classe. */
+    conduct: {
+        meeting: ClassMeeting;
+        can_take_attendance: boolean;
+        roster: Roster;
+        present: number[];
+        /** Página do domingo na gestão. */
+        meeting_url: string;
+    } | null;
+    /** Aberto a partir da gestão: "Sair" volta para lá. */
+    backUrl: string | null;
 };
 
 const SCALES = ['text-base', 'text-lg', 'text-xl', 'text-2xl'] as const;
@@ -27,12 +47,21 @@ function readScale(): number {
 
 /**
  * Modo Domingo: interface limpa para conduzir (professor) ou acompanhar (aluno)
- * a aula no notebook, tablet ou celular. Sem navegação do app, fonte ajustável
- * e perguntas que podem ser marcadas como discutidas (apenas neste aparelho).
+ * a aula no notebook, tablet ou celular. Sem navegação do app e com fonte
+ * ajustável (lembrada neste aparelho).
  */
-export default function SundayMode({ lesson, canManage }: Props) {
+export default function SundayMode({
+    lesson,
+    canManage,
+    conduct,
+    backUrl,
+}: Props) {
     const [scale, setScale] = useState(1);
-    const [discussed, setDiscussed] = useState<number[]>([]);
+    const [attendanceOpen, setAttendanceOpen] = useState(false);
+    const [presentCount, setPresentCount] = useState(
+        conduct?.present.length ?? 0,
+    );
+    const conducting = !!conduct?.can_take_attendance;
 
     useEffect(() => {
         setScale(readScale());
@@ -49,25 +78,27 @@ export default function SundayMode({ lesson, canManage }: Props) {
         }
     };
 
-    const toggle = (id: number) =>
-        setDiscussed((current) =>
-            current.includes(id)
-                ? current.filter((item) => item !== id)
-                : [...current, id],
-        );
-
-    const questions = lesson.questions ?? [];
     const topics = lesson.topics ?? [];
+    const teacher = lesson.teacher_blocks ?? [];
+    const roteiro = teacher.filter((b) =>
+        ['roteiro', 'teacher_note'].includes(b.kind),
+    );
+    const accuracy = teacher.filter((b) => b.kind === 'accuracy_note');
+    const extraTime = teacher.filter((b) => b.kind === 'extra_time');
+    const meetings = lesson.meetings ?? [];
+    const meeting =
+        meetings.find((m) => m.days_until >= 0) ??
+        meetings[meetings.length - 1];
 
     return (
         <div className="min-h-svh bg-background">
-            <Head title={`Modo Domingo · ${lesson.title}`} />
+            <Head title={`Modo Domingo · ${lesson.display_title}`} />
 
             <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 backdrop-blur">
                 <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
                     <Link
-                        href={show(lesson.slug)}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                        href={backUrl ?? show(lesson.slug)}
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
                         <X className="size-4" /> Sair
                     </Link>
@@ -82,7 +113,7 @@ export default function SundayMode({ lesson, canManage }: Props) {
                         <button
                             type="button"
                             onClick={() => changeScale(-1)}
-                            className="flex size-9 items-center justify-center rounded-lg border bg-card disabled:opacity-40"
+                            className="flex size-10 items-center justify-center rounded-lg border bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40"
                             disabled={scale === 0}
                             aria-label="Diminuir texto"
                         >
@@ -91,7 +122,7 @@ export default function SundayMode({ lesson, canManage }: Props) {
                         <button
                             type="button"
                             onClick={() => changeScale(1)}
-                            className="flex size-9 items-center justify-center rounded-lg border bg-card disabled:opacity-40"
+                            className="flex size-10 items-center justify-center rounded-lg border bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40"
                             disabled={scale === SCALES.length - 1}
                             aria-label="Aumentar texto"
                         >
@@ -103,10 +134,47 @@ export default function SundayMode({ lesson, canManage }: Props) {
 
             <main
                 className={cn(
-                    'mx-auto max-w-3xl space-y-10 px-4 pt-8 pb-24 sm:px-6',
+                    'mx-auto max-w-3xl space-y-10 px-4 pt-8 sm:px-6',
+                    conducting ? 'pb-36' : 'pb-24',
                     SCALES[scale],
                 )}
             >
+                {canManage && !conducting && (
+                    <p className="flex gap-3 rounded-2xl border bg-card p-4 text-[0.85em]">
+                        <CalendarClock className="mt-0.5 size-5 shrink-0 text-primary" />
+                        {conduct ? (
+                            <span>
+                                A chamada abre no dia do domingo (
+                                {conduct.meeting.date_short}).{' '}
+                                <Link
+                                    href={conduct.meeting_url}
+                                    className="font-medium text-primary hover:underline"
+                                >
+                                    Ver o domingo
+                                </Link>
+                            </span>
+                        ) : (
+                            <span>
+                                Esta lição ainda não está em nenhum domingo.
+                                Para fazer a chamada, escolha o domingo dela em{' '}
+                                {lesson.classroom ? (
+                                    <Link
+                                        href={meetingsIndex(
+                                            lesson.classroom.slug,
+                                        )}
+                                        className="font-medium text-primary hover:underline"
+                                    >
+                                        Domingos
+                                    </Link>
+                                ) : (
+                                    'Domingos'
+                                )}
+                                .
+                            </span>
+                        )}
+                    </p>
+                )}
+
                 <header>
                     {lesson.series && (
                         <p className="text-[0.8em] font-medium text-primary">
@@ -114,22 +182,39 @@ export default function SundayMode({ lesson, canManage }: Props) {
                         </p>
                     )}
                     <h1 className="mt-1 font-serif text-[2.2em] leading-tight font-semibold tracking-tight text-balance">
-                        {lesson.title}
+                        {lesson.display_title}
                     </h1>
-                    {lesson.date_label && (
+                    {meeting && (
                         <p className="mt-1 text-[0.85em] text-muted-foreground first-letter:uppercase">
-                            {lesson.date_label}
+                            {meeting.date_label}
+                            {meetings.length > 1 &&
+                                ` · encontro ${meetings.indexOf(meeting) + 1} de ${meetings.length}`}
                         </p>
                     )}
                 </header>
 
+                {canManage && roteiro.length > 0 && (
+                    <section>
+                        <h2 className="mb-3 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
+                            Roteiro da aula
+                        </h2>
+                        <BlockCards
+                            blocks={roteiro}
+                            tone="teacher"
+                            size="large"
+                        />
+                    </section>
+                )}
+
                 {lesson.bible_reference && (
                     <BiblePassage
                         reference={lesson.bible_reference}
-                        text={lesson.bible_text}
+                        passage={lesson.bible_passage}
                         size="large"
                     />
                 )}
+
+                <RevistaHeader lesson={lesson} size="large" />
 
                 {topics.length > 0 && (
                     <section>
@@ -152,64 +237,25 @@ export default function SundayMode({ lesson, canManage }: Props) {
                     </section>
                 )}
 
-                {questions.length > 0 && (
+                {canManage && accuracy.length > 0 && (
                     <section>
                         <h2 className="mb-3 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
-                            Perguntas para discussão
+                            Notas de precisão
                         </h2>
-                        <ol className="space-y-3">
-                            {questions.map((question, index) => {
-                                const done = discussed.includes(question.id);
-
-                                return (
-                                    <li key={question.id}>
-                                        <button
-                                            type="button"
-                                            onClick={() => toggle(question.id)}
-                                            aria-pressed={done}
-                                            className={cn(
-                                                'flex w-full gap-4 rounded-2xl border bg-card p-5 text-left transition-opacity',
-                                                done && 'opacity-50',
-                                            )}
-                                        >
-                                            <span
-                                                className={cn(
-                                                    'flex size-[1.8em] shrink-0 items-center justify-center rounded-full bg-accent text-[0.8em] font-semibold text-accent-foreground',
-                                                    done &&
-                                                        'bg-primary text-primary-foreground',
-                                                )}
-                                            >
-                                                {done ? (
-                                                    <Check className="size-[1em]" />
-                                                ) : (
-                                                    index + 1
-                                                )}
-                                            </span>
-                                            <span className="font-serif text-[1.2em] leading-relaxed text-pretty">
-                                                {question.body}
-                                            </span>
-                                        </button>
-                                    </li>
-                                );
-                            })}
-                        </ol>
-                        <p className="mt-2 text-[0.75em] text-muted-foreground">
-                            Toque numa pergunta para marcá-la como discutida.
-                        </p>
+                        <BlockCards
+                            blocks={accuracy}
+                            tone="highlight"
+                            size="large"
+                        />
                     </section>
                 )}
 
-                {canManage && lesson.teacher_notes_html && (
-                    <section className="rounded-2xl border border-highlight bg-highlight/40 p-5">
-                        <h2 className="mb-2 text-[0.8em] font-semibold tracking-wide text-highlight-foreground uppercase">
-                            Notas do professor
+                {canManage && extraTime.length > 0 && (
+                    <section>
+                        <h2 className="mb-3 text-[0.8em] font-semibold tracking-wide text-muted-foreground uppercase">
+                            Se houver tempo
                         </h2>
-                        <div
-                            className="reading text-[1em]"
-                            dangerouslySetInnerHTML={{
-                                __html: lesson.teacher_notes_html,
-                            }}
-                        />
+                        <BlockAccordion blocks={extraTime} />
                     </section>
                 )}
 
@@ -218,15 +264,63 @@ export default function SundayMode({ lesson, canManage }: Props) {
                         <summary className="cursor-pointer text-[0.9em] font-semibold marker:text-muted-foreground">
                             Estudo completo
                         </summary>
-                        <div
+                        <RichText
                             className="reading mt-4 text-[1em]"
-                            dangerouslySetInnerHTML={{
-                                __html: lesson.content_html,
-                            }}
+                            html={lesson.content_html}
                         />
                     </details>
                 )}
             </main>
+
+            {conduct && conducting && (
+                <>
+                    {/* Barra do professor: chamada e encerramento sempre à mão. */}
+                    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-safe backdrop-blur after:absolute after:inset-x-0 after:top-full after:h-[50svh] after:bg-background">
+                        <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-2 sm:px-6">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="lg"
+                                className="flex-1"
+                                onClick={() => setAttendanceOpen(true)}
+                                aria-haspopup="dialog"
+                                aria-expanded={attendanceOpen}
+                            >
+                                <Users /> Chamada
+                                <span className="text-muted-foreground tabular-nums">
+                                    {presentCount}/{conduct.roster.length}
+                                </span>
+                            </Button>
+                            <FinishMeetingDialog
+                                meetingId={conduct.meeting.id}
+                                initialNotes={conduct.meeting.notes ?? null}
+                            >
+                                <Button size="lg" className="flex-1">
+                                    <Flag /> Encerrar aula
+                                </Button>
+                            </FinishMeetingDialog>
+                        </div>
+                    </div>
+
+                    <BottomSheet
+                        open={attendanceOpen}
+                        onOpenChange={setAttendanceOpen}
+                        title="Chamada"
+                        description="Toque no nome de quem está presente. Salva sozinha."
+                    >
+                        <div className="pb-4">
+                            <AttendanceSheet
+                                key={conduct.meeting.id}
+                                meetingId={conduct.meeting.id}
+                                roster={conduct.roster}
+                                initialPresent={conduct.present}
+                                initialVisitors={conduct.meeting.visitors_count}
+                                onChange={setPresentCount}
+                            />
+                        </div>
+                    </BottomSheet>
+                </>
+            )}
         </div>
     );
 }

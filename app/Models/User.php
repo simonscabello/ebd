@@ -3,29 +3,41 @@
 namespace App\Models;
 
 use App\Enums\ClassroomRole;
+use App\Enums\Gender;
 use App\Notifications\ResetPasswordNotification;
+use App\Support\ChurchCalendar;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Passport\Contracts\OAuthenticatable;
+use Laravel\Passport\HasApiTokens;
 
 /**
  * @property int $id
  * @property string $name
- * @property string $email
+ * @property string|null $email
+ * @property string|null $avatar_path
+ * @property string|null $phone
+ * @property Carbon|null $birth_date
+ * @property Gender|null $gender
+ * @property string|null $password
  * @property bool $is_admin
  * @property Carbon|null $email_verified_at
  */
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'birth_date', 'gender', 'password'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements OAuthenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * Papéis do usuário por classe, carregados uma única vez por instância
@@ -44,6 +56,16 @@ class User extends Authenticatable
         'is_admin' => false,
     ];
 
+    protected static function booted(): void
+    {
+        // A foto sai do disco junto com a conta.
+        static::deleted(function (User $user) {
+            if ($user->avatar_path !== null) {
+                Storage::disk('public')->delete($user->avatar_path);
+            }
+        });
+    }
+
     /**
      * @return array<string, string>
      */
@@ -51,6 +73,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birth_date' => 'date',
+            'gender' => Gender::class,
             'password' => 'hashed',
             'is_admin' => 'boolean',
         ];
@@ -65,6 +89,62 @@ class User extends Authenticatable
             ->using(ClassroomMember::class)
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<AccessLink, $this>
+     */
+    public function accessLinks(): HasMany
+    {
+        return $this->hasMany(AccessLink::class);
+    }
+
+    /**
+     * @return HasMany<ReadingCheckin, $this>
+     */
+    public function readingCheckins(): HasMany
+    {
+        return $this->hasMany(ReadingCheckin::class);
+    }
+
+    /**
+     * @return HasMany<PushSubscription, $this>
+     */
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
+    /**
+     * @return HasMany<UserBadge, $this>
+     */
+    public function badges(): HasMany
+    {
+        return $this->hasMany(UserBadge::class);
+    }
+
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path !== null ? Storage::disk('public')->url($this->avatar_path) : null;
+    }
+
+    /**
+     * Conta criada pelo professor, sem senha: entra só pelo link pessoal.
+     */
+    public function isManaged(): bool
+    {
+        return $this->password === null;
+    }
+
+    /**
+     * Conta sem senha devolve '' em vez de null: o Laravel recusa o cookie
+     * "lembrar de mim" quando a senha não é string, e o aluno do link era
+     * deslogado quando a sessão expirava. Entrar por senha continua
+     * impossível, porque Hash::check() com hash vazio é sempre falso.
+     */
+    public function getAuthPassword(): string
+    {
+        return $this->password ?? '';
     }
 
     /**
@@ -119,6 +199,50 @@ class User extends Authenticatable
     public function memberClassroomIds(): array
     {
         return array_keys($this->classroomRoles());
+    }
+
+    /**
+     * Aluno de ao menos uma classe.
+     */
+    public function isStudentAnywhere(): bool
+    {
+        return in_array(ClassroomRole::Student, $this->classroomRoles(), true);
+    }
+
+    /**
+     * Cadastro que o aluno completa no primeiro acesso: e-mail e senha para
+     * entrar, WhatsApp para o professor, nascimento e gênero para a classe.
+     */
+    public function hasCompleteProfile(): bool
+    {
+        return $this->password !== null
+            && filled($this->email)
+            && filled($this->phone)
+            && $this->birth_date !== null
+            && $this->gender !== null;
+    }
+
+    /**
+     * Alunos (não professores nem administradores) com cadastro incompleto
+     * passam pela tela "Completar cadastro" antes de usar o app.
+     */
+    public function needsProfileCompletion(): bool
+    {
+        return ! $this->hasCompleteProfile() && ! $this->canAccessAdmin() && $this->isStudentAnywhere();
+    }
+
+    /**
+     * Idade hoje, no fuso da igreja.
+     */
+    public function age(): ?int
+    {
+        if ($this->birth_date === null) {
+            return null;
+        }
+
+        $born = CarbonImmutable::parse($this->birth_date->toDateString(), ChurchCalendar::timezone());
+
+        return (int) $born->diffInYears(ChurchCalendar::today());
     }
 
     /**

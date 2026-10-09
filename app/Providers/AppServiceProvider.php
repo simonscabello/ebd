@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Support\Push\NullPushSender;
+use App\Support\Push\PushSender;
+use App\Support\Push\WebPushSender;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +21,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Passport\Passport;
+use Psr\Log\LoggerInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,7 +31,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // O MCP usa só authorization code + refresh token; sem as rotas /oauth/device.
+        Passport::$deviceCodeGrantEnabled = false;
+
+        $this->app->bind(PushSender::class, function (): PushSender {
+            $public = (string) config('ebd.push.public_key');
+            $private = (string) config('ebd.push.private_key');
+
+            return $public !== '' && $private !== ''
+                ? new WebPushSender((string) config('ebd.push.subject'), $public, $private, $this->app->make(LoggerInterface::class))
+                : new NullPushSender;
+        });
     }
 
     /**
@@ -42,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureAuthorization();
         $this->configureRateLimiting();
+        $this->configureOAuth();
     }
 
     /**
@@ -66,12 +82,14 @@ class AppServiceProvider extends ServiceProvider
         // Atrás do proxy do Railway, garante links e redirects sempre em HTTPS.
         URL::forceHttps(app()->isProduction());
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(10)
+        // Senha com 6 caracteres no mínimo em qualquer ambiente. Em produção
+        // também precisa ter letras e números e não pode estar em vazamentos.
+        Password::defaults(fn (): Password => app()->isProduction()
+            ? Password::min(6)
                 ->letters()
                 ->numbers()
                 ->uncompromised()
-            : null,
+            : Password::min(6),
         );
     }
 
@@ -95,6 +113,30 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('downloads', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
+        // Tentativas de entrar por link pessoal: limite por IP (por minuto e por dia).
+        RateLimiter::for('access-link', fn (Request $request) => [
+            Limit::perMinute(10)->by('min:'.$request->ip()),
+            Limit::perDay(50)->by('day:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('engagement', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
+
+        RateLimiter::for('study-helper', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('library', fn (Request $request) => Limit::perMinute(90)->by($request->user()?->id ?: $request->ip()));
+
+        // Agentes de IA fazem várias chamadas seguidas numa mesma conversa.
+        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+    }
+
+    /**
+     * OAuth (Passport) do servidor MCP: tela de consentimento em português e
+     * tokens curtos, renovados sozinhos pelo aplicativo do agente.
+     */
+    protected function configureOAuth(): void
+    {
+        Passport::authorizationView('mcp.authorize');
+        Passport::tokensExpireIn(now()->addDay());
+        Passport::refreshTokensExpireIn(now()->addDays(30));
     }
 }

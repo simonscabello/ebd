@@ -1,6 +1,8 @@
 import { Head } from '@inertiajs/react';
 import { LessonForm } from '@/components/admin/lesson-form';
 import { Page, PageHeader } from '@/components/page';
+import { dashboard } from '@/routes/admin';
+import { index as lessonsIndex } from '@/routes/admin/lessons';
 import type { Classroom, Option, Series } from '@/types';
 
 type Props = {
@@ -9,7 +11,7 @@ type Props = {
     defaults: {
         classroom_id: number | null;
         series_id: number | null;
-        scheduled_for: string;
+        meeting_on: string;
     };
     visibilities: Option[];
 };
@@ -25,8 +27,13 @@ export default function CreateLesson({
             <Head title="Nova lição" />
             <Page>
                 <PageHeader
+                    breadcrumbs={[
+                        { title: 'Painel', href: dashboard.url() },
+                        { title: 'Lições', href: lessonsIndex.url() },
+                        { title: 'Nova' },
+                    ]}
                     title="Nova lição"
-                    description="A lição começa como rascunho. Depois você adiciona leituras, materiais e perguntas e publica."
+                    description="A lição começa como rascunho. Depois você adiciona leituras, blocos de aprofundamento e materiais e publica."
                 />
                 <LessonForm
                     classrooms={classrooms}
@@ -35,14 +42,16 @@ export default function CreateLesson({
                     initial={{
                         classroom_id: defaults.classroom_id,
                         series_id: defaults.series_id,
+                        number: '',
                         title: '',
                         slug: '',
-                        scheduled_for: defaults.scheduled_for,
+                        meeting_on: defaults.meeting_on,
                         bible_reference: '',
-                        bible_text: '',
+                        key_verse: '',
+                        goal: '',
                         summary: '',
-                        content: '## Introdução\n\n',
-                        teacher_notes: '',
+                        content:
+                            '## I. \n\n### 1. \n\n## II. \n\n## III. \n\n## Conclusão\n\n',
                         visibility: 'public',
                         author_ids: [],
                     }}

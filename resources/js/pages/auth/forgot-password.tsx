@@ -1,6 +1,6 @@
 // Components
 import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, MessageCircle } from 'lucide-react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,36 @@ import { Label } from '@/components/ui/label';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
-export default function ForgotPassword({ status }: { status?: string }) {
+export default function ForgotPassword({
+    status,
+    emailEnabled,
+}: {
+    status?: string;
+    emailEnabled: boolean;
+}) {
+    // Sem provedor de e-mail, o caminho é o link novo enviado pelo professor.
+    if (!emailEnabled) {
+        return (
+            <>
+                <Head title="Esqueci minha senha" />
+                <div className="space-y-6">
+                    <div className="flex gap-3 rounded-2xl border bg-card p-4 text-sm">
+                        <MessageCircle className="mt-0.5 size-5 shrink-0 text-primary" />
+                        <p className="text-pretty">
+                            Peça ao seu professor um novo link de acesso pelo
+                            WhatsApp. Ao abrir o link, você cria uma senha nova
+                            e continua de onde parou.
+                        </p>
+                    </div>
+                    <div className="space-x-1 text-center text-sm text-muted-foreground">
+                        <span>Lembrou a senha?</span>
+                        <TextLink href={login()}>Entrar</TextLink>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
     return (
         <>
             <Head title="Esqueci minha senha" />
@@ -21,7 +50,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
             )}
 
             <div className="space-y-6">
-                <Form {...email.form()}>
+                <Form noValidate {...email.form()}>
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -65,5 +94,5 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
 ForgotPassword.layout = {
     title: 'Esqueci minha senha',
-    description: 'Informe seu e-mail para receber um link de redefinição',
+    description: 'Vamos recuperar o seu acesso',
 };

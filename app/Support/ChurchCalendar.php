@@ -26,6 +26,60 @@ class ChurchCalendar
     }
 
     /**
+     * Hoje como Y-m-d. Datas do banco (held_on, read_on) são comparadas assim,
+     * como texto, nunca como instantes: meia-noite UTC não é meia-noite aqui.
+     */
+    public static function todayString(): string
+    {
+        return self::today()->toDateString();
+    }
+
+    /**
+     * Dias de calendário entre duas datas (negativo se $to vem antes).
+     */
+    public static function daysBetween(string|\DateTimeInterface $from, string|\DateTimeInterface $to): int
+    {
+        $day = fn (string|\DateTimeInterface $date) => CarbonImmutable::parse(
+            is_string($date) ? substr($date, 0, 10) : $date->format('Y-m-d'),
+            'UTC',
+        );
+
+        return (int) $day($from)->diffInDays($day($to), false);
+    }
+
+    /**
+     * Data de entrada do aluno na classe no fuso da igreja: o created_at do
+     * vínculo é gravado em UTC. Use com o fuso como binding (?).
+     */
+    public const JOINED_ON_SQL = "((classroom_user.created_at AT TIME ZONE 'UTC') AT TIME ZONE ?)::date";
+
+    /**
+     * Dia do plano de leitura (1 = segunda ... 7 = domingo) que cai hoje na
+     * semana de leitura de um encontro: de segunda-feira até o dia do
+     * encontro. Fora dessa semana não há "leitura de hoje": no domingo, a
+     * leitura de domingo da lição seguinte ainda não começou.
+     */
+    public static function readingWeekday(?\DateTimeInterface $meetingOn, ?\DateTimeInterface $today = null): ?int
+    {
+        if ($meetingOn === null) {
+            return null;
+        }
+
+        $today = CarbonImmutable::parse(($today ?? self::today())->format('Y-m-d'), self::timezone());
+        $end = CarbonImmutable::parse($meetingOn->format('Y-m-d'), self::timezone());
+
+        return $today->betweenIncluded(self::readingWeekStart($end), $end) ? $today->dayOfWeekIso : null;
+    }
+
+    /**
+     * Segunda-feira que abre a semana de leitura do encontro.
+     */
+    public static function readingWeekStart(\DateTimeInterface $meetingOn): CarbonImmutable
+    {
+        return CarbonImmutable::parse($meetingOn->format('Y-m-d'), self::timezone())->startOfWeek(CarbonImmutable::MONDAY);
+    }
+
+    /**
      * Próximo domingo (hoje, se hoje for domingo).
      */
     public static function nextSunday(): CarbonImmutable

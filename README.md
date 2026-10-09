@@ -1,16 +1,17 @@
 # EBD — Escola Bíblica Dominical
 
-O lugar permanente e organizado dos estudos da EBD. O WhatsApp continua sendo o canal de aviso; o conteúdo (lições, PDFs, leituras, perguntas, vídeos, referências) fica aqui, fácil de achar hoje e daqui a alguns anos.
+O lugar permanente e organizado dos estudos da EBD. O WhatsApp continua sendo o canal de aviso; o conteúdo (lições, PDFs, leituras, vídeos, referências) fica aqui, fácil de achar hoje e daqui a alguns anos.
 
 O fluxo do produto:
 
-**Próxima aula → preparação durante a semana → aula no domingo → biblioteca**
+**Domingos da classe → preparação durante a semana → aula no domingo → resumo da classe → biblioteca**
 
-- **Início**: responde "o que eu preciso estudar para o próximo domingo?" (contagem regressiva, texto base, leitura do dia, materiais e perguntas).
-- **Lição** (`/licoes/{slug}`): página de leitura pensada para o celular, com link bom para compartilhar. Lições públicas abrem **sem login**.
-- **Modo Domingo** (`/licoes/{slug}/domingo`): visual limpo para conduzir ou acompanhar a aula, com tópicos, perguntas e notas do professor.
+- **Início**: responde "o que eu preciso estudar para o próximo domingo?" (lição do próximo encontro, "encontro 2 de 2", aviso de domingo sem EBD, leitura do dia e materiais).
+- **Lição** (`/licoes/{slug}`): no formato da revista (número, versículo-chave, alvo, estudo em I/II/III) e além dela: contexto, teologia, curiosidades, conceitos e anotações pessoais. Lições públicas abrem **sem login**.
+- **Semana de estudo** no Início, para quem é da classe: a leitura de hoje (ler e marcar ali mesmo), a faixa da semana com a sequência de dias, a curiosidade do dia ("Para hoje") e atalhos da lição (PDF, leituras, materiais, Modo Domingo, anotações e progresso). **Leituras da semana** (`/minha-semana`) é só a lista dos dias, para adiantar ou pôr em dia. O aluno entra por um **link pessoal** enviado no WhatsApp, sem senha.
+- **Modo Domingo** (`/licoes/{slug}/domingo`): para conduzir ou acompanhar a aula; o professor vê roteiro, notas de precisão, "se houver tempo", faz a chamada e encerra a aula (lição concluída ou continua).
 - **Biblioteca** (`/biblioteca`): busca por título, conteúdo, série e texto bíblico, com filtros por classe, série e ano.
-- **Gestão** (`/admin`): professores criam séries e lições, adicionam leituras, materiais e perguntas, ordenam, publicam e concluem.
+- **Gestão** (`/admin`): área à parte (backoffice), com cabeçalho e menu próprios (Painel, Classes, Lições, Séries), aberta pelo botão "Gestão" do topo; "Voltar ao app" leva de volta ao estudo, onde o professor também tem a sua semana de estudo. Cada classe tem Resumo (este domingo, que passa para o seguinte assim que a aula de hoje é encerrada; as próximas lições com a mensagem pronta para o grupo, paginadas; pendências, quem precisa de atenção, aniversariantes e os números da classe), Domingos (planejar trimestre, domingos sem EBD e a página de cada domingo com chamada e "onde paramos"), Alunos (a ficha de cada um, com histórico, anotações do professor e acesso ao app) e Relatório (por série, com a chamada aluno × domingo, pronto para imprimir); além de lições e blocos de aprofundamento.
 
 > Decisões de arquitetura, modelagem e trade-offs estão em [`docs/arquitetura.md`](docs/arquitetura.md).
 
@@ -50,9 +51,14 @@ O `.env.example` já vem pronto para o Docker. Os pontos que você talvez queira
 | Variável                                                              | Para quê                                                                                               |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `EBD_CHURCH_NAME`                                                     | Nome da igreja exibido na interface                                                                    |
-| `EBD_TIMEZONE`                                                        | Fuso usado para "hoje", próxima aula e leitura do dia (padrão `Europe/Madrid`)                         |
+| `EBD_TIMEZONE`                                                        | Fuso usado para "hoje", próxima aula e leitura do dia (padrão `America/Sao_Paulo`)                     |
 | `EBD_REGISTRATION_ENABLED`                                            | Liga/desliga o auto-cadastro                                                                           |
 | `EBD_MATERIALS_DISK`                                                  | Disco dos arquivos enviados (`local` em dev; `s3` para S3/R2)                                          |
+| `EBD_ACCESS_LINK_REMEMBER_DAYS`                                       | Dias que o aparelho do aluno fica conectado após usar o link pessoal (padrão 400)                      |
+| `EBD_ACCESS_LINK_TTL_DAYS`                                            | Validade do link pessoal em dias (vazio = até ser trocado ou bloqueado)                                |
+| `EBD_ONBOARDING_REQUIRED`                                             | Aluno completa o cadastro (e-mail, senha, WhatsApp, nascimento, gênero) antes de usar o app            |
+| `EBD_PASSWORD_RESET_BY_EMAIL`                                         | "Esqueci minha senha" por e-mail; `false` orienta a pedir um link novo ao professor                    |
+| `EBD_RISK_MISSED_MEETINGS`, `EBD_RISK_INACTIVE_DAYS`                  | Limites de "alunos que precisam de atenção" (padrão 2 faltas seguidas / 10 dias sem leitura)           |
 | `APP_PORT`, `VITE_PORT`, `FORWARD_DB_PORT`, `FORWARD_MAILPIT_UI_PORT` | Portas publicadas no host                                                                              |
 | `DOCKER_UID`, `DOCKER_GID`                                            | Seu usuário no Linux (`id -u`/`id -g`), para os arquivos criados pelo container ficarem com o seu dono |
 
@@ -64,7 +70,7 @@ O `.env.example` já vem pronto para o Docker. Os pontos que você talvez queira
 make setup
 ```
 
-O `make setup` cria o `.env` (se não existir), constrói a imagem, instala dependências PHP e Node, gera a `APP_KEY`, sobe os containers, recria o banco e popula os dados de desenvolvimento.
+O `make setup` cria o `.env` (se não existir), constrói a imagem, instala dependências PHP e Node, gera a `APP_KEY` e as chaves do OAuth (`storage/oauth-*.key`, fora do Git), sobe os containers, recria o banco e popula os dados de desenvolvimento.
 
 Depois acesse:
 
@@ -79,6 +85,7 @@ docker compose build
 docker compose run --rm --no-deps app composer install
 docker compose run --rm --no-deps app npm install
 docker compose run --rm --no-deps app php artisan key:generate
+docker compose run --rm --no-deps app php artisan passport:keys
 docker compose up -d
 docker compose exec app php artisan migrate:fresh --seed
 ```
@@ -113,7 +120,7 @@ make seed             # só popula
 make fresh            # apaga tudo, roda as migrations e popula
 ```
 
-O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres de Jesus** com a lição **A Santidade de Deus** (Lucas 5:1–11) no próximo domingo, aulas anteriores, uma série do ano passado, uma lição restrita a membros e um rascunho. As datas são calculadas a partir de hoje, então a home sempre tem uma "próxima aula".
+O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres de Jesus** com a lição **A Santidade de Deus** (Lucas 5:1–11) no próximo domingo, a **Lição 11 — É Necessário** (Jo 9) completa no formato da revista (blocos e curiosidades liberadas por dia), aulas anteriores com chamada, uma série do ano passado, uma lição restrita a membros e um rascunho. As datas são calculadas a partir de hoje, então a home sempre tem uma "próxima aula".
 
 **Usuários de desenvolvimento (apenas ambiente local, senha `password` para todos):**
 
@@ -122,8 +129,10 @@ O seed cria as classes **Jovens** e **Adultos**, a série **Jornada dos Milagres
 | `admin@ebd.test`      | Administrador (todas as classes, cadastro de classes e professores) |
 | `professor@ebd.test`  | Professor da classe Jovens                                          |
 | `professora@ebd.test` | Professora da classe Adultos                                        |
-| `aluno@ebd.test`      | Aluno da classe Jovens                                              |
+| `aluno@ebd.test`      | Aluno da classe Jovens (aniversário hoje, para o Resumo)            |
 | `aluna@ebd.test`      | Aluna da classe Adultos                                             |
+
+Os alunos já têm cadastro completo (WhatsApp, nascimento e gênero). A **Aluna do link** (Jovens) não tem e-mail nem senha: gere o link dela em Alunos para testar a entrada pelo link e a tela "Completar cadastro".
 
 > ⚠️ Essas credenciais existem só para desenvolvimento. O `DatabaseSeeder` se recusa a rodar com `APP_ENV=production`.
 
@@ -221,6 +230,57 @@ tests/Feature, tests/Unit
 6. **Página** em `resources/js/pages/...`, usando as rotas geradas pelo Wayfinder (`@/routes/...`).
 7. **Teste** de feature cobrindo a regra e a permissão.
 
+## Texto bíblico
+
+As referências (texto base da lição e leituras da semana) aparecem com o texto completo quando o trecho é reconhecido e o texto bíblico está no banco (`bible_verses`). Sem importação, ou com uma referência que o app não entende, a tela mostra só a referência, como antes.
+
+O texto **não fica no repositório**: a Nova Almeida Atualizada é da Sociedade Bíblica do Brasil. O JSON (`pt_naa.json`, formato com 66 livros → capítulos → versículos, já ignorado pelo Git) fica só no computador de quem importa:
+
+```bash
+php artisan bible:import pt_naa.json
+```
+
+O comando mostra o banco de destino e pede confirmação; `--force` pula a pergunta, `--fresh` apaga o que existia antes. É idempotente (reimportar atualiza sem duplicar). O `db:seed` de desenvolvimento importa sozinho se o arquivo estiver na raiz do projeto.
+
+Formatos aceitos nas referências: `Lucas 5:12-16`, `Lc 5.12-16`, `Sl 23`, `Gn 1.1-2.3`, `Mt 5.3-12; 6.9-13`, `Jo 3.16,18`, `1 Coríntios 13`, `Rm 8.28-30; Jo 14.1-6`. Ao digitar uma leitura no admin, uma prévia confirma como a referência foi entendida. A versão e o crédito exibidos vêm de `EBD_BIBLE_VERSION` e `EBD_BIBLE_CREDIT` (`config/ebd.php`).
+
+## Notificações push
+
+Lembretes no celular pelo PWA (Web Push), sempre **por classe**:
+
+| Quando                | Quem recebe                               | Conteúdo                                                       |
+| --------------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| Todo dia às 9h        | membros com aparelho inscrito             | leitura de hoje da lição da semana (ou "releia o texto base")  |
+| Todo dia às 20h       | idem                                      | "Ainda dá tempo" ou, para quem já leu, lembrete para relembrar |
+| Sábado às 8h          | membros da classe com encontro no domingo | "Amanhã tem EBD!" com a lição                                  |
+| Ao publicar uma lição | todos os membros da classe                | "Nova lição: …"                                                |
+
+Horários no fuso da igreja (`EBD_TIMEZONE`), definidos em `routes/console.php`. Os comandos `ebd:remind-readings {morning|evening}` e `ebd:remind-lesson` podem ser rodados à mão para testar.
+
+- A pessoa ativa em **Perfil → Notificações** ou no convite que aparece no Início. Vale por aparelho; no iPhone só funciona com o app instalado na tela inicial. O botão **Testar** manda uma notificação só para os aparelhos da própria pessoa.
+- Chaves VAPID: `php artisan ebd:vapid-keys` gera o par; `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` vão no `.env` (ou no Railway). Sem chaves, as inscrições são aceitas mas nada é enviado. Trocar as chaves invalida as inscrições existentes.
+- Inscrições expiradas (o serviço de push responde 404/410) são apagadas no envio seguinte.
+- A assinatura VAPID usa BCMath (`ext-bcmath` no `composer.json` e no `Dockerfile`). Sem ela a biblioteca só avisa no log e usa a implementação lenta.
+- O service worker (`public/sw.js`) mostra a notificação e, ao tocar, abre a página indicada. Ao mudar o `sw.js`, aumente a `VERSION`.
+
+## Agentes de IA (MCP)
+
+O app tem um servidor [MCP](https://modelcontextprotocol.io) em `/mcp` para que agentes de IA (Claude no navegador, no celular ou no Claude Code) operem o sistema **em nome de um professor ou administrador**, com as mesmas permissões das telas de gestão.
+
+**Conectar no Claude:** _Configurações → Conectores → Adicionar conector personalizado_, com a URL `https://ebd.up.railway.app/mcp`. O Claude abre o login do EBD e a tela "Conectar Claude"; depois de permitir, o conector fica disponível no navegador e no app do celular. No Claude Code: `claude mcp add --transport http ebd https://ebd.up.railway.app/mcp`.
+
+| Grupo              | Ferramentas                                                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Consultas          | `list_classrooms`, `get_classroom_overview`, `list_lessons`, `get_lesson`, `list_meetings`, `list_students`, `get_student_progress` |
+| Lições             | `save_lesson_draft`, `save_lesson_block`, `save_lesson_reading`, `save_lesson_material`, `remove_lesson_item`                       |
+| Domingos e chamada | `plan_meetings`, `save_meeting`, `record_attendance`, `finish_meeting`, `cancel_meeting`                                            |
+| Alunos             | `add_managed_student`, `update_student`, `move_student`                                                                             |
+
+- **Fica de fora de propósito:** publicar lição (avisa a classe inteira), editar lição publicada, apagar lição, série, encontro ou membro, gerar ou revogar link de acesso, criar classe e definir professores. Isso continua só no app.
+- **Histórico:** toda alteração feita por um agente fica em `audit_logs` (quem, qual aplicativo, ferramenta, argumentos, antes e depois). Registros com mais de um ano são apagados pelo `model:prune` agendado.
+- **Tokens:** valem 1 dia e são renovados sozinhos pelo aplicativo (refresh de 30 dias). Tokens vencidos são limpos pelo `passport:purge` agendado.
+- **Desenvolvimento:** `php artisan mcp:inspector mcp` abre o MCP Inspector contra o servidor local. Os testes ficam em `tests/Feature/Mcp`.
+
 ## Estratégia de storage
 
 Uploads usam a abstração de filesystem do Laravel com o disco definido em `EBD_MATERIALS_DISK`. Os arquivos ficam **fora da pasta pública**, com nome aleatório, e são entregues por `/materiais/{id}/arquivo` só depois de checar a permissão da lição. Em disco local o Laravel faz o stream; em disco `s3` (AWS S3, Cloudflare R2, MinIO) a aplicação redireciona para uma URL temporária assinada.
@@ -237,14 +297,14 @@ Limites de upload: PDF/arquivos 30 MB, áudio 60 MB (`EBD_MAX_UPLOAD_KB`, `EBD_M
 
 ## Deploy no Railway
 
-Produção: **https://app-production-4c4c.up.railway.app** (healthcheck em `/up`).
+Produção: **https://ebd.up.railway.app** (healthcheck em `/up`).
 
-Produção roda no [Railway](https://railway.com), no projeto **EBD** (região `us-east4`), seguindo o mesmo modelo dos outros projetos Laravel da conta: build automático pelo **Railpack**, sem Dockerfile de produção. O `compose.yaml` e o `docker/php/Dockerfile` continuam sendo **só para desenvolvimento local**.
+Produção roda no [Railway](https://railway.com), no projeto **EBD** (região `us-east4`), com a imagem montada pelo `Dockerfile` da raiz (`railway.json` fixa esse builder para o `app` e o `scheduler`). Até 2026-10-05 o build era o automático do **Railpack**; ele quebrou ao baixar o plugin do PHP pelo mise, e o `Dockerfile` reproduz o que ele fazia. O `compose.yaml` e o `docker/php/Dockerfile` continuam sendo **só para desenvolvimento local**.
 
 ### Arquitetura
 
 ```
-GitHub (main) ──push──▶ Railway build (Railpack) ──▶ serviço "app" (FrankenPHP)
+GitHub (main) ──push──▶ Railway build (Dockerfile) ─▶ serviço "app" (FrankenPHP)
                                                         │   └─ volume: /app/storage/app (uploads)
                                                         ▼
                                                   serviço "Postgres" (PostgreSQL 18 + volume)
@@ -255,12 +315,12 @@ GitHub (main) ──push──▶ Railway build (Railpack) ──▶ serviço "a
 | `app`      | Laravel servido pelo **FrankenPHP** (Caddy + PHP 8.4), escutando na porta `$PORT` do Railway. Domínio público `*.up.railway.app` com HTTPS do próprio Railway. |
 | `Postgres` | PostgreSQL gerenciado do Railway, com volume próprio. Acessado pela rede privada.                                                                              |
 
-Não há Redis, worker nem scheduler, porque o sistema ainda não precisa deles: cache e sessões ficam no PostgreSQL, a fila é `sync` e não existem tarefas agendadas. Se um dia houver jobs pesados, crie um serviço `worker` com o mesmo repositório e o start command `php artisan queue:work --tries=3 --backoff=10 --timeout=90`, e troque para `QUEUE_CONNECTION=database`.
+Não há Redis nem worker: cache e sessões ficam no PostgreSQL e a fila é `sync` (os pushes de uma classe saem em paralelo, em poucos segundos). Existe um serviço **`scheduler`** com o mesmo repositório e o start command `php artisan schedule:work`, que dispara os lembretes push (ver [Notificações push](#notificações-push)). Ele usa as mesmas variáveis do `app` por referência (`${{app.APP_KEY}}`, `${{Postgres.DATABASE_URL}}`…), sem domínio público nem healthcheck. Se um dia houver jobs pesados, crie um serviço `worker` com o start command `php artisan queue:work --tries=3 --backoff=10 --timeout=90` e troque para `QUEUE_CONNECTION=database`.
 
-### Como o Railpack builda e inicia
+### Como a imagem é montada e iniciada
 
-- Detecta Laravel pelo `artisan` e usa a imagem `dunglas/frankenphp` na versão de PHP do `composer.json` (`^8.4`).
-- Instala as extensões declaradas como `ext-*` no `composer.json` (`intl`, `pdo_pgsql`) mais as exigidas pelo Laravel.
+- Usa a imagem `dunglas/frankenphp` com PHP 8.4. O `Caddyfile`, o `php.ini` e o `start-container.sh` em `docker/frankenphp/` são os do Railpack v0.40.1.
+- Instala as extensões declaradas como `ext-*` no `composer.json` (`bcmath`, `intl`, `pdo_pgsql`) mais as exigidas pelo Laravel. Extensão nova no `composer.json` precisa entrar também no `Dockerfile`.
 - Roda `composer install`, `npm ci` e `npm run build` na mesma imagem (o Wayfinder precisa do PHP durante o build do Vite).
 - No start, roda `storage:link`, `optimize:clear` e `optimize`. Os caches são refeitos **em runtime**, com as variáveis reais do ambiente, e só então sobe o FrankenPHP.
 
@@ -269,7 +329,7 @@ Não há Redis, worker nem scheduler, porque o sistema ainda não precisa deles:
 | Configuração       | Valor                                                                     |
 | ------------------ | ------------------------------------------------------------------------- |
 | Source             | GitHub `simonscabello/ebd`, branch `main` (deploy automático a cada push) |
-| Builder            | Railpack                                                                  |
+| Builder            | Dockerfile (`railway.json`)                                               |
 | Pre-deploy command | `php artisan ebd:predeploy` (migrations + `ebd:promote-admins`)           |
 | Healthcheck        | `/up`, timeout de 300 s                                                   |
 | Volume             | montado em `/app/storage/app`                                             |
@@ -277,31 +337,37 @@ Não há Redis, worker nem scheduler, porque o sistema ainda não precisa deles:
 
 ### Variáveis de ambiente (serviço `app`)
 
-| Variável                                                        | Valor                                        | Observação                                              |
-| --------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------- |
-| `APP_NAME`                                                      | `EBD`                                        |                                                         |
-| `APP_ENV`                                                       | `production`                                 |                                                         |
-| `APP_DEBUG`                                                     | `false`                                      | nunca `true` em produção                                |
-| `APP_KEY`                                                       | gerada com `php artisan key:generate --show` | secreta; só no Railway                                  |
-| `APP_URL`                                                       | `https://${{RAILWAY_PUBLIC_DOMAIN}}`         | referência ao domínio do próprio serviço                |
-| `APP_LOCALE` / `APP_FALLBACK_LOCALE`                            | `pt_BR` / `en`                               |                                                         |
-| `LOG_CHANNEL` / `LOG_LEVEL`                                     | `stderr` / `info`                            | logs vão para o painel do Railway                       |
-| `DB_CONNECTION`                                                 | `pgsql`                                      | também faz o Railpack instalar `pdo_pgsql`              |
-| `DB_URL`                                                        | `${{Postgres.DATABASE_URL}}`                 | referência; nenhuma credencial fica no Git              |
-| `SESSION_DRIVER` / `SESSION_SECURE_COOKIE` / `SESSION_LIFETIME` | `database` / `true` / `120`                  |                                                         |
-| `CACHE_STORE`                                                   | `database`                                   |                                                         |
-| `QUEUE_CONNECTION`                                              | `sync`                                       |                                                         |
-| `FILESYSTEM_DISK` / `EBD_MATERIALS_DISK`                        | `local` / `local`                            | arquivos no volume                                      |
-| `MAIL_MAILER`                                                   | `log`                                        | provisório: e-mails só aparecem no log (ver pendências) |
-| `EBD_CHURCH_NAME`, `EBD_TIMEZONE`, `EBD_REGISTRATION_ENABLED`   | ver `.env.example`                           |                                                         |
-| `EBD_ADMIN_EMAILS`                                              | e-mails separados por vírgula                | contas promovidas a admin no pre-deploy                 |
-| `RAILPACK_SKIP_MIGRATIONS`                                      | `true`                                       | as migrations rodam no pre-deploy, não no start         |
+| Variável                                                        | Valor                                        | Observação                                                                                         |
+| --------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `APP_NAME`                                                      | `EBD`                                        |                                                                                                    |
+| `APP_ENV`                                                       | `production`                                 |                                                                                                    |
+| `APP_DEBUG`                                                     | `false`                                      | nunca `true` em produção                                                                           |
+| `APP_KEY`                                                       | gerada com `php artisan key:generate --show` | secreta; só no Railway                                                                             |
+| `APP_URL`                                                       | `https://${{RAILWAY_PUBLIC_DOMAIN}}`         | referência ao domínio do próprio serviço                                                           |
+| `APP_LOCALE` / `APP_FALLBACK_LOCALE`                            | `pt_BR` / `en`                               |                                                                                                    |
+| `LOG_CHANNEL` / `LOG_LEVEL`                                     | `stderr` / `info`                            | logs vão para o painel do Railway                                                                  |
+| `DB_CONNECTION`                                                 | `pgsql`                                      | também faz o Railpack instalar `pdo_pgsql`                                                         |
+| `DB_URL`                                                        | `${{Postgres.DATABASE_URL}}`                 | referência; nenhuma credencial fica no Git                                                         |
+| `SESSION_DRIVER` / `SESSION_SECURE_COOKIE` / `SESSION_LIFETIME` | `database` / `true` / `120`                  |                                                                                                    |
+| `CACHE_STORE`                                                   | `database`                                   |                                                                                                    |
+| `QUEUE_CONNECTION`                                              | `sync`                                       |                                                                                                    |
+| `FILESYSTEM_DISK` / `EBD_MATERIALS_DISK`                        | `local` / `local`                            | arquivos no volume                                                                                 |
+| `MAIL_MAILER`                                                   | `log`                                        | provisório: e-mails só aparecem no log (ver pendências)                                            |
+| `EBD_CHURCH_NAME`, `EBD_TIMEZONE`, `EBD_REGISTRATION_ENABLED`   | ver `.env.example`                           |                                                                                                    |
+| `EBD_ACCESS_LINK_*`, `EBD_RISK_*`                               | opcionais, ver `.env.example`                | padrões funcionam; `SESSION_DRIVER` precisa ser `database` para "Bloquear acesso" derrubar sessões |
+| `EBD_ONBOARDING_REQUIRED` / `EBD_PASSWORD_RESET_BY_EMAIL`       | `true` / `false`                             | cadastro obrigatório do aluno; ligar o e-mail só depois de configurar um provedor SMTP             |
+| `EBD_ADMIN_EMAILS`                                              | e-mails separados por vírgula                | contas promovidas a admin no pre-deploy                                                            |
+| `VAPID_SUBJECT` / `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`      | `php artisan ebd:vapid-keys`                 | notificações push; a privada é secreta, só no Railway                                              |
+| `PASSPORT_PRIVATE_KEY` / `PASSPORT_PUBLIC_KEY`                  | `php artisan passport:keys --force` (local)  | OAuth do servidor MCP; conteúdo PEM completo dos arquivos gerados; a privada é secreta             |
+| `RAILPACK_SKIP_MIGRATIONS`                                      | `true`                                       | as migrations rodam no pre-deploy, não no start                                                    |
 
 ### Migrations
 
 Rodam no **pre-deploy command** (`php artisan ebd:predeploy`): um container temporário, com a imagem nova, executa `php artisan migrate --force` **uma vez por deploy**, antes de a versão nova receber tráfego. Se a migration falhar, o deploy é abortado e a versão anterior continua no ar; o erro aparece nos logs do deploy. A migration automática do Railpack no start fica desligada (`RAILPACK_SKIP_MIGRATIONS=true`) para não rodar em paralelo.
 
 Em produção nunca rode `migrate:fresh`, `db:wipe` nem `db:seed`: os seeders são só para desenvolvimento e se recusam a rodar com `APP_ENV=production`.
+
+> **Antes do deploy que separa lição de domingo** (migration `2026_09_23_001000_backfill_meetings_and_simplify_lesson_status`), faça um backup do PostgreSQL (_Postgres → Backups_ no Railway). Ela converte as datas das lições em encontros e remove as colunas `teacher_notes` e `completed_at` (o conteúdo das notas vira um bloco "Notas do professor"). O `down()` existe, mas o backup é a proteção real.
 
 ### Primeiro administrador
 
@@ -312,6 +378,16 @@ O banco de produção começa vazio. Para ter o primeiro admin:
 3. Faça um redeploy. O pre-deploy (`ebd:predeploy`) roda `ebd:promote-admins`, que **só promove contas já existentes** e é idempotente.
 
 Depois disso, crie as classes em **Gestão → Classes** e adicione os professores.
+
+### Texto bíblico em produção
+
+O JSON nunca sobe para o Railway: a importação roda **do seu computador**, apontando para o Postgres de produção. O banco não tem endpoint público; abra um **TCP proxy** temporário no serviço `Postgres` (_Settings → Networking → TCP Proxy_) e rode, com a URL pública que o Railway mostra em `DATABASE_PUBLIC_URL`:
+
+```bash
+DB_URL='postgresql://postgres:SENHA@HOST.proxy.rlwy.net:PORTA/railway' php artisan bible:import pt_naa.json
+```
+
+Confira o destino que o comando mostra antes de confirmar. Depois, **remova o TCP proxy** para o banco voltar a ficar só na rede privada. A tabela precisa existir: a migration roda no pre-deploy do deploy que a introduziu.
 
 ### Storage
 
@@ -331,8 +407,9 @@ Os materiais enviados (PDFs, áudios) ficam no **volume** do serviço `app`, mon
 - `APP_DEBUG=false`: erros aparecem como página genérica, com detalhes só no log.
 - O Laravel confia no proxy do Railway (`trustProxies`), então reconhece HTTPS e o host público. Em produção, todas as URLs são geradas em `https`.
 - Cookies de sessão são `secure` e `SameSite=Lax`. O CSRF é o padrão do Laravel.
-- `.env` não existe na imagem (as variáveis vêm do Railway), e o Caddy do Railpack esconde `.env*` e `.git`. O cabeçalho `X-Powered-By` é removido.
+- `.env` não existe na imagem (as variáveis vêm do Railway), e o Caddy (`docker/frankenphp/Caddyfile`) esconde `.env*` e `.git`. O cabeçalho `X-Powered-By` é removido.
 - Uploads ficam fora de `public/`; os arquivos só saem pelo controller, depois de checar a permissão da lição.
+- O OAuth do servidor MCP só aceita aplicativos com retorno em `claude.ai`, `claude.com` ou `localhost` (`config/mcp.php`), e o token só funciona para professores e administradores.
 
 ### Deploys futuros
 

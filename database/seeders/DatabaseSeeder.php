@@ -22,6 +22,15 @@ class DatabaseSeeder extends Seeder
             ClassroomSeeder::class,
             UserSeeder::class,
             LessonContentSeeder::class,
+            EngagementSeeder::class,
         ]);
+
+        // O texto bíblico não fica no repositório. Se o JSON estiver na raiz
+        // do projeto, importa junto para as leituras já aparecerem com texto.
+        $json = base_path('pt_naa.json');
+
+        if (is_file($json)) {
+            $this->command->call('bible:import', ['path' => $json, '--force' => true]);
+        }
     }
 }

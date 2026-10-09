@@ -5,18 +5,24 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Lessons\CreateLesson;
 use App\Actions\Lessons\UpdateLesson;
 use App\Enums\ClassroomRole;
+use App\Enums\ContentAudience;
+use App\Enums\LessonBlockKind;
 use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
 use App\Enums\MaterialType;
+use App\Enums\MeetingStatus;
 use App\Enums\Weekday;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
+use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\ClassroomResource;
+use App\Http\Resources\LessonAudioResource;
+use App\Http\Resources\LessonBlockResource;
 use App\Http\Resources\LessonMaterialResource;
-use App\Http\Resources\LessonQuestionResource;
 use App\Http\Resources\LessonReadingResource;
 use App\Http\Resources\LessonResource;
 use App\Http\Resources\SeriesResource;
+use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
@@ -25,6 +31,7 @@ use App\Support\ChurchCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -45,14 +52,21 @@ class LessonController extends Controller
         $manageable = $request->user()->manageableClassroomIds();
 
         $lessons = Lesson::query()
-            ->when($manageable !== null, fn ($q) => $q->whereIn('classroom_id', $manageable))
-            ->when($filters['classe'] ?? null, fn ($q, $id) => $q->where('classroom_id', $id))
-            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
-            ->when($filters['q'] ?? null, fn ($q, $term) => $q->whereRaw('unaccent(title) ILIKE unaccent(?)', ['%'.addcslashes($term, '%_\\').'%']))
+            ->select('lessons.*')
+            ->leftJoin('series', 'series.id', '=', 'lessons.series_id')
+            ->when($manageable !== null, fn ($q) => $q->whereIn('lessons.classroom_id', $manageable))
+            ->when($filters['classe'] ?? null, fn ($q, $id) => $q->where('lessons.classroom_id', $id))
+            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('lessons.status', $status))
+            ->when($filters['q'] ?? null, fn ($q, $term) => $q->whereRaw('unaccent(lessons.title) ILIKE unaccent(?)', ['%'.addcslashes($term, '%_\\').'%']))
             ->with(['classroom', 'series'])
-            ->withCount(['materials', 'questions'])
-            ->orderByRaw('scheduled_for IS NULL DESC, scheduled_for DESC')
-            ->paginate(20)
+            ->withCount(['materials'])
+            // Agrupadas por série (a mais recente primeiro; sem série no fim), na ordem da revista.
+            ->orderByRaw('lessons.series_id IS NULL')
+            ->orderByRaw('series.starts_on DESC NULLS LAST')
+            ->orderByDesc('lessons.series_id')
+            ->orderByRaw('lessons.number IS NULL, lessons.number')
+            ->orderBy('lessons.title')
+            ->paginate(50)
             ->withQueryString();
 
         return Inertia::render('admin/lessons/index', [
@@ -82,7 +96,7 @@ class LessonController extends Controller
             'defaults' => [
                 'classroom_id' => $request->integer('classe') ?: $classroomIds->first(),
                 'series_id' => $request->integer('serie') ?: null,
-                'scheduled_for' => ChurchCalendar::nextSunday()->toDateString(),
+                'meeting_on' => ChurchCalendar::nextSunday()->toDateString(),
             ],
             'visibilities' => $this->visibilityOptions(),
         ]);
@@ -95,7 +109,7 @@ class LessonController extends Controller
 
         $lesson = $create->handle($request->user(), $classroom, $request->validated());
 
-        $this->toast('Lição criada como rascunho. Agora adicione leituras, materiais e perguntas.');
+        $this->toast('Lição criada como rascunho. Agora adicione leituras e materiais.');
 
         return to_route('admin.lessons.edit', $lesson);
     }
@@ -104,23 +118,23 @@ class LessonController extends Controller
     {
         Gate::authorize('update', $lesson);
 
-        $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'questions']);
+        $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'blocks', 'meetings']);
 
         return Inertia::render('admin/lessons/edit', [
             'lesson' => [
                 'id' => $lesson->id,
                 'classroom' => ClassroomResource::make($lesson->classroom),
                 'series_id' => $lesson->series_id,
+                'number' => $lesson->number,
                 'title' => $lesson->title,
                 'slug' => $lesson->slug,
                 'url' => route('lessons.show', $lesson->slug),
                 'sunday_url' => route('lessons.sunday', $lesson->slug),
                 'summary' => $lesson->summary,
-                'scheduled_for' => $lesson->scheduled_for?->toDateString(),
                 'bible_reference' => $lesson->bible_reference,
-                'bible_text' => $lesson->bible_text,
+                'key_verse' => $lesson->key_verse,
+                'goal' => $lesson->goal,
                 'content' => $lesson->content,
-                'teacher_notes' => $lesson->teacher_notes,
                 'visibility' => $lesson->visibility->value,
                 'status' => $lesson->status->value,
                 'status_label' => $lesson->status->label(),
@@ -129,8 +143,15 @@ class LessonController extends Controller
                 'author_ids' => $lesson->authors->pluck('id'),
                 'materials' => LessonMaterialResource::collection($lesson->materials),
                 'readings' => LessonReadingResource::collection($lesson->readings),
-                'questions' => LessonQuestionResource::collection($lesson->questions),
+                'blocks' => LessonBlockResource::editable($lesson->blocks, $request),
+                'meetings' => $lesson->meetings->map(fn (ClassMeeting $meeting) => [
+                    ...ClassMeetingResource::make($meeting)->resolve($request),
+                    'url' => route('admin.classrooms.meetings.show', [$lesson->classroom, $meeting]),
+                ]),
+                'meetings_url' => route('admin.classrooms.meetings.index', $lesson->classroom),
             ],
+            // Fora de "lesson" para a página recarregar só isto enquanto o áudio é gerado.
+            'audio' => LessonAudioResource::manage($lesson),
             'series' => SeriesResource::collection($lesson->classroom->series()->orderByDesc('starts_on')->orderBy('title')->get()),
             'authors' => $lesson->classroom->members()
                 ->wherePivot('role', ClassroomRole::Teacher->value)
@@ -148,6 +169,12 @@ class LessonController extends Controller
                 'max_mb' => (int) floor($type->maxUploadKilobytes() / 1024),
             ]),
             'weekdays' => collect(Weekday::cases())->map(fn (Weekday $d) => ['value' => $d->value, 'label' => $d->label()]),
+            'blockKinds' => collect(LessonBlockKind::cases())->map(fn (LessonBlockKind $k) => [
+                'value' => $k->value,
+                'label' => $k->label(),
+                'default_audience' => $k->defaultAudience()->value,
+            ]),
+            'audiences' => collect(ContentAudience::cases())->map(fn (ContentAudience $a) => ['value' => $a->value, 'label' => $a->label()]),
         ]);
     }
 
@@ -164,7 +191,12 @@ class LessonController extends Controller
     {
         Gate::authorize('delete', $lesson);
 
-        $lesson->delete();
+        DB::transaction(function () use ($lesson) {
+            // Domingos planejados ficam livres; encontros já realizados continuam
+            // como histórico (a lição excluída pode ser restaurada).
+            $lesson->meetings()->where('status', MeetingStatus::Planned)->update(['lesson_id' => null]);
+            $lesson->delete();
+        });
 
         $this->toast('Lição excluída.');
 

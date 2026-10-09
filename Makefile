@@ -12,6 +12,7 @@ help: ## Lista os comandos disponíveis
 
 setup: env build install ## Primeira execução: .env, imagem, dependências, banco e seed
 	@grep -q '^APP_KEY=base64' .env || $(RUN) php artisan key:generate --no-interaction
+	@test -f storage/oauth-private.key || $(RUN) php artisan passport:keys --no-interaction
 	$(COMPOSE) up -d --wait app
 	$(APP) php artisan migrate:fresh --seed --no-interaction
 	$(COMPOSE) up -d

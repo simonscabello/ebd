@@ -10,8 +10,8 @@ use App\Models\User;
  * Regras de acesso às lições:
  *
  * - Rascunho: apenas quem gerencia a classe (professores dela e administradores).
- * - Publicada/concluída + pública: qualquer pessoa, inclusive sem login.
- * - Publicada/concluída + membros: pessoas autenticadas vinculadas à classe.
+ * - Publicada + pública: qualquer pessoa, inclusive sem login.
+ * - Publicada + membros: pessoas autenticadas vinculadas à classe.
  *
  * O escopo Lesson::visibleTo() aplica a mesma regra em consultas.
  */
@@ -34,8 +34,11 @@ class LessonPolicy
         return $user !== null && $user->isMemberOf($lesson->classroom_id);
     }
 
-    /** Notas do professor nunca saem para alunos ou visitantes. */
-    public function viewTeacherNotes(?User $user, Lesson $lesson): bool
+    /**
+     * Conteúdo do professor (roteiro, notas de precisão, materiais só do
+     * professor, notas e chamada dos encontros) nunca sai para alunos ou visitantes.
+     */
+    public function viewTeacherContent(?User $user, Lesson $lesson): bool
     {
         return $user?->canManageClassroom($lesson->classroom_id) ?? false;
     }

@@ -7,12 +7,13 @@ use App\Models\User;
 
 class ClassroomPolicy
 {
-    /** Cadastro de classes é tarefa da administração geral. */
+    /** Lista de classes: cada professor vê as suas; a administração, todas. */
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->canAccessAdmin();
     }
 
+    /** Cadastro de classes é tarefa da administração geral. */
     public function create(User $user): bool
     {
         return $user->isAdmin();
@@ -39,5 +40,28 @@ class ClassroomPolicy
     public function assignTeachers(User $user, Classroom $classroom): bool
     {
         return $user->isAdmin();
+    }
+
+    /** Painel de evolução da classe. */
+    public function viewInsights(User $user, Classroom $classroom): bool
+    {
+        return $user->canManageClassroom($classroom);
+    }
+
+    /**
+     * Progresso de um aluno: só de quem é aluno desta classe. Para os demais,
+     * 404 (não confirma que a pessoa existe).
+     */
+    public function viewStudentProgress(User $user, Classroom $classroom, User $student): bool
+    {
+        if (! $user->canManageClassroom($classroom)) {
+            return false;
+        }
+
+        if (! $student->isMemberOf($classroom) || $student->isTeacherOf($classroom)) {
+            abort(404);
+        }
+
+        return true;
     }
 }

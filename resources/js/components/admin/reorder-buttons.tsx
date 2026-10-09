@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { reorder } from '@/routes/admin/lessons';
 
-type Relation = 'materials' | 'questions' | 'readings';
+type Relation = 'materials' | 'readings' | 'blocks';
 
 /**
  * Setas para reordenar itens. Botões são mais acessíveis e confiáveis no
@@ -45,7 +45,7 @@ export function ReorderButtons({
                 type="button"
                 onClick={() => move(-1)}
                 disabled={index === 0}
-                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                className="flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-30"
                 aria-label="Mover para cima"
             >
                 <ArrowUp className="size-4" />
@@ -54,7 +54,7 @@ export function ReorderButtons({
                 type="button"
                 onClick={() => move(1)}
                 disabled={index === ids.length - 1}
-                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                className="flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-30"
                 aria-label="Mover para baixo"
             >
                 <ArrowDown className="size-4" />

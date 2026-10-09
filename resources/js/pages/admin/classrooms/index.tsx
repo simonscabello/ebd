@@ -1,18 +1,27 @@
 import { Head, Link } from '@inertiajs/react';
-import { Plus, Users } from 'lucide-react';
-import { Page, PageHeader } from '@/components/page';
+import { ChevronRight, Plus } from 'lucide-react';
+import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
-import { create, edit } from '@/routes/admin/classrooms';
-import { index as members } from '@/routes/admin/classrooms/members';
+import { plural } from '@/lib/utils';
+import { create, edit, show } from '@/routes/admin/classrooms';
 import type { Classroom } from '@/types';
 
 type Row = Classroom & {
-    members_count: number;
+    students_count: number;
     lessons_count: number;
     series_count: number;
 };
 
-export default function ClassroomsIndex({ classrooms }: { classrooms: Row[] }) {
+/**
+ * Classes: cada professor vê as suas; a administração vê todas e cadastra.
+ */
+export default function ClassroomsIndex({
+    classrooms,
+    canCreate,
+}: {
+    classrooms: Row[];
+    canCreate: boolean;
+}) {
     return (
         <>
             <Head title="Classes" />
@@ -20,54 +29,80 @@ export default function ClassroomsIndex({ classrooms }: { classrooms: Row[] }) {
                 <PageHeader
                     title="Classes"
                     actions={
-                        <Button asChild>
-                            <Link href={create()}>
-                                <Plus /> Nova classe
-                            </Link>
-                        </Button>
+                        canCreate && (
+                            <Button asChild>
+                                <Link href={create()}>
+                                    <Plus /> Nova classe
+                                </Link>
+                            </Button>
+                        )
                     }
                 />
-                <ul className="grid gap-3 sm:grid-cols-2">
-                    {classrooms.map((classroom) => (
-                        <li
-                            key={classroom.id}
-                            className="rounded-2xl border bg-card p-4"
-                        >
-                            <div className="flex items-start justify-between gap-2">
-                                <p className="font-serif text-lg font-semibold">
-                                    {classroom.name}
-                                </p>
-                                {!classroom.is_active && (
-                                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                                        Inativa
-                                    </span>
+                {classrooms.length === 0 ? (
+                    <EmptyState title="Nenhuma classe ainda" />
+                ) : (
+                    <ul className="grid gap-3 sm:grid-cols-2">
+                        {classrooms.map((classroom) => (
+                            <li
+                                key={classroom.id}
+                                className="flex flex-col rounded-2xl border bg-card p-4"
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <p className="font-serif text-lg font-semibold">
+                                        {classroom.name}
+                                    </p>
+                                    {!classroom.is_active && (
+                                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                            Inativa
+                                        </span>
+                                    )}
+                                </div>
+                                {classroom.description && (
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {classroom.description}
+                                    </p>
                                 )}
-                            </div>
-                            {classroom.description && (
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {classroom.description}
+                                <p className="mt-3 flex-1 text-sm text-muted-foreground">
+                                    {plural(
+                                        classroom.students_count,
+                                        'aluno',
+                                        'alunos',
+                                    )}{' '}
+                                    ·{' '}
+                                    {plural(
+                                        classroom.series_count,
+                                        'série',
+                                        'séries',
+                                    )}{' '}
+                                    ·{' '}
+                                    {plural(
+                                        classroom.lessons_count,
+                                        'lição',
+                                        'lições',
+                                    )}
                                 </p>
-                            )}
-                            <p className="mt-3 text-sm text-muted-foreground">
-                                {classroom.members_count} membros ·{' '}
-                                {classroom.series_count} séries ·{' '}
-                                {classroom.lessons_count} lições
-                            </p>
-                            <div className="mt-3 flex gap-2">
-                                <Button asChild size="sm" variant="outline">
-                                    <Link href={members(classroom.slug)}>
-                                        <Users /> Membros
-                                    </Link>
-                                </Button>
-                                <Button asChild size="sm" variant="ghost">
-                                    <Link href={edit(classroom.slug)}>
-                                        Editar
-                                    </Link>
-                                </Button>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
+                                <div className="mt-3 flex gap-2">
+                                    <Button asChild size="sm">
+                                        <Link href={show(classroom.slug)}>
+                                            Abrir classe <ChevronRight />
+                                        </Link>
+                                    </Button>
+                                    {canCreate && (
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                        >
+                                            <Link href={edit(classroom.slug)}>
+                                                Editar
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </Page>
         </>
     );

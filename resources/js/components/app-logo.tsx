@@ -1,25 +1,22 @@
-import { BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** O ícone do app (o mesmo da tela de início do celular). */
 export function AppLogoMark({ className }: { className?: string }) {
     return (
-        <span
-            className={cn(
-                'flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground',
-                className,
-            )}
+        <img
+            src="/icons/icon.svg"
+            alt=""
             aria-hidden
-        >
-            <BookOpen className="size-5" strokeWidth={2.2} />
-        </span>
+            className={cn('size-9 shrink-0 rounded-[22%]', className)}
+        />
     );
 }
 
 export default function AppLogo({ churchName }: { churchName?: string }) {
     return (
-        <span className="flex items-center gap-2.5">
+        <span className="flex min-w-0 items-center gap-2.5">
             <AppLogoMark />
-            <span className="flex flex-col leading-tight">
+            <span className="flex min-w-0 flex-col leading-tight">
                 <span className="text-[15px] font-semibold tracking-tight">
                     EBD
                 </span>

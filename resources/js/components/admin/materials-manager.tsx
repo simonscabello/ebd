@@ -1,14 +1,18 @@
 import { router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { Lock, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReorderButtons } from '@/components/admin/reorder-buttons';
+import { useConfirm } from '@/components/confirm-dialog';
+import { UnsavedHint } from '@/components/admin/unsaved-hint';
 import { Field } from '@/components/form-field';
 import { MaterialIcon } from '@/components/lesson/material-card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { FileInput } from '@/components/ui/file-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { cn } from '@/lib/utils';
 import { destroy, store, update } from '@/routes/admin/lessons/materials';
 import type { LessonMaterial, MaterialTypeValue } from '@/types';
@@ -35,10 +39,12 @@ type MaterialForm = {
     description: string;
     url: string;
     is_primary: boolean;
+    teacher_only: boolean;
     file: File | null;
 };
 
 export function MaterialsManager({ lessonId, materials, types }: Props) {
+    const confirm = useConfirm();
     const [editing, setEditing] = useState<number | null>(null);
     const ids = materials.map((m) => m.id);
 
@@ -66,7 +72,7 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                 />
                             ) : (
                                 <>
-                                    <span className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                                    <span className="mt-1 hidden size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground sm:flex">
                                         <MaterialIcon
                                             type={material.type}
                                             className="size-5"
@@ -78,6 +84,13 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                                 <Star className="size-3.5 fill-current text-amber-500" />
                                             )}
                                             {material.type_label}
+                                            {material.audience ===
+                                                'teacher' && (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                                                    <Lock className="size-3" />{' '}
+                                                    Só professor
+                                                </span>
+                                            )}
                                             {material.file &&
                                                 ` · ${material.file.name} · ${material.file.size}`}
                                         </p>
@@ -90,36 +103,47 @@ export function MaterialsManager({ lessonId, materials, types }: Props) {
                                             </p>
                                         )}
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setEditing(material.id)}
-                                        aria-label="Editar material"
-                                    >
-                                        <Pencil />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Remover material"
-                                        onClick={() => {
-                                            if (
-                                                confirm(
-                                                    `Remover "${material.title}"? Arquivos enviados também serão apagados.`,
-                                                )
-                                            ) {
-                                                router.delete(
-                                                    destroy.url({
-                                                        lesson: lessonId,
-                                                        material: material.id,
-                                                    }),
-                                                    { preserveScroll: true },
-                                                );
+                                    <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() =>
+                                                setEditing(material.id)
                                             }
-                                        }}
-                                    >
-                                        <Trash2 />
-                                    </Button>
+                                            aria-label="Editar material"
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label="Remover material"
+                                            onClick={async () => {
+                                                if (
+                                                    await confirm({
+                                                        title: `Remover "${material.title}"?`,
+                                                        description:
+                                                            'Arquivos enviados também serão apagados.',
+                                                        confirmLabel: 'Remover',
+                                                        destructive: true,
+                                                    })
+                                                ) {
+                                                    router.delete(
+                                                        destroy.url({
+                                                            lesson: lessonId,
+                                                            material:
+                                                                material.id,
+                                                        }),
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </div>
                                 </>
                             )}
                         </li>
@@ -153,9 +177,17 @@ function MaterialEditor({
         description: material?.description ?? '',
         url: material?.url ?? '',
         is_primary: material?.is_primary ?? false,
+        teacher_only: material?.audience === 'teacher',
         file: null,
     });
     const { data, setData, errors, processing, progress } = form;
+    // No material novo, escolher só o tipo não conta como alteração.
+    const unsaved =
+        form.isDirty &&
+        (material !== undefined ||
+            Boolean(data.title || data.file || data.url || data.description));
+
+    useUnsavedChangesGuard(unsaved && !processing);
     const type = types.find((t) => t.value === data.type) ?? types[0];
     const prefix = material ? `material-${material.id}` : 'material-new';
     const showUrl =
@@ -173,6 +205,7 @@ function MaterialEditor({
                 description: values.description,
                 url: values.url,
                 is_primary: values.is_primary ? 1 : 0,
+                audience: values.teacher_only ? 'teacher' : 'student',
             };
 
             if (!material) payload.type = values.type;
@@ -197,6 +230,7 @@ function MaterialEditor({
 
     return (
         <form
+            noValidate
             onSubmit={submit}
             className={
                 material
@@ -209,7 +243,7 @@ function MaterialEditor({
                     <legend className="mb-2 text-sm font-medium">
                         Adicionar material
                     </legend>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                         {types.map((option) => (
                             <button
                                 key={option.value}
@@ -223,7 +257,7 @@ function MaterialEditor({
                                 }
                                 aria-pressed={data.type === option.value}
                                 className={cn(
-                                    'inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-sm',
+                                    'inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-left text-sm leading-tight',
                                     data.type === option.value &&
                                         'border-primary bg-primary text-primary-foreground',
                                 )}
@@ -270,15 +304,12 @@ function MaterialEditor({
                     error={errors.file}
                     hint={`Formatos: ${type.accept.replaceAll('.', '').replaceAll(',', ', ')}. Até ${type.max_mb} MB.${type.value === 'audio' ? ' Ou informe um link abaixo.' : ''}`}
                 >
-                    <Input
+                    <FileInput
                         id={`${prefix}-file`}
-                        type="file"
                         accept={type.accept}
-                        onChange={(event) =>
-                            setData('file', event.target.files?.[0] ?? null)
-                        }
-                        required={!material && type.requires_upload}
-                        className="h-auto py-2"
+                        file={data.file}
+                        onFileChange={(file) => setData('file', file)}
+                        aria-invalid={errors.file ? true : undefined}
                     />
                     {progress && (
                         <progress
@@ -344,15 +375,29 @@ function MaterialEditor({
                 </div>
             )}
 
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center gap-2">
+                <Checkbox
+                    id={`${prefix}-teacher`}
+                    checked={data.teacher_only}
+                    onCheckedChange={(value) =>
+                        setData('teacher_only', value === true)
+                    }
+                />
+                <Label htmlFor={`${prefix}-teacher`} className="font-normal">
+                    Só para professores (ex.: manual completo, roteiro em PDF)
+                </Label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+                {unsaved && <UnsavedHint />}
                 {onDone && (
-                    <Button type="button" variant="ghost" onClick={onDone}>
+                    <Button type="button" variant="outline" onClick={onDone}>
                         Cancelar
                     </Button>
                 )}
                 <Button
                     type="submit"
-                    variant={material ? 'default' : 'secondary'}
+                    variant={material ? 'default' : 'outline'}
                     disabled={processing}
                 >
                     {!material && <Plus />}{' '}

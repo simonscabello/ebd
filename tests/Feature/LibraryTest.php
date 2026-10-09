@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Lessons\SyncLessonSearchText;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
@@ -127,5 +128,16 @@ class LibraryTest extends TestCase
         // Só símbolos: vira busca vazia (lista tudo), sem erro de sintaxe no PostgreSQL.
         $this->assertCount(3, $this->titles('q='.urlencode("'&|!():* <>")));
         $this->assertSame([], $this->titles('q='.urlencode("santidade') OR 1=1 --")));
+    }
+
+    public function test_finds_student_blocks_but_never_teacher_only_blocks(): void
+    {
+        $lesson = Lesson::query()->where('title', 'A Santidade de Deus')->sole();
+        $lesson->blocks()->create(['kind' => 'concept', 'audience' => 'student', 'title' => 'Qadosh', 'body' => 'Separado para Deus.']);
+        $lesson->blocks()->create(['kind' => 'roteiro', 'audience' => 'teacher', 'body' => 'Contar a história do braseiro.']);
+        app(SyncLessonSearchText::class)->handle($lesson);
+
+        $this->assertSame(['A Santidade de Deus'], $this->titles('q=qadosh'));
+        $this->assertSame([], $this->titles('q=braseiro'));
     }
 }

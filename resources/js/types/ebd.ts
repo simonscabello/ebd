@@ -30,10 +30,13 @@ export type MaterialTypeValue =
     | 'audio'
     | 'reference';
 
+export type Audience = 'teacher' | 'student';
+
 export type LessonMaterial = {
     id: number;
     type: MaterialTypeValue;
     type_label: string;
+    audience: Audience;
     title: string;
     description: string | null;
     url: string | null;
@@ -50,6 +53,20 @@ export type LessonMaterial = {
     } | null;
 };
 
+export type BibleVerse = { chapter: number; verse: number; text: string };
+
+/**
+ * Texto de uma referência, quando ela foi reconhecida e o texto bíblico está
+ * importado. Nulo = mostrar só a referência, como sempre.
+ */
+export type BiblePassage = {
+    /** Forma canônica, ex.: "Lucas 5.12-16". */
+    label: string;
+    version: string;
+    credit: string;
+    verses: BibleVerse[];
+};
+
 export type LessonReading = {
     id: number;
     weekday: number | null;
@@ -57,21 +74,84 @@ export type LessonReading = {
     weekday_short: string | null;
     is_today: boolean;
     reference: string;
+    passage: BiblePassage | null;
     notes: string | null;
     position: number;
 };
 
-export type LessonQuestion = {
+export type LessonBlockKind =
+    | 'roteiro'
+    | 'extra_time'
+    | 'accuracy_note'
+    | 'teacher_note'
+    | 'context'
+    | 'theology'
+    | 'curiosity'
+    | 'application'
+    | 'concept';
+
+export type LessonBlock = {
     id: number;
-    body: string;
+    kind: LessonBlockKind;
+    kind_label: string;
+    audience: Audience;
+    title: string | null;
+    display_title: string;
+    body_html: string | null;
+    body?: string;
+    drip_weekday: number | null;
+    drip_weekday_label: string | null;
     position: number;
 };
 
-export type LessonStatus = 'draft' | 'published' | 'completed';
+export type MeetingStatus = 'planned' | 'held' | 'cancelled';
+
+export type ClassMeeting = {
+    id: number;
+    held_on: string;
+    date_label: string;
+    date_short: string;
+    days_until: number;
+    status: MeetingStatus;
+    status_label: string;
+    title: string | null;
+    lesson_id: number | null;
+    lesson?: {
+        id: number;
+        title: string;
+        display_title: string;
+        number: number | null;
+        slug: string;
+        status: LessonStatus;
+    } | null;
+    has_attendance: boolean;
+    visitors_count: number;
+    notes?: string | null;
+};
+
+export type LessonStatus = 'draft' | 'published';
+
+/** Lição no seletor dos domingos. */
+export type LessonOption = {
+    id: number;
+    label: string;
+    status: LessonStatus;
+    series_id: number | null;
+};
+
+/** Presentes, esperados (alunos que contavam) e visitantes de um domingo. */
+export type SundaySummary = {
+    present: number;
+    expected: number;
+    visitors: number;
+    rate: number | null;
+};
 
 export type Lesson = {
     id: number;
     title: string;
+    number: number | null;
+    display_title: string;
     slug: string;
     url: string;
     summary: string | null;
@@ -81,6 +161,10 @@ export type Lesson = {
     days_until: number | null;
     date_parts: { day: string; month: string } | null;
     bible_reference: string | null;
+    key_verse: string | null;
+    /** Texto do versículo-chave, quando a referência é reconhecida. */
+    key_verse_passage: BiblePassage | null;
+    goal: string | null;
     status: LessonStatus;
     status_label: string;
     visibility: 'public' | 'members';
@@ -90,14 +174,33 @@ export type Lesson = {
     authors?: string[];
     materials?: LessonMaterial[];
     readings?: LessonReading[];
-    questions?: LessonQuestion[];
-    questions_count?: number;
+    blocks?: LessonBlock[];
+    teacher_blocks?: LessonBlock[];
+    meetings?: ClassMeeting[];
     materials_count?: number;
-    bible_text?: string | null;
+    /** Só na página da lição e no Modo Domingo. */
+    bible_passage?: BiblePassage | null;
     content_html?: string | null;
     topics?: string[];
-    teacher_notes_html?: string | null;
     headline?: string | null;
+};
+
+/** "Ouvir estudo": arquivo do áudio narrado do estudo. */
+export type LessonAudioFile = {
+    url: string;
+    duration: number | null;
+    /** Mensagem pronta para o WhatsApp, com o link que abre a lição no player. */
+    share_text: string;
+};
+
+/** Áudio do estudo na gestão (LessonAudioResource::manage). */
+export type LessonAudioManage = {
+    file: LessonAudioFile | null;
+    status: 'none' | 'generating' | 'ready' | 'failed';
+    stale: boolean;
+    error: string | null;
+    generated_at: string | null;
+    has_content: boolean;
 };
 
 export type Option<T = string> = { value: T; label: string };
@@ -118,4 +221,44 @@ export type Paginated<T> = {
         from: number | null;
         to: number | null;
     };
+};
+
+/** Um dia da semana de estudo (StudyWeekQuery). */
+export type StudyWeekDay = {
+    date: string;
+    weekday: number;
+    label: string;
+    short: string;
+    is_today: boolean;
+    is_future: boolean;
+    done: boolean;
+    readings: LessonReading[];
+    blocks_count: number;
+};
+
+/** A semana de estudo da lição atual (Início e "Leituras da semana"). */
+export type StudyWeek = {
+    today: string;
+    weekday: number;
+    streak: { current: number; best: number; today_done: boolean };
+    meeting: {
+        held_on: string;
+        date_label: string;
+        days_until: number;
+        index: number;
+        total: number;
+    } | null;
+    preparing: boolean;
+    lesson: {
+        id: number;
+        slug: string;
+        url: string;
+        display_title: string;
+        number: number | null;
+        title: string;
+        bible_reference: string | null;
+    } | null;
+    days?: StudyWeekDay[];
+    todayBlocks?: LessonBlock[];
+    progress?: { days_done: number; days_total: number };
 };

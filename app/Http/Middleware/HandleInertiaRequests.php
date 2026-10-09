@@ -53,12 +53,21 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'first_name' => strtok($user->name, ' '),
                     'email' => $user->email,
+                    'avatar_url' => $user->avatarUrl(),
+                    'has_password' => ! $user->isManaged(),
                     'is_admin' => $user->isAdmin(),
                     'can_access_admin' => $user->canAccessAdmin(),
+                    'is_student' => $user->isStudentAnywhere(),
+                    // Aluno ou professor de ao menos uma classe: tem semana de estudo e "Meu progresso".
+                    'is_member' => $user->memberClassroomIds() !== [],
                 ] : null,
             ],
             'features' => [
                 'registration' => Features::enabled(Features::registration()),
+            ],
+            // Chave pública VAPID: o navegador precisa dela para se inscrever nos lembretes.
+            'push' => [
+                'public_key' => config('ebd.push.public_key') ?: null,
             ],
         ];
     }

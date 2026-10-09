@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Lesson;
+use App\Support\Bible\Bible;
 use App\Support\ChurchCalendar;
 use App\Support\Markdown;
 use Illuminate\Http\Request;
@@ -10,7 +11,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Representação de uma lição para leitura (página da lição, home, biblioteca).
- * Relações só entram quando carregadas; notas do professor só com permissão.
+ * Relações só entram quando carregadas. Blocos e materiais do professor são
+ * filtrados na consulta (LessonController::present) e só aparecem aqui se
+ * foram carregados para quem pode vê-los.
  *
  * @mixin Lesson
  */
@@ -18,7 +21,7 @@ class LessonResource extends JsonResource
 {
     private bool $withContent = false;
 
-    private bool $withTeacherNotes = false;
+    private bool $withTeacherContent = false;
 
     /** Inclui o conteúdo completo em HTML (página da lição / Modo Domingo). */
     public function withContent(): static
@@ -28,9 +31,9 @@ class LessonResource extends JsonResource
         return $this;
     }
 
-    public function withTeacherNotes(bool $allowed): static
+    public function withTeacherContent(bool $allowed): static
     {
-        $this->withTeacherNotes = $allowed;
+        $this->withTeacherContent = $allowed;
 
         return $this;
     }
@@ -47,6 +50,8 @@ class LessonResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'number' => $this->number,
+            'display_title' => $this->displayTitle(),
             'slug' => $this->slug,
             'url' => route('lessons.show', $this->slug),
             'summary' => $this->summary,
@@ -59,6 +64,9 @@ class LessonResource extends JsonResource
                 'month' => ChurchCalendar::monthShort($date),
             ] : null,
             'bible_reference' => $this->bible_reference,
+            'key_verse' => $this->key_verse,
+            'key_verse_passage' => Bible::passage($this->key_verse),
+            'goal' => $this->goal,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'visibility' => $this->visibility->value,
@@ -67,17 +75,19 @@ class LessonResource extends JsonResource
             'series' => SeriesResource::make($this->whenLoaded('series')),
             'authors' => $this->whenLoaded('authors', fn () => $this->authors->pluck('name')->all()),
             'materials' => LessonMaterialResource::collection($this->whenLoaded('materials')),
-            'readings' => LessonReadingResource::collection($this->whenLoaded('readings')),
-            'questions' => LessonQuestionResource::collection($this->whenLoaded('questions')),
-            'questions_count' => $this->whenCounted('questions'),
+            'readings' => $this->whenLoaded('readings', fn () => LessonReadingResource::forWeek($this->readings, $this->resource->readingWeekdayToday())),
+            'blocks' => $this->whenLoaded('blocks', fn () => LessonBlockResource::collection(
+                $this->blocks->reject->isForTeachers()->values()
+            )),
+            'meetings' => ClassMeetingResource::collection($this->whenLoaded('meetings')),
             'materials_count' => $this->whenCounted('materials'),
             $this->mergeWhen($this->withContent, fn () => [
-                'bible_text' => $this->bible_text,
+                'bible_passage' => Bible::passage($this->bible_reference),
                 'content_html' => Markdown::toHtml($this->content),
                 'topics' => Markdown::headings($this->content),
             ]),
-            $this->mergeWhen($this->withTeacherNotes, fn () => [
-                'teacher_notes_html' => Markdown::toHtml($this->teacher_notes),
+            $this->mergeWhen($this->withTeacherContent && $this->relationLoaded('blocks'), fn () => [
+                'teacher_blocks' => LessonBlockResource::collection($this->blocks->filter->isForTeachers()->values()),
             ]),
             'headline' => $this->when(isset($this->resource->headline), fn () => $this->resource->headline),
         ];

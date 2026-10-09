@@ -1,40 +1,150 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
+    BookOpenText,
     BookText,
     CalendarDays,
-    HelpCircle,
+    ChevronDown,
+    ChevronUp,
+    KeyRound,
+    Layers,
     Library,
+    Lightbulb,
     Lock,
+    MessageCircleQuestion,
     NotebookPen,
+    NotebookText,
     Paperclip,
     PenLine,
     Presentation,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { BiblePassage } from '@/components/lesson/bible-passage';
 import { countdownLabel } from '@/components/lesson/countdown';
+import { LessonAudioPlayer } from '@/components/lesson/lesson-audio';
+import {
+    BlockAccordion,
+    BlockCards,
+    groupStudentBlocks,
+} from '@/components/lesson/lesson-blocks';
 import { MaterialCard, MaterialIcon } from '@/components/lesson/material-card';
-import { QuestionList } from '@/components/lesson/question-list';
 import { ReadingPlan } from '@/components/lesson/reading-plan';
+import { PersonalNote } from '@/components/lesson/personal-note';
+import { RevistaHeader } from '@/components/lesson/revista-header';
+import { RichText } from '@/components/lesson/rich-text';
 import { ShareButton } from '@/components/lesson/share-button';
+import {
+    StudyHelperPrompt,
+    StudyHelperSheet,
+} from '@/components/lesson/study-helper';
+import type { StudyHelperInfo } from '@/components/lesson/study-helper';
 import { Page, Section } from '@/components/page';
+import { SectionNav } from '@/components/section-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { home, library } from '@/routes';
+import { useReadingCheckin } from '@/hooks/use-reading-checkin';
+import { home, library, login } from '@/routes';
 import { edit } from '@/routes/admin/lessons';
-import { sunday } from '@/routes/lessons';
-import type { Lesson } from '@/types';
+import { show, sunday } from '@/routes/lessons';
+import type { Lesson, LessonAudioFile } from '@/types';
+
+type Study = {
+    checked_weekdays: number[];
+    note: string | null;
+    today: string;
+};
 
 type Props = {
     lesson: Lesson;
     canManage: boolean;
     shareText: string;
+    /** Estudo da própria pessoa; só para membros da classe. */
+    study: Study | null;
+    /** "Ouvir estudo"; null enquanto não há áudio gerado. */
+    audio: LessonAudioFile | null;
+    /** "Tirar dúvida" com a IA; só para membros da classe. */
+    helper: StudyHelperInfo | null;
 };
 
-export default function LessonShow({ lesson, canManage, shareText }: Props) {
+export default function LessonShow({
+    lesson,
+    canManage,
+    shareText,
+    study,
+    audio,
+    helper,
+}: Props) {
+    const { auth } = usePage().props;
+    const [helperOpen, setHelperOpen] = useState(false);
+    const checkin = useReadingCheckin(lesson.slug);
+
     const materials = lesson.materials ?? [];
     const readings = lesson.readings ?? [];
-    const questions = lesson.questions ?? [];
+    // As leituras também estão no Início e em Leituras da semana: aqui ficam recolhidas na de
+    // hoje (ou na próxima por ler), e abrem inteiras pelo botão ou por #leituras.
+    const collapsible = readings.length > 2;
+    const featuredReading =
+        readings.find((r) => r.is_today) ??
+        readings.find(
+            (r) =>
+                r.weekday !== null &&
+                !(study?.checked_weekdays ?? []).includes(r.weekday),
+        ) ??
+        null;
+    const readingsDone = readings.filter(
+        (r) =>
+            r.weekday !== null &&
+            (study?.checked_weekdays ?? []).includes(r.weekday),
+    ).length;
+    const [readingsExpanded, setReadingsExpanded] = useState(false);
+
+    useEffect(() => {
+        const expandOnHash = () => {
+            if (window.location.hash === '#leituras') {
+                setReadingsExpanded(true);
+            }
+        };
+
+        expandOnHash();
+        window.addEventListener('hashchange', expandOnHash);
+
+        return () => window.removeEventListener('hashchange', expandOnHash);
+    }, []);
+
+    // Link "Ouvir" compartilhado no WhatsApp (#ouvir): leva direto ao player e
+    // destaca o play. Tocar sozinho o navegador não deixa.
+    const [listenHighlight, setListenHighlight] = useState(false);
+
+    useEffect(() => {
+        if (window.location.hash !== '#ouvir' || !audio) {
+            return;
+        }
+
+        let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+        // Espera a tela de abertura sair, senão o destaque passa despercebido.
+        const waitSplash = setInterval(() => {
+            if (document.getElementById('splash')) {
+                return;
+            }
+
+            clearInterval(waitSplash);
+            document
+                .getElementById('ouvir')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setListenHighlight(true);
+            hideTimer = setTimeout(() => setListenHighlight(false), 5000);
+        }, 150);
+
+        return () => {
+            clearInterval(waitSplash);
+            clearTimeout(hideTimer);
+        };
+    }, [audio]);
+    const { deepen, curiosities, concepts, other } = groupStudentBlocks(
+        lesson.blocks ?? [],
+    );
+    const teacherBlocks = lesson.teacher_blocks ?? [];
 
     const primary = materials.filter(
         (m) => m.is_primary && m.type !== 'reference',
@@ -47,22 +157,38 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
     const sections = [
         readings.length > 0 && { id: 'leituras', label: 'Leituras' },
         lesson.content_html && { id: 'estudo', label: 'Estudo' },
+        (deepen.length > 0 || other.length > 0) && {
+            id: 'aprofunde',
+            label: 'Aprofunde',
+        },
+        curiosities.length > 0 && { id: 'curiosidades', label: 'Curiosidades' },
+        concepts.length > 0 && { id: 'conceitos', label: 'Conceitos' },
         (primary.length > 0 || complementary.length > 0) && {
             id: 'materiais',
             label: 'Materiais',
         },
-        questions.length > 0 && { id: 'perguntas', label: 'Perguntas' },
         references.length > 0 && { id: 'referencias', label: 'Referências' },
+        study && { id: 'anotacoes', label: 'Anotações' },
+        teacherBlocks.length > 0 && { id: 'professor', label: 'Professor' },
     ].filter(Boolean) as { id: string; label: string }[];
 
-    const countdown =
-        lesson.status === 'completed'
-            ? 'Aula realizada'
-            : countdownLabel(lesson.days_until);
+    // A data vem dos encontros: o próximo domingo da lição ou o último, se já passou.
+    const meetings = lesson.meetings ?? [];
+    const nextMeeting = meetings.find((m) => m.days_until >= 0);
+    const shownMeeting = nextMeeting ?? meetings[meetings.length - 1];
+    const meetingPosition =
+        shownMeeting && meetings.length > 1
+            ? `encontro ${meetings.indexOf(shownMeeting) + 1} de ${meetings.length}`
+            : null;
+    const countdown = nextMeeting
+        ? countdownLabel(nextMeeting.days_until)
+        : shownMeeting
+          ? 'Aula realizada'
+          : null;
 
     return (
         <>
-            <Head title={lesson.title}>
+            <Head title={lesson.display_title}>
                 <meta
                     name="description"
                     content={lesson.summary ?? `Lição: ${lesson.title}`}
@@ -79,7 +205,7 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
             <Page>
                 <Link
                     href={home()}
-                    className="mb-5 -ml-1 inline-flex items-center gap-1 rounded-lg px-1 py-1 text-sm text-muted-foreground hover:text-foreground"
+                    className="mb-5 -ml-1 inline-flex min-h-9 items-center gap-1 rounded-lg px-1 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                     <ArrowLeft className="size-4" /> Início
                 </Link>
@@ -103,14 +229,20 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                             </>
                         )}
                     </p>
-                    <h1 className="mt-2 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
+                    {lesson.number && (
+                        <p className="mt-3 text-sm font-semibold tracking-wide text-primary uppercase">
+                            Lição {lesson.number}
+                        </p>
+                    )}
+                    <h1 className="mt-1 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
                         {lesson.title}
                     </h1>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground">
-                        {lesson.date_label && (
+                        {shownMeeting && (
                             <span className="inline-flex items-center gap-1.5 first-letter:uppercase">
                                 <CalendarDays className="size-4" />{' '}
-                                {lesson.date_label}
+                                {shownMeeting.date_label}
+                                {meetingPosition && ` · ${meetingPosition}`}
                             </span>
                         )}
                         {countdown && lesson.status !== 'draft' && (
@@ -135,12 +267,18 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                     <div className="mt-6">
                         <BiblePassage
                             reference={lesson.bible_reference}
-                            text={lesson.bible_text}
+                            passage={lesson.bible_passage}
                         />
                     </div>
                 )}
 
-                <div className="mt-5 flex flex-wrap gap-2">
+                {(lesson.key_verse || lesson.goal) && (
+                    <div className="mt-3">
+                        <RevistaHeader lesson={lesson} />
+                    </div>
+                )}
+
+                <div className="mt-5 flex flex-wrap gap-2 *:flex-1 sm:*:flex-none">
                     <ShareButton
                         url={lesson.url}
                         title={lesson.title}
@@ -151,8 +289,16 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                             <Presentation /> Modo Domingo
                         </Link>
                     </Button>
+                    {helper && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setHelperOpen(true)}
+                        >
+                            <MessageCircleQuestion /> Tirar dúvida
+                        </Button>
+                    )}
                     {canManage && (
-                        <Button asChild variant="ghost">
+                        <Button asChild variant="outline">
                             <Link href={edit(lesson.id)}>
                                 <PenLine /> Editar
                             </Link>
@@ -167,20 +313,12 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                 )}
 
                 {sections.length > 1 && (
-                    <nav
-                        className="sticky top-16 z-20 -mx-4 mt-8 flex gap-2 overflow-x-auto border-b border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur"
-                        aria-label="Seções da lição"
-                    >
-                        {sections.map((section) => (
-                            <a
-                                key={section.id}
-                                href={`#${section.id}`}
-                                className="shrink-0 rounded-full bg-muted px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-                            >
-                                {section.label}
-                            </a>
-                        ))}
-                    </nav>
+                    <SectionNav
+                        sections={sections}
+                        label="Seções da lição"
+                        progress
+                        className="mt-8"
+                    />
                 )}
 
                 <div className="mt-8 space-y-12">
@@ -191,19 +329,154 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                             icon={<CalendarDays />}
                             description="Um pouco por dia até domingo."
                         >
-                            <ReadingPlan readings={readings} />
+                            {!readingsExpanded && collapsible && (
+                                <p className="mb-3 text-sm text-muted-foreground">
+                                    {study
+                                        ? `${readingsDone} de ${readings.length} leituras feitas.`
+                                        : `${readings.length} leituras, uma por dia.`}{' '}
+                                    {featuredReading
+                                        ? featuredReading.is_today
+                                            ? 'A de hoje:'
+                                            : 'A próxima:'
+                                        : ''}
+                                </p>
+                            )}
+                            <ReadingPlan
+                                readings={
+                                    readingsExpanded || !collapsible
+                                        ? readings
+                                        : [featuredReading ?? readings[0]]
+                                }
+                                tracking={
+                                    study
+                                        ? {
+                                              checkedWeekdays:
+                                                  study.checked_weekdays,
+                                              pendingWeekdays: readings
+                                                  .map((r) => r.weekday)
+                                                  .filter(
+                                                      (day): day is number =>
+                                                          day !== null &&
+                                                          checkin.isPending(
+                                                              day,
+                                                          ),
+                                                  ),
+                                              onToggle: (reading, done) =>
+                                                  reading.weekday !== null &&
+                                                  checkin.toggle(
+                                                      reading.weekday,
+                                                      done,
+                                                      reading.id,
+                                                  ),
+                                          }
+                                        : undefined
+                                }
+                            />
+                            {collapsible && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-3"
+                                    aria-expanded={readingsExpanded}
+                                    onClick={() =>
+                                        setReadingsExpanded((open) => !open)
+                                    }
+                                >
+                                    {readingsExpanded ? (
+                                        <>
+                                            <ChevronUp /> Mostrar menos
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ChevronDown /> Ver as{' '}
+                                            {readings.length} leituras
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                            {!study && !auth.user && (
+                                <p className="mt-4 flex items-center gap-3 rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">
+                                    <KeyRound className="size-4 shrink-0 text-primary" />
+                                    <span>
+                                        Membro da classe? Entre com o seu link
+                                        de acesso para marcar as leituras e
+                                        fazer anotações.{' '}
+                                        <Link
+                                            href={login()}
+                                            className="font-medium text-primary underline-offset-4 hover:underline"
+                                        >
+                                            Entrar
+                                        </Link>
+                                    </span>
+                                </p>
+                            )}
                         </Section>
                     )}
 
                     {lesson.content_html && (
                         <Section id="estudo" title="Estudo" icon={<BookText />}>
-                            <div
+                            {audio && (
+                                <div id="ouvir" className="mb-6 scroll-mt-24">
+                                    <LessonAudioPlayer
+                                        src={audio.url}
+                                        title={lesson.display_title}
+                                        href={show.url(lesson.slug)}
+                                        knownDuration={audio.duration}
+                                        highlight={listenHighlight}
+                                    />
+                                    <div className="mt-2 flex justify-end">
+                                        <ShareButton
+                                            title={lesson.display_title}
+                                            text={audio.share_text}
+                                            variant="outline"
+                                            size="sm"
+                                            label="Compartilhar áudio"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            <RichText
                                 className="reading"
-                                // HTML gerado no servidor a partir de Markdown, com HTML bruto removido.
-                                dangerouslySetInnerHTML={{
-                                    __html: lesson.content_html,
-                                }}
+                                html={lesson.content_html}
                             />
+                            {helper && (
+                                <StudyHelperPrompt
+                                    onOpen={() => setHelperOpen(true)}
+                                />
+                            )}
+                        </Section>
+                    )}
+
+                    {(deepen.length > 0 || other.length > 0) && (
+                        <Section
+                            id="aprofunde"
+                            title="Aprofunde"
+                            icon={<Layers />}
+                            description="Contexto histórico, teologia e aplicação para ir além da revista."
+                        >
+                            <BlockCards blocks={[...deepen, ...other]} />
+                        </Section>
+                    )}
+
+                    {curiosities.length > 0 && (
+                        <Section
+                            id="curiosidades"
+                            title="Curiosidades"
+                            icon={<Lightbulb />}
+                            description="Detalhes que fazem o texto ganhar vida."
+                        >
+                            <BlockCards blocks={curiosities} tone="highlight" />
+                        </Section>
+                    )}
+
+                    {concepts.length > 0 && (
+                        <Section
+                            id="conceitos"
+                            title="Conceitos citados"
+                            icon={<BookOpenText />}
+                            description="Toque em um conceito para ler a explicação."
+                        >
+                            <BlockAccordion blocks={concepts} />
                         </Section>
                     )}
 
@@ -238,17 +511,6 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                                     </div>
                                 </>
                             )}
-                        </Section>
-                    )}
-
-                    {questions.length > 0 && (
-                        <Section
-                            id="perguntas"
-                            title="Perguntas para reflexão"
-                            icon={<HelpCircle />}
-                            description="Pense nelas durante a semana. Vamos conversar sobre elas no domingo."
-                        >
-                            <QuestionList questions={questions} />
                         </Section>
                     )}
 
@@ -295,18 +557,27 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                         </Section>
                     )}
 
-                    {lesson.teacher_notes_html && (
+                    {study && (
                         <Section
-                            title="Notas do professor"
+                            id="anotacoes"
+                            title="Minhas anotações"
+                            icon={<NotebookText />}
+                        >
+                            <PersonalNote
+                                lessonSlug={lesson.slug}
+                                initial={study.note}
+                            />
+                        </Section>
+                    )}
+
+                    {teacherBlocks.length > 0 && (
+                        <Section
+                            id="professor"
+                            title="Para o professor"
                             icon={<NotebookPen />}
                             description="Visível apenas para quem gerencia a classe."
                         >
-                            <div
-                                className="reading rounded-2xl border border-dashed bg-card p-5 text-base"
-                                dangerouslySetInnerHTML={{
-                                    __html: lesson.teacher_notes_html,
-                                }}
-                            />
+                            <BlockCards blocks={teacherBlocks} tone="teacher" />
                         </Section>
                     )}
 
@@ -317,6 +588,15 @@ export default function LessonShow({ lesson, canManage, shareText }: Props) {
                     )}
                 </div>
             </Page>
+
+            {helper && (
+                <StudyHelperSheet
+                    lesson={lesson}
+                    helper={helper}
+                    open={helperOpen}
+                    onOpenChange={setHelperOpen}
+                />
+            )}
         </>
     );
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\ContentAudience;
 use App\Enums\MaterialType;
 use App\Models\Lesson;
 use App\Models\LessonMaterial;
@@ -56,6 +57,7 @@ class LessonMaterialRequest extends FormRequest
             ],
             'file' => $fileRules,
             'is_primary' => ['boolean'],
+            'audience' => ['nullable', Rule::enum(ContentAudience::class)],
         ];
     }
 

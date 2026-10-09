@@ -4,7 +4,8 @@ namespace App\Models;
 
 use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
-use Carbon\CarbonInterface;
+use App\Support\Audio\StudyNarration;
+use App\Support\ChurchCalendar;
 use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -22,35 +23,55 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $classroom_id
  * @property int|null $series_id
+ * @property int|null $number
  * @property string $title
  * @property string $slug
  * @property string|null $summary
  * @property Carbon|null $scheduled_for
  * @property string|null $bible_reference
- * @property string|null $bible_text
+ * @property string|null $key_verse
+ * @property string|null $goal
  * @property string|null $content
- * @property string|null $teacher_notes
+ * @property string|null $blocks_text
  * @property LessonStatus $status
  * @property LessonVisibility $visibility
  * @property Carbon|null $published_at
- * @property Carbon|null $completed_at
  * @property int|null $created_by
+ * @property string|null $audio_disk
+ * @property string|null $audio_path
+ * @property int|null $audio_duration
+ * @property string|null $audio_source_hash
+ * @property Carbon|null $audio_generated_at
+ * @property string|null $audio_status
+ * @property string|null $audio_error
+ * @property Carbon|null $audio_requested_at
  * @property-read Classroom $classroom
  * @property-read Series|null $series
  */
 #[Fillable([
+    'number',
     'title',
     'summary',
-    'scheduled_for',
     'bible_reference',
-    'bible_text',
+    'key_verse',
+    'goal',
     'content',
-    'teacher_notes',
     'visibility',
 ])]
-#[Hidden(['search_vector', 'teacher_notes'])]
+#[Hidden(['search_vector', 'blocks_text', 'audio_disk', 'audio_path', 'audio_source_hash', 'audio_error'])]
 class Lesson extends Model
 {
+    /** Geração de áudio em andamento (ver GenerateLessonAudio). */
+    public const AUDIO_GENERATING = 'generating';
+
+    public const AUDIO_FAILED = 'failed';
+
+    /** 2: sem citações de versículos; 3: narradores por parte; 4: roteiro para ouvir. */
+    public const AUDIO_NARRATION_VERSION = 4;
+
+    /** Depois disso, uma geração "em andamento" é dada como perdida (processo caiu). */
+    public const AUDIO_GENERATION_TIMEOUT_MINUTES = 15;
+
     /** @use HasFactory<LessonFactory> */
     use HasFactory, SoftDeletes;
 
@@ -72,7 +93,10 @@ class Lesson extends Model
             'status' => LessonStatus::class,
             'visibility' => LessonVisibility::class,
             'published_at' => 'datetime',
-            'completed_at' => 'datetime',
+            'number' => 'integer',
+            'audio_duration' => 'integer',
+            'audio_generated_at' => 'datetime',
+            'audio_requested_at' => 'datetime',
         ];
     }
 
@@ -119,19 +143,86 @@ class Lesson extends Model
     }
 
     /**
-     * @return HasMany<LessonQuestion, $this>
-     */
-    public function questions(): HasMany
-    {
-        return $this->hasMany(LessonQuestion::class)->ordered();
-    }
-
-    /**
      * @return HasMany<LessonReading, $this>
      */
     public function readings(): HasMany
     {
         return $this->hasMany(LessonReading::class)->ordered();
+    }
+
+    /**
+     * @return HasMany<LessonBlock, $this>
+     */
+    public function blocks(): HasMany
+    {
+        return $this->hasMany(LessonBlock::class)->ordered();
+    }
+
+    /**
+     * Encontros em que a lição é (ou foi) estudada, em ordem de data.
+     *
+     * @return HasMany<ClassMeeting, $this>
+     */
+    public function meetings(): HasMany
+    {
+        return $this->hasMany(ClassMeeting::class)->chronological();
+    }
+
+    /**
+     * Dia do plano de leitura que cai hoje (1 = segunda ... 7 = domingo), na
+     * semana que termina no próximo encontro da lição (hoje incluído). Sem
+     * encontro por vir, ou antes da segunda-feira dessa semana, null.
+     */
+    public function readingWeekdayToday(): ?int
+    {
+        $today = ChurchCalendar::today();
+
+        $next = $this->relationLoaded('meetings')
+            ? $this->meetings->first(fn (ClassMeeting $m) => ! $m->isCancelled() && $m->held_on->toDateString() >= $today->toDateString())
+            : $this->meetings()->active()->fromDate($today)->first();
+
+        return ChurchCalendar::readingWeekday($next?->held_on, $today);
+    }
+
+    /**
+     * "Lição 11 — É Necessário", como na revista.
+     */
+    public function displayTitle(): string
+    {
+        return $this->number ? "Lição {$this->number} — {$this->title}" : $this->title;
+    }
+
+    /** Texto que vira o áudio do estudo: o título e o campo de estudo. */
+    public function narration(): StudyNarration
+    {
+        return StudyNarration::make($this->displayTitle(), $this->content);
+    }
+
+    /**
+     * Impressão digital do texto narrado; muda quando o estudo é editado.
+     * Mude AUDIO_NARRATION_VERSION quando a conversão do texto (StudyNarration)
+     * mudar: os áudios já gerados ficam desatualizados e podem ser regenerados.
+     */
+    public function audioSourceHash(): string
+    {
+        return sha1(self::AUDIO_NARRATION_VERSION."\n".$this->displayTitle()."\n".$this->content);
+    }
+
+    public function hasAudio(): bool
+    {
+        return $this->audio_path !== null;
+    }
+
+    /** O estudo mudou depois que o áudio foi gerado. */
+    public function isAudioStale(): bool
+    {
+        return $this->hasAudio() && $this->audio_source_hash !== $this->audioSourceHash();
+    }
+
+    public function isGeneratingAudio(): bool
+    {
+        return $this->audio_status === self::AUDIO_GENERATING
+            && $this->audio_requested_at?->gt(now()->subMinutes(self::AUDIO_GENERATION_TIMEOUT_MINUTES));
     }
 
     public function isPublic(): bool
@@ -172,16 +263,5 @@ class Lesson extends Model
                 $query->orWhereIn($query->qualifyColumn('classroom_id'), $user->memberClassroomIds());
             }
         });
-    }
-
-    /**
-     * @param  Builder<self>  $query
-     */
-    #[Scope]
-    protected function upcoming(Builder $query, CarbonInterface $today): void
-    {
-        $query->where($query->qualifyColumn('status'), LessonStatus::Published)
-            ->whereDate($query->qualifyColumn('scheduled_for'), '>=', $today->toDateString())
-            ->orderBy($query->qualifyColumn('scheduled_for'));
     }
 }

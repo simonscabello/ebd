@@ -1,0 +1,115 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\ClassMeeting;
+use App\Models\Lesson;
+use App\Support\Bible\Bible;
+use Illuminate\Support\Facades\Route;
+
+/**
+ * Textos prontos para colar no WhatsApp da classe.
+ */
+class WeeklyMessage
+{
+    /**
+     * Mensagem da semana: lição, texto base, versículo-chave, leituras e links.
+     */
+    public function for(ClassMeeting $meeting): ?string
+    {
+        $lesson = $meeting->lesson;
+
+        if ($lesson === null) {
+            return null;
+        }
+
+        $lesson->loadMissing('readings');
+
+        $lines = [
+            '📖 *'.$lesson->displayTitle().'*',
+            'Domingo, '.ChurchCalendar::formatShort($meeting->held_on),
+        ];
+
+        if ($lesson->bible_reference) {
+            $lines[] = "Texto base: {$lesson->bible_reference}";
+        }
+
+        if ($lesson->key_verse) {
+            $lines[] = '';
+            $lines[] = '🔑 '.$this->keyVerse($lesson);
+        }
+
+        $readings = $lesson->readings->filter(fn ($r) => $r->weekday !== null);
+
+        if ($readings->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = '*Leitura da semana*';
+
+            foreach ($readings as $reading) {
+                $lines[] = "{$reading->weekday?->shortLabel()}: {$reading->reference}";
+            }
+        }
+
+        $lines[] = '';
+        $lines[] = 'Estude a lição: '.route('lessons.show', $lesson->slug);
+
+        if (Route::has('my-week')) {
+            $lines[] = 'Leituras da semana: '.route('my-week');
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Versículo-chave com o texto, quando a referência é reconhecida:
+     * "Porque Deus amou o mundo…" (João 3.16).
+     */
+    private function keyVerse(Lesson $lesson): string
+    {
+        $passage = Bible::passage($lesson->key_verse);
+
+        if ($passage === null) {
+            return trim((string) $lesson->key_verse);
+        }
+
+        $text = implode(' ', array_column($passage['verses'], 'text'));
+
+        return "\"{$text}\" ({$passage['label']})";
+    }
+
+    /**
+     * Texto curto para compartilhar uma lição.
+     */
+    public function share(Lesson $lesson): string
+    {
+        return implode("\n", array_filter([
+            '📖 '.$lesson->displayTitle(),
+            $lesson->bible_reference ? "Texto base: {$lesson->bible_reference}" : null,
+            route('lessons.show', $lesson->slug),
+        ]));
+    }
+
+    /**
+     * Convite para ouvir o estudo, com o link que abre a lição já no player.
+     * Três versões, escolhidas pela lição, para a mensagem não ficar sempre igual.
+     */
+    public function shareAudio(Lesson $lesson): string
+    {
+        $minutes = $lesson->audio_duration ? ' ('.max(1, (int) round($lesson->audio_duration / 60)).' min)' : '';
+
+        $opening = [
+            '🎧 O estudo da semana também está em áudio!',
+            '🎧 Sem tempo para ler? Dá para ouvir a lição.',
+            '🎧 Ouça a lição no caminho, no trabalho ou em casa.',
+        ][$lesson->id % 3];
+
+        return implode("\n", array_filter([
+            $opening,
+            '',
+            '*'.$lesson->displayTitle().'*',
+            $lesson->bible_reference ? "Texto base: {$lesson->bible_reference}" : null,
+            '',
+            "▶️ Ouvir{$minutes}: ".route('lessons.show', $lesson->slug).'#ouvir',
+        ], fn (?string $line) => $line !== null));
+    }
+}

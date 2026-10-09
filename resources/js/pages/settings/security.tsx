@@ -1,12 +1,12 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { useRef } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import { SubpageHeader } from '@/components/settings/settings-list';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { edit } from '@/routes/security';
+import { account } from '@/routes';
 
 // oxfmt-ignore
 type Props = {
@@ -14,6 +14,7 @@ type Props = {
 } ;
 
 export default function Security(props: Props) {
+    const hasPassword = usePage().props.auth.user?.has_password ?? true;
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
@@ -21,16 +22,15 @@ export default function Security(props: Props) {
         <>
             <Head title="Segurança" />
 
-            <h1 className="sr-only">Segurança</h1>
+            <SubpageHeader
+                backHref={account.url()}
+                title={hasPassword ? 'Alterar senha' : 'Criar senha'}
+                description="Use uma senha longa e difícil de adivinhar"
+            />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Alterar senha"
-                    description="Use uma senha longa e difícil de adivinhar"
-                />
-
                 <Form
+                    noValidate
                     {...SecurityController.update.form()}
                     options={{
                         preserveScroll: true,
@@ -54,22 +54,32 @@ export default function Security(props: Props) {
                 >
                     {({ errors, processing }) => (
                         <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="current_password">
-                                    Senha atual
-                                </Label>
+                            {hasPassword ? (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="current_password">
+                                        Senha atual
+                                    </Label>
 
-                                <PasswordInput
-                                    id="current_password"
-                                    ref={currentPasswordInput}
-                                    name="current_password"
-                                    className="mt-1 block w-full"
-                                    autoComplete="current-password"
-                                    placeholder="Senha atual"
-                                />
+                                    <PasswordInput
+                                        id="current_password"
+                                        ref={currentPasswordInput}
+                                        name="current_password"
+                                        className="mt-1 block w-full"
+                                        autoComplete="current-password"
+                                        placeholder="Senha atual"
+                                    />
 
-                                <InputError message={errors.current_password} />
-                            </div>
+                                    <InputError
+                                        message={errors.current_password}
+                                    />
+                                </div>
+                            ) : (
+                                <p className="rounded-xl bg-muted/70 p-3 text-sm text-muted-foreground">
+                                    Você entra pelo link de acesso. Se quiser,
+                                    crie uma senha para entrar também com e-mail
+                                    (cadastre o e-mail no perfil antes).
+                                </p>
+                            )}
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password">Nova senha</Label>
@@ -121,12 +131,3 @@ export default function Security(props: Props) {
         </>
     );
 }
-
-Security.layout = {
-    breadcrumbs: [
-        {
-            title: 'Segurança',
-            href: edit(),
-        },
-    ],
-};

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ContentAudience;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\LessonMaterial;
@@ -73,5 +74,18 @@ class MaterialFileTest extends TestCase
 
         $member = User::factory()->studentOf($classroom)->create();
         $this->actingAs($member)->get(route('materials.file', $material))->assertOk();
+    }
+
+    public function test_teacher_only_material_is_hidden_from_students_and_guests(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $material = $this->materialFor(Lesson::factory()->published()->for($classroom)->create());
+        $material->update(['audience' => ContentAudience::Teacher]);
+
+        $this->get(route('materials.file', $material))->assertNotFound();
+        $this->actingAs(User::factory()->studentOf($classroom)->create())->get(route('materials.file', $material))->assertNotFound();
+        $this->actingAs(User::factory()->teacherOf($classroom)->create())->get(route('materials.file', $material))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=3600, private');
     }
 }

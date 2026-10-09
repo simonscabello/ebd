@@ -2,9 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Lessons\AnswerStudyQuestion;
+use App\Enums\ContentAudience;
+use App\Http\Resources\ClassMeetingResource;
+use App\Http\Resources\LessonAudioResource;
 use App\Http\Resources\LessonResource;
 use App\Models\Lesson;
+use App\Queries\MeetingForLessonQuery;
+use App\Support\ChurchCalendar;
+use App\Support\WeeklyMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,7 +29,11 @@ class LessonController extends Controller
         return Inertia::render('lessons/show', [
             'lesson' => $this->present($request, $lesson),
             'canManage' => $request->user()?->can('update', $lesson) ?? false,
-            'shareText' => $this->shareText($lesson),
+            'shareText' => app(WeeklyMessage::class)->share($lesson),
+            'study' => $this->personalStudy($request, $lesson),
+            // "Ouvir estudo"; a geração fica na gestão (edição da lição).
+            'audio' => LessonAudioResource::file($lesson),
+            'helper' => $this->helper($request, $lesson),
         ]);
     }
 
@@ -32,9 +44,17 @@ class LessonController extends Controller
     {
         $this->authorizeView($request, $lesson);
 
+        $canManage = $request->user()?->can('update', $lesson) ?? false;
+
+        $back = $request->query('voltar');
+
         return Inertia::render('lessons/sunday', [
             'lesson' => $this->present($request, $lesson),
-            'canManage' => $request->user()?->can('update', $lesson) ?? false,
+            'canManage' => $canManage,
+            // Chamada e "encerrar aula": só para quem conduz a classe.
+            'conduct' => $canManage ? $this->conduct($request, $lesson) : null,
+            // "Sair" volta para a gestão quando o Modo Domingo foi aberto de lá.
+            'backUrl' => $canManage && is_string($back) && str_starts_with($back, '/admin/') && ! str_contains($back, '//') ? $back : null,
         ]);
     }
 
@@ -52,23 +72,98 @@ class LessonController extends Controller
         }
     }
 
+    /**
+     * Encontro conduzido agora e lista de alunos para a chamada.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function conduct(Request $request, Lesson $lesson): ?array
+    {
+        $meeting = app(MeetingForLessonQuery::class)->for($lesson);
+
+        if ($meeting === null) {
+            return null;
+        }
+
+        $roster = $lesson->classroom->students()
+            ->orderBy('name')
+            ->get(['users.id', 'users.name'])
+            ->map(fn ($student) => ['id' => $student->id, 'name' => $student->name]);
+
+        return [
+            'meeting' => ClassMeetingResource::make($meeting)->withNotes()->resolve($request),
+            'can_take_attendance' => $meeting->held_on->toDateString() <= ChurchCalendar::todayString(),
+            'roster' => $roster,
+            // Só quem continua na classe: a chamada reenvia esta lista inteira.
+            'present' => $meeting->attendances()->pluck('user_id')
+                ->map(fn ($id) => (int) $id)
+                ->intersect($roster->pluck('id'))
+                ->values(),
+            'meeting_url' => route('admin.classrooms.meetings.show', [$lesson->classroom, $meeting]),
+        ];
+    }
+
+    /**
+     * Dados de estudo da própria pessoa (só para membros da classe):
+     * dias do plano de leitura já marcados como lidos e anotação.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function personalStudy(Request $request, Lesson $lesson): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null || ! $user->isMemberOf($lesson->classroom_id)) {
+            return null;
+        }
+
+        return [
+            'checked_weekdays' => DB::table('reading_checkins')
+                ->where('user_id', $user->id)
+                ->where('lesson_id', $lesson->id)
+                ->orderBy('weekday')
+                ->pluck('weekday')
+                ->map(fn ($d) => (int) $d),
+            'note' => DB::table('lesson_notes')->where('user_id', $user->id)->where('lesson_id', $lesson->id)->value('body'),
+            'today' => ChurchCalendar::today()->toDateString(),
+        ];
+    }
+
+    /**
+     * "Tirar dúvida": só para membros da classe (e quem a gerencia).
+     *
+     * @return array{remaining: int, daily_limit: int}|null
+     */
+    private function helper(Request $request, Lesson $lesson): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null || ! AnswerStudyQuestion::isAvailable() || ! StudyQuestionController::canAsk($user, $lesson)) {
+            return null;
+        }
+
+        return [
+            'remaining' => AnswerStudyQuestion::remainingToday($user),
+            'daily_limit' => (int) config('ebd.helper.daily_limit'),
+        ];
+    }
+
     private function present(Request $request, Lesson $lesson): LessonResource
     {
-        $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'questions']);
+        $teacher = Gate::allows('viewTeacherContent', $lesson);
+        $audience = fn ($query) => $teacher ? $query : $query->where('audience', ContentAudience::Student);
+
+        // O filtro é na consulta: conteúdo do professor nem chega a ser carregado
+        // para alunos e visitantes.
+        $lesson->load([
+            'classroom', 'series', 'authors', 'readings',
+            'materials' => $audience,
+            'blocks' => $audience,
+            'meetings' => fn ($query) => $query->active(),
+        ]);
 
         return LessonResource::make($lesson)
             ->withContent()
-            ->withTeacherNotes(Gate::allows('viewTeacherNotes', $lesson));
-    }
-
-    private function shareText(Lesson $lesson): string
-    {
-        $parts = array_filter([
-            "📖 {$lesson->title}",
-            $lesson->bible_reference ? "Texto base: {$lesson->bible_reference}" : null,
-            route('lessons.show', $lesson->slug),
-        ]);
-
-        return implode("\n", $parts);
+            ->withTeacherContent($teacher);
     }
 }

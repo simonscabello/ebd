@@ -27,6 +27,11 @@ class MaterialFileController extends Controller
             abort(404);
         }
 
+        // Material só do professor (ex.: manual completo) segue a regra do conteúdo do professor.
+        if ($material->isForTeachers() && Gate::denies('viewTeacherContent', $material->lesson)) {
+            abort(404);
+        }
+
         $disk = Storage::disk((string) $material->disk);
         $path = (string) $material->path;
 
@@ -55,7 +60,7 @@ class MaterialFileController extends Controller
         return $disk->response($path, $filename, [
             'Content-Type' => $material->mime_type ?? 'application/octet-stream',
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => $material->lesson->isPublic() ? 'public, max-age=3600' : 'private, max-age=3600',
+            'Cache-Control' => $material->lesson->isPublic() && ! $material->isForTeachers() ? 'public, max-age=3600' : 'private, max-age=3600',
         ], $disposition);
     }
 }

@@ -1,22 +1,38 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
+    Award,
     BookMarked,
-    BookOpen,
     CalendarDays,
+    CalendarOff,
     FileText,
-    HelpCircle,
+    Hourglass,
     Layers,
-    Sparkles,
+    NotebookPen,
+    Presentation,
 } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { ShareButton } from '@/components/lesson/share-button';
+import { InstallAppBanner } from '@/components/install-app-banner';
+import { LessonHero } from '@/components/lesson/lesson-hero';
+import { ReadingRow, ReadToggle } from '@/components/lesson/reading-plan';
+import { ReadingSheet } from '@/components/lesson/reading-sheet';
+import { RemindersBanner } from '@/components/reminders-banner';
 import { EmptyState, Page } from '@/components/page';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { home, library, login } from '@/routes';
-import { show } from '@/routes/lessons';
-import type { Classroom, Lesson, Series } from '@/types';
+import { DailyBlocks } from '@/components/week/daily-blocks';
+import { WeekSummary } from '@/components/week/week-summary';
+import { useReadingCheckin } from '@/hooks/use-reading-checkin';
+import { cn, plural } from '@/lib/utils';
+import { home, library, login, myProgress, myWeek } from '@/routes';
+import { show, sunday } from '@/routes/lessons';
+import type {
+    ClassMeeting,
+    Classroom,
+    Lesson,
+    LessonReading,
+    Series,
+    StudyWeek,
+} from '@/types';
 
 type Props = {
     greeting: string;
@@ -24,7 +40,15 @@ type Props = {
     classrooms: Classroom[];
     classroom: Classroom | null;
     isMember: boolean;
+    isStudent: boolean;
     nextLesson: Lesson | null;
+    /** Semana de estudo (só para quem é da classe e tem lição). */
+    week: StudyWeek | null;
+    meeting: ClassMeeting | null;
+    meetingIndex: number;
+    meetingTotal: number;
+    preparing: boolean;
+    cancelledBefore: ClassMeeting[];
     currentSeries: Series | null;
     recentLessons: Lesson[];
 };
@@ -35,6 +59,12 @@ export default function Home({
     classroom,
     isMember,
     nextLesson,
+    week,
+    meeting,
+    meetingIndex,
+    meetingTotal,
+    preparing,
+    cancelledBefore,
     currentSeries,
     recentLessons,
 }: Props) {
@@ -46,13 +76,15 @@ export default function Home({
             <Head title="Início" />
 
             <Page>
+                <InstallAppBanner />
+                {isMember && <RemindersBanner />}
                 <header className="mb-6">
                     <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
                         {greeting}
                         {name ? `, ${name}` : ''}.
                     </h1>
                     <p className="mt-2 text-lg text-muted-foreground">
-                        {headline(nextLesson)}
+                        {headline(meeting)}
                     </p>
                 </header>
 
@@ -101,8 +133,41 @@ export default function Home({
                     </div>
                 )}
 
+                {cancelledBefore.map((cancelled) => (
+                    <p
+                        key={cancelled.id}
+                        className="mb-3 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200"
+                    >
+                        <CalendarOff className="size-4 shrink-0" />
+                        <span className="first-letter:uppercase">
+                            {cancelled.date_short}: não teremos EBD
+                            {cancelled.title ? ` (${cancelled.title})` : ''}.
+                        </span>
+                    </p>
+                ))}
+
                 {nextLesson ? (
-                    <NextLesson lesson={nextLesson} />
+                    <NextLesson
+                        lesson={nextLesson}
+                        week={week}
+                        classroom={classroom}
+                        meeting={meeting}
+                        position={
+                            meetingTotal > 1
+                                ? `Encontro ${meetingIndex} de ${meetingTotal}`
+                                : null
+                        }
+                    />
+                ) : preparing && meeting ? (
+                    <EmptyState
+                        icon={<Hourglass />}
+                        title="A próxima lição está sendo preparada"
+                    >
+                        <span className="first-letter:uppercase">
+                            {meeting.date_label}
+                        </span>
+                        . Assim que for publicada, ela aparece aqui.
+                    </EmptyState>
                 ) : (
                     <EmptyState
                         icon={<CalendarDays />}
@@ -138,7 +203,7 @@ export default function Home({
                                     >
                                         <span className="min-w-0">
                                             <span className="block truncate font-medium">
-                                                {lesson.title}
+                                                {lesson.display_title}
                                             </span>
                                             <span className="text-sm text-muted-foreground">
                                                 {lesson.date_short}
@@ -156,14 +221,16 @@ export default function Home({
 
                 {!auth.user && (
                     <p className="mt-10 rounded-2xl bg-muted/70 p-4 text-sm text-muted-foreground">
-                        Faz parte de uma classe?{' '}
+                        Faz parte de uma classe? Peça ao seu professor o seu
+                        link de acesso: com ele você marca as leituras, faz
+                        anotações e acompanha seu progresso. Já tem senha?{' '}
                         <Link
                             href={login()}
                             className="font-medium text-primary"
                         >
                             Entre na sua conta
-                        </Link>{' '}
-                        para ver também os conteúdos exclusivos da turma.
+                        </Link>
+                        .
                     </p>
                 )}
 
@@ -179,25 +246,36 @@ export default function Home({
     );
 }
 
-function headline(lesson: Lesson | null): string {
-    if (!lesson || lesson.days_until === null) {
+function headline(meeting: ClassMeeting | null): string {
+    if (!meeting || meeting.days_until < 0) {
         return 'Que bom ter você por aqui.';
     }
 
-    if (lesson.days_until === 0) {
+    if (meeting.days_until === 0) {
         return 'Hoje é dia de EBD!';
     }
 
-    if (lesson.days_until === 1) {
+    if (meeting.days_until === 1) {
         return 'Amanhã tem EBD. Vamos nos preparar?';
     }
 
-    return `Faltam ${lesson.days_until} dias para a nossa próxima EBD.`;
+    return `Faltam ${meeting.days_until} dias para a nossa próxima EBD.`;
 }
 
-function NextLesson({ lesson }: { lesson: Lesson }) {
+function NextLesson({
+    lesson,
+    week,
+    classroom,
+    meeting,
+    position,
+}: {
+    lesson: Lesson;
+    week: StudyWeek | null;
+    classroom: Classroom | null;
+    meeting: ClassMeeting | null;
+    position: string | null;
+}) {
     const readings = lesson.readings ?? [];
-    const questions = lesson.questions ?? [];
     const materials = lesson.materials ?? [];
     const primary = materials.find((m) => m.is_primary && m.file);
     const complementary = materials.filter(
@@ -205,85 +283,39 @@ function NextLesson({ lesson }: { lesson: Lesson }) {
     );
     const todayReading = readings.find((r) => r.is_today);
     const lessonUrl = show.url(lesson.slug);
+    const readingsHref = week
+        ? myWeek.url({
+              query: classroom ? { classe: classroom.slug } : {},
+          })
+        : `${lessonUrl}#leituras`;
 
     return (
         <>
-            <article className="overflow-hidden rounded-3xl bg-primary text-primary-foreground shadow-sm">
-                <div className="p-6 md:p-8">
-                    <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium opacity-90">
-                        <span>Próxima aula</span>
-                        <span aria-hidden>·</span>
-                        <span className="first-letter:uppercase">
-                            {lesson.date_label}
-                        </span>
-                    </p>
-                    <h2 className="mt-3 font-serif text-3xl leading-tight font-semibold tracking-tight text-balance md:text-4xl">
-                        {lesson.title}
-                    </h2>
-                    {lesson.bible_reference && (
-                        <p className="mt-3 flex items-center gap-2 text-lg opacity-95">
-                            <BookOpen className="size-5" />
-                            Texto base:{' '}
-                            <span className="font-semibold">
-                                {lesson.bible_reference}
-                            </span>
-                        </p>
-                    )}
-                    {lesson.summary && (
-                        <p className="mt-4 leading-relaxed text-pretty opacity-90">
-                            {lesson.summary}
-                        </p>
-                    )}
-                    <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
-                        <Button
-                            asChild
-                            size="lg"
-                            variant="secondary"
-                            className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                        >
-                            <Link href={lessonUrl}>
-                                Abrir a lição <ArrowRight />
-                            </Link>
-                        </Button>
-                        <div className="[&_button]:h-12 [&_button]:w-full [&_button]:border-primary-foreground/30 [&_button]:bg-transparent [&_button]:text-primary-foreground [&_button]:hover:bg-primary-foreground/10 sm:[&_button]:w-auto">
-                            <ShareButton
-                                url={lesson.url}
-                                title={lesson.title}
-                                text={`📖 ${lesson.title}${lesson.bible_reference ? `\nTexto base: ${lesson.bible_reference}` : ''}\n${lesson.url}`}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </article>
+            <LessonHero
+                lesson={lesson}
+                eyebrow={[
+                    meeting ? 'Próxima aula' : 'Última aula',
+                    meeting?.date_label,
+                    position,
+                ]
+                    .filter(Boolean)
+                    .join(' · ')}
+            />
 
-            {todayReading && (
-                <Link
-                    href={`${lessonUrl}#leituras`}
-                    className="mt-4 flex items-center gap-4 rounded-2xl border border-highlight bg-highlight/50 p-4 transition-colors hover:bg-highlight/70"
-                >
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-highlight text-highlight-foreground">
-                        <Sparkles className="size-5" />
-                    </span>
-                    <span className="min-w-0">
-                        <span className="block text-sm font-medium text-highlight-foreground">
-                            Leitura de hoje
-                        </span>
-                        <span className="block font-serif text-lg font-semibold">
-                            {todayReading.reference}
-                        </span>
-                        {todayReading.notes && (
-                            <span className="block text-sm text-muted-foreground">
-                                {todayReading.notes}
-                            </span>
-                        )}
-                    </span>
-                </Link>
+            {week ? (
+                <StudyToday
+                    week={week}
+                    lessonSlug={lesson.slug}
+                    readingsHref={readingsHref}
+                />
+            ) : (
+                todayReading && <GuestTodayReading reading={todayReading} />
             )}
 
             <h2 className="mt-10 mb-3 text-lg font-semibold tracking-tight">
-                Para estudar durante a semana
+                Atalhos da lição
             </h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <StudyTile
                     href={primary?.file?.open_url ?? lessonUrl}
                     external={!!primary}
@@ -291,61 +323,143 @@ function NextLesson({ lesson }: { lesson: Lesson }) {
                     title="Lição"
                     detail={
                         primary
-                            ? `${primary.file?.extension ?? 'PDF'}${primary.file?.size ? ` · ${primary.file.size}` : ''}`
+                            ? `Abrir o ${primary.file?.extension || 'PDF'}`
                             : 'Ler o estudo'
                     }
                 />
                 <StudyTile
-                    href={`${lessonUrl}#leituras`}
+                    href={readingsHref}
                     icon={<CalendarDays />}
                     title="Leituras"
                     detail={
-                        readings.length
-                            ? `${readings.length} na semana`
-                            : 'Texto base'
+                        week?.progress
+                            ? `${week.progress.days_done} de ${week.progress.days_total} lidas`
+                            : readings.length
+                              ? `${plural(readings.length, 'leitura', 'leituras')} na semana`
+                              : 'Texto base'
                     }
                 />
                 <StudyTile
                     href={`${lessonUrl}#materiais`}
                     icon={<BookMarked />}
-                    title="Material complementar"
+                    title="Materiais"
                     detail={
                         complementary.length
-                            ? `${complementary.length} ${complementary.length === 1 ? 'item' : 'itens'}`
+                            ? plural(complementary.length, 'item', 'itens')
                             : 'Nenhum ainda'
                     }
                 />
                 <StudyTile
-                    href={`${lessonUrl}#perguntas`}
-                    icon={<HelpCircle />}
-                    title="Perguntas"
-                    detail={
-                        questions.length
-                            ? `${questions.length} para refletir`
-                            : 'Nenhuma ainda'
+                    href={sunday.url(lesson.slug)}
+                    icon={<Presentation />}
+                    title="Modo Domingo"
+                    detail="Acompanhar a aula"
+                />
+                {week && (
+                    <>
+                        <StudyTile
+                            href={`${lessonUrl}#anotacoes`}
+                            icon={<NotebookPen />}
+                            title="Anotações"
+                            detail="Suas anotações"
+                        />
+                        <StudyTile
+                            href={myProgress.url()}
+                            icon={<Award />}
+                            title="Meu progresso"
+                            detail="Sequência e selos"
+                        />
+                    </>
+                )}
+            </div>
+        </>
+    );
+}
+
+/**
+ * O estudo de hoje para quem é da classe: a leitura do dia (ler e marcar ali
+ * mesmo), o resumo da semana e o conteúdo liberado hoje.
+ */
+function StudyToday({
+    week,
+    lessonSlug,
+    readingsHref,
+}: {
+    week: StudyWeek;
+    lessonSlug: string;
+    readingsHref: string;
+}) {
+    const checkin = useReadingCheckin(lessonSlug);
+    const [open, setOpen] = useState(false);
+    const days = week.days ?? [];
+    const day = days.find((d) => d.is_today);
+    const reading = day?.readings[0];
+    const today = day && reading ? { day, reading } : null;
+
+    return (
+        <>
+            {today && (
+                <ReadingSheet
+                    reading={open ? today.reading : null}
+                    open={open}
+                    onOpenChange={setOpen}
+                    footer={
+                        <ReadToggle
+                            done={today.day.done}
+                            pending={checkin.isPending(today.day.weekday)}
+                            highlight
+                            onClick={() =>
+                                checkin.toggle(
+                                    today.day.weekday,
+                                    today.day.done,
+                                    today.reading.id,
+                                )
+                            }
+                            className="w-full justify-center"
+                        />
                     }
                 />
-            </div>
-
-            {questions.length > 0 && (
-                <section className="mt-10">
-                    <h2 className="mb-3 text-lg font-semibold tracking-tight">
-                        Para pensar até domingo
-                    </h2>
-                    <blockquote className="rounded-2xl border-l-4 border-primary bg-card p-5 font-serif text-xl leading-relaxed text-pretty italic shadow-xs">
-                        {questions[0].body}
-                    </blockquote>
-                    {questions.length > 1 && (
-                        <Link
-                            href={`${lessonUrl}#perguntas`}
-                            className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary"
-                        >
-                            Ver as {questions.length} perguntas{' '}
-                            <ArrowRight className="size-4" />
-                        </Link>
-                    )}
-                </section>
             )}
+
+            {week.progress && days.length > 0 && (
+                <WeekSummary
+                    days={days}
+                    progress={week.progress}
+                    streak={week.streak}
+                    href={readingsHref}
+                    today={today}
+                    onRead={() => setOpen(true)}
+                />
+            )}
+
+            {(week.todayBlocks ?? []).length > 0 && (
+                <DailyBlocks blocks={week.todayBlocks ?? []} />
+            )}
+        </>
+    );
+}
+
+/**
+ * Leitura de hoje para quem não é da classe: só ler (marcar é para membros).
+ */
+function GuestTodayReading({ reading }: { reading: LessonReading }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <>
+            <ReadingSheet
+                reading={open ? reading : null}
+                open={open}
+                onOpenChange={setOpen}
+            />
+            <ReadingRow
+                className="mt-4"
+                badge={reading.weekday_short ?? '•'}
+                label="Leitura de hoje"
+                reference={reading.reference}
+                isToday
+                onRead={() => setOpen(true)}
+            />
         </>
     );
 }

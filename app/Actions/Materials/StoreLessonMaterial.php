@@ -2,6 +2,7 @@
 
 namespace App\Actions\Materials;
 
+use App\Enums\ContentAudience;
 use App\Enums\MaterialType;
 use App\Models\Lesson;
 use App\Models\LessonMaterial;
@@ -26,6 +27,7 @@ class StoreLessonMaterial
 
         $material = new LessonMaterial([
             'type' => $type,
+            'audience' => $data['audience'] ?? ContentAudience::Student->value,
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'url' => $file ? null : ($data['url'] ?? null),

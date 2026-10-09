@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { Layers, Plus } from 'lucide-react';
 import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
+import { report } from '@/routes/admin/classrooms';
 import { create as createLesson } from '@/routes/admin/lessons';
 import { create, edit } from '@/routes/admin/series';
 import type { Series } from '@/types';
@@ -56,17 +57,48 @@ export default function SeriesIndex({ series }: { series: Series[] }) {
                                             ? 'lição'
                                             : 'lições'}
                                     </span>
-                                    <Link
-                                        href={createLesson({
-                                            query: {
-                                                classe: item.classroom_id,
-                                                serie: item.id,
-                                            },
-                                        })}
-                                        className="font-medium text-primary"
-                                    >
-                                        + Lição nesta série
-                                    </Link>
+                                    <span className="flex gap-2">
+                                        {item.classroom && (
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                size="sm"
+                                            >
+                                                <Link
+                                                    href={report(
+                                                        {
+                                                            classroom:
+                                                                item.classroom
+                                                                    .slug,
+                                                        },
+                                                        {
+                                                            query: {
+                                                                serie: item.id,
+                                                            },
+                                                        },
+                                                    )}
+                                                >
+                                                    Relatório
+                                                </Link>
+                                            </Button>
+                                        )}
+                                        <Button
+                                            asChild
+                                            variant="outline"
+                                            size="sm"
+                                        >
+                                            <Link
+                                                href={createLesson({
+                                                    query: {
+                                                        classe: item.classroom_id,
+                                                        serie: item.id,
+                                                    },
+                                                })}
+                                            >
+                                                <Plus /> Lição
+                                            </Link>
+                                        </Button>
+                                    </span>
                                 </div>
                             </li>
                         ))}

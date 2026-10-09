@@ -1,13 +1,15 @@
 import { BookOpen } from 'lucide-react';
+import { PassageText } from '@/components/lesson/passage-text';
 import { cn } from '@/lib/utils';
+import type { BiblePassage as Passage } from '@/types';
 
 export function BiblePassage({
     reference,
-    text,
+    passage,
     size = 'default',
 }: {
     reference: string;
-    text?: string | null;
+    passage?: Passage | null;
     size?: 'default' | 'large';
 }) {
     return (
@@ -23,18 +25,7 @@ export function BiblePassage({
             >
                 {reference}
             </p>
-            {text && (
-                <p
-                    className={cn(
-                        'mt-3 font-serif whitespace-pre-line text-foreground/90 italic',
-                        size === 'large'
-                            ? 'text-2xl leading-relaxed'
-                            : 'text-lg leading-relaxed',
-                    )}
-                >
-                    {text}
-                </p>
-            )}
+            <PassageText passage={passage} size={size} />
         </div>
     );
 }

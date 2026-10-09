@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Itens ordenáveis dentro de uma lição (materiais, perguntas, leituras).
+ * Itens ordenáveis dentro de uma lição (materiais, leituras, blocos).
  * Novos itens entram no fim da lista quando nenhuma posição é informada.
  *
  * @mixin Model
