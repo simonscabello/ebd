@@ -121,6 +121,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('engagement', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
+        RateLimiter::for('study-helper', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('library', fn (Request $request) => Limit::perMinute(90)->by($request->user()?->id ?: $request->ip()));
 
         // Agentes de IA fazem várias chamadas seguidas numa mesma conversa.

@@ -14,6 +14,7 @@ use App\Http\Controllers\MyProgressController;
 use App\Http\Controllers\MyWeekController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReadingCheckinController;
+use App\Http\Controllers\StudyQuestionController;
 use App\Models\Classroom;
 use App\Models\Series;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,11 @@ Route::middleware(['auth', 'throttle:engagement'])->group(function () {
     Route::post('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'store'])->name('lessons.checkins.store');
     Route::delete('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'destroy'])->name('lessons.checkins.destroy');
     Route::put('licoes/{lesson:slug}/anotacao', [LessonNoteController::class, 'update'])->name('lessons.note.update');
+
+    // "Tirar dúvida" com a IA (limite diário na ação; aqui só contra rajadas).
+    Route::post('licoes/{lesson:slug}/duvidas', [StudyQuestionController::class, 'store'])
+        ->middleware('throttle:study-helper')
+        ->name('lessons.questions.store');
 
     // Lembretes push: o aparelho se inscreve/desinscreve.
     Route::post('notificacoes/inscricao', [PushSubscriptionController::class, 'store'])->name('push.store');

@@ -109,4 +109,19 @@ return [
         'timeout' => (int) env('EBD_AUDIO_TIMEOUT', 180),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tirar dúvida
+    |--------------------------------------------------------------------------
+    | Na página da lição, membros da classe perguntam à IA (OpenAI, mesma
+    | chave do áudio) sobre o estudo. Cada pergunta vai sozinha, com a lição
+    | como contexto. daily_limit: perguntas por pessoa por dia (fuso da igreja).
+    */
+    'helper' => [
+        'enabled' => (bool) env('EBD_HELPER_ENABLED', true),
+        'model' => env('EBD_HELPER_MODEL', 'gpt-5.4-mini'),
+        'daily_limit' => (int) env('EBD_HELPER_DAILY_LIMIT', 10),
+        'timeout' => (int) env('EBD_HELPER_TIMEOUT', 60),
+    ],
+
 ];

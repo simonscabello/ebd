@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { cn, xsrfToken } from '@/lib/utils';
 import { RichText } from '@/components/lesson/rich-text';
 import { preview } from '@/routes/admin/markdown';
 
@@ -69,12 +69,6 @@ const TOOLS: {
     { label: 'Citação', icon: <Quote />, apply: (e) => prefixLines(e, '> ') },
     { label: 'Lista', icon: <List />, apply: (e) => prefixLines(e, '- ') },
 ];
-
-function xsrfToken(): string {
-    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
-
-    return match ? decodeURIComponent(match[1]) : '';
-}
 
 /**
  * Campo de texto da lição com barra de formatação e prévia. O conteúdo

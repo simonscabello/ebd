@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Lessons\AnswerStudyQuestion;
 use App\Enums\ContentAudience;
 use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\LessonAudioResource;
@@ -32,6 +33,7 @@ class LessonController extends Controller
             'study' => $this->personalStudy($request, $lesson),
             // "Ouvir estudo"; a geração fica na gestão (edição da lição).
             'audio' => LessonAudioResource::file($lesson),
+            'helper' => $this->helper($request, $lesson),
         ]);
     }
 
@@ -124,6 +126,25 @@ class LessonController extends Controller
                 ->map(fn ($d) => (int) $d),
             'note' => DB::table('lesson_notes')->where('user_id', $user->id)->where('lesson_id', $lesson->id)->value('body'),
             'today' => ChurchCalendar::today()->toDateString(),
+        ];
+    }
+
+    /**
+     * "Tirar dúvida": só para membros da classe (e quem a gerencia).
+     *
+     * @return array{remaining: int, daily_limit: int}|null
+     */
+    private function helper(Request $request, Lesson $lesson): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null || ! AnswerStudyQuestion::isAvailable() || ! StudyQuestionController::canAsk($user, $lesson)) {
+            return null;
+        }
+
+        return [
+            'remaining' => AnswerStudyQuestion::remainingToday($user),
+            'daily_limit' => (int) config('ebd.helper.daily_limit'),
         ];
     }
 

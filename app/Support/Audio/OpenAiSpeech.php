@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * Narra um trecho de texto pela API de voz da OpenAI e devolve o MP3; também
- * pede ao modelo de texto o roteiro para ouvir.
+ * pede textos ao modelo de texto (roteiro para ouvir, respostas do "Tirar dúvida").
  * A chave (OPENAI_API_KEY) só existe no servidor.
  */
 class OpenAiSpeech
@@ -47,17 +47,18 @@ class OpenAiSpeech
 
     /**
      * Texto gerado por um modelo de texto (roteiro para ouvir, ver ListeningScript).
+     * $model e $timeout: padrão do roteiro do áudio.
      *
      * @throws SpeechFailed com mensagem amigável
      */
-    public function write(string $instructions, string $input): string
+    public function write(string $instructions, string $input, ?string $model = null, ?int $timeout = null): string
     {
         $response = $this->post(self::RESPONSES_ENDPOINT, [
-            'model' => config('ebd.audio.script_model'),
+            'model' => $model ?? config('ebd.audio.script_model'),
             'instructions' => $instructions,
             'input' => $input,
             'reasoning' => ['effort' => 'low'],
-        ]);
+        ], $timeout);
 
         $text = collect((array) $response->json('output'))
             ->where('type', 'message')
@@ -78,7 +79,7 @@ class OpenAiSpeech
      *
      * @throws SpeechFailed
      */
-    private function post(string $endpoint, array $payload): Response
+    private function post(string $endpoint, array $payload, ?int $timeout = null): Response
     {
         if (! $this->isConfigured()) {
             throw SpeechFailed::because('A geração de áudio não está configurada no servidor (falta a chave da OpenAI).');
@@ -86,7 +87,7 @@ class OpenAiSpeech
 
         try {
             return Http::withToken((string) config('services.openai.key'))
-                ->timeout((int) config('ebd.audio.timeout'))
+                ->timeout($timeout ?? (int) config('ebd.audio.timeout'))
                 ->retry(3, 2000, fn ($exception) => $exception instanceof ConnectionException
                     || ($exception instanceof RequestException && in_array($exception->response->status(), [429, 500, 502, 503, 504], true)
                         && ! $this->isQuotaError($exception->response)))
