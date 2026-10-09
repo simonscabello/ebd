@@ -15,3 +15,10 @@ export function toUrl(url: NonNullable<InertiaLinkProps['href']>): string {
 export function plural(count: number, one: string, many: string): string {
     return `${count} ${count === 1 ? one : many}`;
 }
+
+/** Token CSRF do cookie do Laravel, para chamadas fetch() fora do Inertia. */
+export function xsrfToken(): string {
+    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+
+    return match ? decodeURIComponent(match[1]) : '';
+}

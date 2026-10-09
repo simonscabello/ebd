@@ -11,6 +11,7 @@ import {
     Library,
     Lightbulb,
     Lock,
+    MessageCircleQuestion,
     NotebookPen,
     NotebookText,
     Paperclip,
@@ -32,6 +33,11 @@ import { PersonalNote } from '@/components/lesson/personal-note';
 import { RevistaHeader } from '@/components/lesson/revista-header';
 import { RichText } from '@/components/lesson/rich-text';
 import { ShareButton } from '@/components/lesson/share-button';
+import {
+    StudyHelperPrompt,
+    StudyHelperSheet,
+} from '@/components/lesson/study-helper';
+import type { StudyHelperInfo } from '@/components/lesson/study-helper';
 import { Page, Section } from '@/components/page';
 import { SectionNav } from '@/components/section-nav';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +62,8 @@ type Props = {
     study: Study | null;
     /** "Ouvir estudo"; null enquanto não há áudio gerado. */
     audio: LessonAudioFile | null;
+    /** "Tirar dúvida" com a IA; só para membros da classe. */
+    helper: StudyHelperInfo | null;
 };
 
 export default function LessonShow({
@@ -64,8 +72,10 @@ export default function LessonShow({
     shareText,
     study,
     audio,
+    helper,
 }: Props) {
     const { auth } = usePage().props;
+    const [helperOpen, setHelperOpen] = useState(false);
     const checkin = useReadingCheckin(lesson.slug);
 
     const materials = lesson.materials ?? [];
@@ -279,6 +289,14 @@ export default function LessonShow({
                             <Presentation /> Modo Domingo
                         </Link>
                     </Button>
+                    {helper && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setHelperOpen(true)}
+                        >
+                            <MessageCircleQuestion /> Tirar dúvida
+                        </Button>
+                    )}
                     {canManage && (
                         <Button asChild variant="outline">
                             <Link href={edit(lesson.id)}>
@@ -421,6 +439,11 @@ export default function LessonShow({
                                 className="reading"
                                 html={lesson.content_html}
                             />
+                            {helper && (
+                                <StudyHelperPrompt
+                                    onOpen={() => setHelperOpen(true)}
+                                />
+                            )}
                         </Section>
                     )}
 
@@ -565,6 +588,15 @@ export default function LessonShow({
                     )}
                 </div>
             </Page>
+
+            {helper && (
+                <StudyHelperSheet
+                    lesson={lesson}
+                    helper={helper}
+                    open={helperOpen}
+                    onOpenChange={setHelperOpen}
+                />
+            )}
         </>
     );
 }
