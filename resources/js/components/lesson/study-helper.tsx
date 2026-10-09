@@ -275,3 +275,19 @@ export function StudyHelperPrompt({ onOpen }: { onOpen: () => void }) {
         </button>
     );
 }
+
+/**
+ * Botão flutuante, sempre à mão durante a leitura. Fica acima do menu
+ * inferior e do mini player do áudio, quando ele aparece.
+ */
+export function StudyHelperButton({ onOpen }: { onOpen: () => void }) {
+    return (
+        <button
+            type="button"
+            onClick={onOpen}
+            className="fixed right-4 bottom-[calc(var(--app-bottom-nav)+var(--app-mini-player,0px)+1rem)] z-30 inline-flex h-12 items-center gap-2 rounded-full bg-primary pr-5 pl-4 font-medium text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none md:right-6 md:bottom-[calc(var(--app-mini-player,0px)+1.5rem)] print:hidden"
+        >
+            <MessageCircleQuestion className="size-5" /> Tirar dúvida
+        </button>
+    );
+}

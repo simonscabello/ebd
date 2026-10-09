@@ -11,7 +11,6 @@ import {
     Library,
     Lightbulb,
     Lock,
-    MessageCircleQuestion,
     NotebookPen,
     NotebookText,
     Paperclip,
@@ -34,6 +33,7 @@ import { RevistaHeader } from '@/components/lesson/revista-header';
 import { RichText } from '@/components/lesson/rich-text';
 import { ShareButton } from '@/components/lesson/share-button';
 import {
+    StudyHelperButton,
     StudyHelperPrompt,
     StudyHelperSheet,
 } from '@/components/lesson/study-helper';
@@ -289,14 +289,6 @@ export default function LessonShow({
                             <Presentation /> Modo Domingo
                         </Link>
                     </Button>
-                    {helper && (
-                        <Button
-                            variant="outline"
-                            onClick={() => setHelperOpen(true)}
-                        >
-                            <MessageCircleQuestion /> Tirar dúvida
-                        </Button>
-                    )}
                     {canManage && (
                         <Button asChild variant="outline">
                             <Link href={edit(lesson.id)}>
@@ -589,6 +581,7 @@ export default function LessonShow({
                 </div>
             </Page>
 
+            {helper && <StudyHelperButton onOpen={() => setHelperOpen(true)} />}
             {helper && (
                 <StudyHelperSheet
                     lesson={lesson}
