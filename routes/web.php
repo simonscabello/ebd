@@ -159,6 +159,7 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::delete('classes/{classroom}/membros/{user}/link', [Admin\StudentAccessController::class, 'revoke'])->name('classrooms.members.link.destroy');
 
         Route::get('classes/{classroom}/relatorio', Admin\ClassroomReportController::class)->name('classrooms.report');
+        Route::get('classes/{classroom}/duvidas', Admin\ClassroomQuestionController::class)->name('classrooms.questions');
 
         Route::get('classes/{classroom}/membros', fn (Classroom $classroom) => redirect()->route('admin.classrooms.students.index', $classroom, 301));
         Route::get('series/{series}/relatorio', fn (Series $series) => redirect()->route('admin.classrooms.report', [$series->classroom, 'serie' => $series->id], 301));

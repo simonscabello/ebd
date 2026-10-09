@@ -3,12 +3,17 @@ import type { Crumb } from '@/components/page';
 import { Breadcrumbs } from '@/components/page';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes/admin';
-import { report, show } from '@/routes/admin/classrooms';
+import { questions, report, show } from '@/routes/admin/classrooms';
 import { index as meetingsIndex } from '@/routes/admin/classrooms/meetings';
 import { index as studentsIndex } from '@/routes/admin/classrooms/students';
 import type { Classroom } from '@/types';
 
-export type ClassroomTab = 'resumo' | 'domingos' | 'alunos' | 'relatorio';
+export type ClassroomTab =
+    | 'resumo'
+    | 'domingos'
+    | 'alunos'
+    | 'duvidas'
+    | 'relatorio';
 
 /**
  * Topo de toda página de uma classe: o caminho (Painel › Classe › …) e as
@@ -35,6 +40,11 @@ export function ClassroomHeader({
             key: 'alunos',
             title: 'Alunos',
             href: studentsIndex.url(classroom.slug),
+        },
+        {
+            key: 'duvidas',
+            title: 'Dúvidas',
+            href: questions.url(classroom.slug),
         },
         {
             key: 'relatorio',
