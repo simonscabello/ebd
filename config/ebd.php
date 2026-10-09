@@ -119,7 +119,7 @@ return [
     */
     'helper' => [
         'enabled' => (bool) env('EBD_HELPER_ENABLED', true),
-        'model' => env('EBD_HELPER_MODEL', 'gpt-5.6-luna'),
+        'model' => env('EBD_HELPER_MODEL', 'gpt-6-luna'),
         'daily_limit' => (int) env('EBD_HELPER_DAILY_LIMIT', 10),
         'timeout' => (int) env('EBD_HELPER_TIMEOUT', 60),
     ],
