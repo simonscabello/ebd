@@ -186,7 +186,7 @@ export default function ClassroomOverview({
                     }
                 />
 
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <div className="space-y-6">
                         {week ? (
                             <WeekCard
@@ -283,7 +283,7 @@ export default function ClassroomOverview({
                     className="mt-10"
                     description={`Frequência ${stats.period.series_id ? `na série ${stats.period.label}` : `nos ${stats.period.label.toLowerCase()}`}. Cada aluno conta a partir de quando entrou na classe; visitantes ficam fora da conta.`}
                 >
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                         <StatTile
                             icon={<CalendarCheck />}
                             label="Frequência"
@@ -645,14 +645,14 @@ function Attention({
                     {items.map((student) => (
                         <li
                             key={student.id}
-                            className="flex items-center gap-3 px-4 py-3"
+                            className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
                         >
                             <Link
                                 href={studentPage({
                                     classroom: classroom.slug,
                                     user: student.id,
                                 })}
-                                className="min-w-0 flex-1 hover:underline"
+                                className="min-w-36 flex-1 hover:underline"
                             >
                                 <span className="block truncate font-medium">
                                     {student.name}
@@ -696,7 +696,7 @@ function Birthdays({
                     return (
                         <li
                             key={person.id}
-                            className="flex items-center gap-3 px-4 py-3"
+                            className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
                         >
                             <div className="w-10 shrink-0 text-center">
                                 <p className="text-xs text-muted-foreground uppercase">
@@ -706,7 +706,7 @@ function Birthdays({
                                     {person.day}
                                 </p>
                             </div>
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-24 flex-1">
                                 <p className="truncate font-medium">
                                     {person.name}
                                 </p>
