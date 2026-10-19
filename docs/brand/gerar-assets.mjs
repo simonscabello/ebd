@@ -17,35 +17,35 @@ async function shot(html, w, h, out, transparent = false) {
 }
 const sized = (svg, w, h) =>
     svg.replace('<svg ', `<svg width="${w}" height="${h}" `);
-const appIconSquare = read('public/icons/icon.svg').replace(
+const appIconSquare = read('public/icons/didache-icon.svg').replace(
     'rx="230"',
     'rx="0"',
 );
 await shot(
-    sized(read('public/icons/icon.svg'), 192, 192),
+    sized(read('public/icons/didache-icon.svg'), 192, 192),
     192,
     192,
-    'public/icons/icon-192.png',
+    'public/icons/didache-192.png',
     true,
 );
 await shot(
-    sized(read('public/icons/icon.svg'), 512, 512),
+    sized(read('public/icons/didache-icon.svg'), 512, 512),
     512,
     512,
-    'public/icons/icon-512.png',
+    'public/icons/didache-512.png',
     true,
 );
 await shot(
     sized(read('public/brand/icone-maskable.svg'), 512, 512),
     512,
     512,
-    'public/icons/maskable-512.png',
+    'public/icons/didache-maskable-512.png',
 );
 await shot(
     sized(appIconSquare, 180, 180),
     180,
     180,
-    'public/apple-touch-icon.png',
+    'public/apple-touch-icon-didache.png',
 );
 await shot(
     sized(read('public/favicon.svg'), 32, 32),
@@ -65,7 +65,7 @@ await shot(
     `<div style="color:#fff">${sized(read('public/brand/simbolo-mono.svg'), 96, 96)}</div>`,
     96,
     96,
-    'public/icons/badge-96.png',
+    'public/icons/didache-badge-96.png',
     true,
 );
 // Open Graph 1200x630: papel, símbolo, nome em Lora e assinatura.
@@ -80,3 +80,5 @@ await shot(
 );
 await b.close();
 console.log('ok');
+// Os nomes antigos (icon-192.png, apple-touch-icon.png...) ficam como cópias
+// dos novos, para aparelhos que ainda pedirem o endereço antigo.

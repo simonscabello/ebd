@@ -30,7 +30,7 @@
         </style>
 
         {{-- PWA --}}
-        <link rel="manifest" href="/manifest.webmanifest">
+        <link rel="manifest" href="/manifest.webmanifest?v=didache">
         <meta name="theme-color" content="{{ config('brand.theme_color') }}">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
@@ -38,7 +38,8 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="icon" href="/favicon.ico" sizes="32x32">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        {{-- Nome próprio do ícone: celulares e o serviço do Google guardam a imagem pelo endereço. --}}
+        <link rel="apple-touch-icon" href="/apple-touch-icon-didache.png">
 
         {{-- Prévia do link (WhatsApp, redes). As páginas de lição completam título e descrição. --}}
         <meta property="og:site_name" content="{{ config('brand.name') }}">

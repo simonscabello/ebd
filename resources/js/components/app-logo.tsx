@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 export function AppLogoMark({ className }: { className?: string }) {
     return (
         <img
-            src="/icons/icon.svg"
+            src="/icons/didache-icon.svg"
             alt=""
             aria-hidden
             className={cn('size-9 shrink-0 rounded-[22%]', className)}
