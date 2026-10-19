@@ -246,7 +246,10 @@ export function LessonForm({
                     />
                 </Field>
             </div>
-            <BiblePreview reference={data.bible_reference} />
+            <BiblePreview
+                reference={data.bible_reference}
+                classroomId={data.classroom_id}
+            />
 
             <Field
                 label="Versículo-chave"
@@ -264,7 +267,10 @@ export function LessonForm({
                     maxLength={160}
                 />
             </Field>
-            <BiblePreview reference={data.key_verse} />
+            <BiblePreview
+                reference={data.key_verse}
+                classroomId={data.classroom_id}
+            />
 
             <Field label="Alvo da lição" htmlFor="goal" error={errors.goal}>
                 <Textarea

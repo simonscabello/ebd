@@ -28,13 +28,17 @@ class BibleController extends Controller
             ? Lesson::query()->where('slug', $validated['licao'])->first()
             : null;
 
-        // Sem a lição (app antigo em cache), vale a igreja de quem pede; o
-        // visitante segue a igreja principal, como hoje (sem igreja cadastrada, a
-        // instalação é de uma igreja só e mostra o texto). Essa resposta depende
-        // de quem pede, então não vai para caches compartilhados.
-        $shows = $lesson !== null
-            ? ChurchFeatures::showsBibleText($lesson)
-            : (($request->user()?->currentChurch() ?? Church::primary())->shows_bible_text ?? true);
+        $shows = match (true) {
+            $lesson !== null => ChurchFeatures::showsBibleText($lesson),
+            // Lição que não existe: sem texto.
+            isset($validated['licao']) => false,
+            // Sem a lição (app antigo em cache): vale a igreja de quem pede. Essa
+            // resposta depende de quem pede e não vai para caches compartilhados.
+            $request->user() !== null => (bool) ($request->user()->currentChurch() ?? Church::primary())?->shows_bible_text,
+            // Visitante sem lição não recebe o texto, exceto numa instalação sem
+            // nenhuma igreja cadastrada (uma igreja só, como antes).
+            default => ! Church::query()->exists(),
+        };
 
         $references = array_slice(array_filter(array_map('trim', explode('|', $validated['ref']))), 0, 12);
 
@@ -43,6 +47,6 @@ class BibleController extends Controller
                 'reference' => $reference,
                 'passage' => $shows ? Bible::passage($reference) : null,
             ], $references),
-        ])->setCache($lesson !== null ? ['public' => true, 'max_age' => 86400] : ['private' => true, 'max_age' => 3600]);
+        ])->setCache($lesson !== null ? ['public' => true, 'max_age' => 3600] : ['private' => true, 'max_age' => 3600]);
     }
 }

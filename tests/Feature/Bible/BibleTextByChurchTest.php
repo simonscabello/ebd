@@ -169,4 +169,53 @@ class BibleTextByChurchTest extends TestCase
             ->assertJsonCount(2, 'passage.verses')
             ->assertJsonPath('passage.verses.0.text', '');
     }
+
+    public function test_the_bible_endpoint_without_a_known_lesson_gives_guests_no_text(): void
+    {
+        $this->getJson('/biblia?ref=Lc%205.12')->assertJsonPath('passages.0.passage', null);
+        $this->getJson('/biblia?ref=Lc%205.12&licao=nao-existe')->assertJsonPath('passages.0.passage', null);
+
+        // Membro da igreja com licença, com o app antigo (sem a lição), ainda lê.
+        $owner = User::factory()->studentOf($this->licensed->classroom)->create();
+        $this->actingAs($owner)->getJson('/biblia?ref=Lc%205.12')
+            ->assertJsonPath('passages.0.passage.verses.0.text', 'Lucas 5.12');
+    }
+
+    public function test_the_splash_follows_the_owner_church_for_guests(): void
+    {
+        $shape = [];
+        foreach (SplashVerse::REFERENCES as $reference) {
+            foreach (Reference::parse($reference)->ranges as $range) {
+                $shape[$range->book->value][$range->fromChapter] = 200;
+            }
+        }
+        unset($shape[BibleBook::Luke->value]);
+        FakeBible::seed($shape);
+
+        $this->licensed->classroom->church->update(['shows_bible_text' => false]);
+
+        $this->assertSame(SplashVerse::FALLBACK, SplashVerse::pick(null)['text']);
+    }
+
+    public function test_the_admin_preview_follows_the_classroom_being_edited(): void
+    {
+        // Administra as duas igrejas: a prévia segue a turma da lição em edição.
+        $admin = User::factory()->create();
+        $this->licensed->classroom->church->admins()->attach($admin);
+        $this->other->classroom->church->admins()->attach($admin);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.bible.preview', ['reference' => 'Lc 5.12', 'classe' => $this->other->classroom_id]))
+            ->assertJsonPath('passage.verses.0.text', '');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.bible.preview', ['reference' => 'Lc 5.12', 'classe' => $this->licensed->classroom_id]))
+            ->assertJsonPath('passage.verses.0.text', 'Lucas 5.12');
+
+        // Turma de outra igreja, que a pessoa não gerencia, não abre o texto.
+        $teacher = User::factory()->teacherOf($this->other->classroom)->create();
+        $this->actingAs($teacher)
+            ->getJson(route('admin.bible.preview', ['reference' => 'Lc 5.12', 'classe' => $this->licensed->classroom_id]))
+            ->assertJsonPath('passage.verses.0.text', '');
+    }
 }

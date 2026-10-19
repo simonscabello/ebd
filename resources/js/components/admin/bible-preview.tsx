@@ -5,8 +5,15 @@ import { useBiblePreview } from '@/hooks/use-bible-preview';
  * Mostra como uma referência digitada foi entendida e o começo do texto, para
  * o professor perceber na hora um erro de digitação.
  */
-export function BiblePreview({ reference }: { reference: string }) {
-    const result = useBiblePreview(reference);
+export function BiblePreview({
+    reference,
+    classroomId,
+}: {
+    reference: string;
+    /** Turma da lição: o texto aparece só se a igreja dela tem licença. */
+    classroomId?: number | null;
+}) {
+    const result = useBiblePreview(reference, classroomId);
 
     if (result.status === 'idle' || result.status === 'loading') {
         return null;

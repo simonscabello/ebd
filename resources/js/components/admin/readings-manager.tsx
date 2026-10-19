@@ -16,13 +16,20 @@ import type { LessonReading, Option } from '@/types';
 
 type Props = {
     lessonId: number;
+    /** Turma da lição: a prévia mostra o texto só se a igreja dela tem licença. */
+    classroomId: number;
     readings: LessonReading[];
     weekdays: Option<number>[];
 };
 
 type ReadingForm = { weekday: number | ''; reference: string; notes: string };
 
-export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
+export function ReadingsManager({
+    lessonId,
+    classroomId,
+    readings,
+    weekdays,
+}: Props) {
     const confirm = useConfirm();
     const [editing, setEditing] = useState<number | null>(null);
     const ids = readings.map((r) => r.id);
@@ -51,6 +58,7 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
                             {editing === reading.id ? (
                                 <ReadingEditor
                                     lessonId={lessonId}
+                                    classroomId={classroomId}
                                     weekdays={weekdays}
                                     reading={reading}
                                     onDone={() => setEditing(null)}
@@ -130,6 +138,7 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
             <ReadingEditor
                 key={`new-${readings.length}`}
                 lessonId={lessonId}
+                classroomId={classroomId}
                 weekdays={weekdays}
                 defaultDay={nextDay}
             />
@@ -139,12 +148,14 @@ export function ReadingsManager({ lessonId, readings, weekdays }: Props) {
 
 function ReadingEditor({
     lessonId,
+    classroomId,
     weekdays,
     reading,
     defaultDay = '',
     onDone,
 }: {
     lessonId: number;
+    classroomId: number;
     weekdays: Option<number>[];
     reading?: LessonReading;
     defaultDay?: number | '';
@@ -237,7 +248,10 @@ function ReadingEditor({
                     />
                 </Field>
             </div>
-            <BiblePreview reference={form.data.reference} />
+            <BiblePreview
+                reference={form.data.reference}
+                classroomId={classroomId}
+            />
             <Field
                 label="Orientação (opcional)"
                 htmlFor={`notes-${reading?.id ?? 'new'}`}

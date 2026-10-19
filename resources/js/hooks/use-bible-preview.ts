@@ -13,7 +13,10 @@ export type BiblePreview =
  * para não bater no servidor a cada tecla). "missing" = a referência não foi
  * reconhecida ou o texto bíblico não está importado.
  */
-export function useBiblePreview(reference: string): BiblePreview {
+export function useBiblePreview(
+    reference: string,
+    classroomId?: number | null,
+): BiblePreview {
     const trimmed = reference.trim();
     const [result, setResult] = useState<{
         reference: string;
@@ -27,14 +30,22 @@ export function useBiblePreview(reference: string): BiblePreview {
 
         const controller = new AbortController();
         const timer = setTimeout(() => {
-            fetch(preview.url({ query: { reference: trimmed } }), {
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
+            fetch(
+                preview.url({
+                    query: {
+                        reference: trimmed,
+                        classe: classroomId ?? undefined,
+                    },
+                }),
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    signal: controller.signal,
                 },
-                credentials: 'same-origin',
-                signal: controller.signal,
-            })
+            )
                 .then((response) => (response.ok ? response.json() : null))
                 .then((data: { passage: BiblePassage | null } | null) => {
                     if (data) {
@@ -53,7 +64,7 @@ export function useBiblePreview(reference: string): BiblePreview {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [trimmed]);
+    }, [trimmed, classroomId]);
 
     if (trimmed === '') {
         return { status: 'idle' };

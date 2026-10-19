@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Classroom;
 use App\Support\Bible\Bible;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,12 +18,19 @@ class BiblePreviewController extends Controller
     {
         $validated = $request->validate([
             'reference' => ['required', 'string', 'max:160'],
+            // Turma da lição em edição: o texto segue a igreja dela.
+            'classe' => ['nullable', 'integer'],
         ]);
+
+        $classroom = isset($validated['classe']) ? Classroom::query()->whereKey($validated['classe'])->first() : null;
+        $church = $classroom !== null && $request->user()?->can('manageContent', $classroom)
+            ? $classroom->church
+            : $request->user()?->currentChurch();
 
         $passage = Bible::passage($validated['reference']);
 
         // Sem licença do texto, a prévia só confirma a referência entendida.
-        if ($passage !== null && ! $request->user()?->currentChurch()?->shows_bible_text) {
+        if ($passage !== null && ! $church?->shows_bible_text) {
             $passage['verses'] = array_map(fn (array $verse) => [...$verse, 'text' => ''], $passage['verses']);
         }
 

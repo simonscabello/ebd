@@ -329,6 +329,7 @@ export default function EditLesson({
                     >
                         <ReadingsManager
                             lessonId={lesson.id}
+                            classroomId={lesson.classroom.id}
                             readings={lesson.readings}
                             weekdays={weekdays}
                         />

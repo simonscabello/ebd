@@ -7,6 +7,7 @@ use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -129,5 +130,19 @@ class ChurchAiSwitchTest extends TestCase
         $this->assertTrue($first->audio_enabled);
         $this->assertTrue($first->shows_bible_text);
         $this->assertFalse($this->church->fresh()->helper_enabled);
+    }
+
+    public function test_a_second_request_waits_while_another_lesson_takes_the_last_audio(): void
+    {
+        $this->church->update(['audio_enabled' => true, 'audio_monthly_limit' => 1]);
+        $lock = Cache::lock("church-audio:{$this->church->id}", 10);
+        $lock->get();
+
+        $this->actingAs($this->teacher)
+            ->post(route('admin.lessons.audio', $this->lesson))
+            ->assertSessionHasErrors(['audio' => 'Outro áudio desta igreja está sendo pedido agora. Tente de novo em instantes.']);
+
+        $lock->release();
+        $this->assertNull($this->lesson->fresh()->audio_status);
     }
 }
