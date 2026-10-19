@@ -6,6 +6,7 @@ use App\Actions\Classrooms\CreateClassroom;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ClassroomRequest;
 use App\Http\Resources\ClassroomResource;
+use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -54,7 +55,7 @@ class ClassroomController extends Controller
 
     public function store(ClassroomRequest $request, CreateClassroom $create): RedirectResponse
     {
-        $classroom = $create->handle($request->validated());
+        $classroom = $create->handle($request->validated(), Church::primaryOrCreate());
 
         $this->toast("Classe \"{$classroom->name}\" criada.");
 

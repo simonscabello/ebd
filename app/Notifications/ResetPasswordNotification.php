@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\Church;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,6 +30,6 @@ class ResetPasswordNotification extends ResetPassword implements ShouldQueue
             ->action('Criar nova senha', $this->resetUrl($notifiable))
             ->line("O link vale por {$minutes} minutos.")
             ->line('Se não foi você, pode ignorar este e-mail com tranquilidade.')
-            ->salutation('Um abraço, '.config('ebd.church_name'));
+            ->salutation('Um abraço, '.Church::displayName());
     }
 }

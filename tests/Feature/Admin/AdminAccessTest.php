@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,6 +77,6 @@ class AdminAccessTest extends TestCase
             ->post('/admin/classes', ['name' => 'Casais', 'is_active' => true])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('classrooms', ['name' => 'Casais', 'slug' => 'casais']);
+        $this->assertDatabaseHas('classrooms', ['name' => 'Casais', 'slug' => 'casais', 'church_id' => Church::primary()->id]);
     }
 }

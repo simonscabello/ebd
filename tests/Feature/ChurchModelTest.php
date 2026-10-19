@@ -7,6 +7,7 @@ use App\Models\Classroom;
 use App\Models\User;
 use Database\Seeders\ClassroomSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -59,5 +60,19 @@ class ChurchModelTest extends TestCase
 
         $this->assertCount(1, $churches);
         $this->assertNotNull($churches->first());
+    }
+
+    public function test_the_church_name_shown_comes_from_the_church_record(): void
+    {
+        Church::factory()->create(['name' => 'Igreja do Teste']);
+
+        $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('church.name', 'Igreja do Teste'));
+    }
+
+    public function test_the_configured_name_is_the_fallback_without_a_church(): void
+    {
+        config(['ebd.church_name' => 'Igreja da Configuração']);
+
+        $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('church.name', 'Igreja da Configuração'));
     }
 }
