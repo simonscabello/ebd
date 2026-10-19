@@ -56,9 +56,9 @@ class ChurchCalendar
 
     /**
      * Dia do plano de leitura (1 = segunda ... 7 = domingo) que cai hoje na
-     * semana de leitura de um encontro: de segunda-feira até o dia do
-     * encontro. Fora dessa semana não há "leitura de hoje": no domingo, a
-     * leitura de domingo da lição seguinte ainda não começou.
+     * semana de leitura de um encontro: dos seis dias antes até o dia do
+     * encontro. Fora dessa semana não há "leitura de hoje": no dia da aula, a
+     * leitura daquele dia da lição seguinte ainda não começou.
      */
     public static function readingWeekday(?\DateTimeInterface $meetingOn, ?\DateTimeInterface $today = null): ?int
     {
@@ -73,11 +73,12 @@ class ChurchCalendar
     }
 
     /**
-     * Segunda-feira que abre a semana de leitura do encontro.
+     * Primeiro dia da semana de leitura: seis dias antes do encontro (para
+     * quem se reúne no domingo, a segunda-feira).
      */
     public static function readingWeekStart(\DateTimeInterface $meetingOn): CarbonImmutable
     {
-        return CarbonImmutable::parse($meetingOn->format('Y-m-d'), self::timezone())->startOfWeek(CarbonImmutable::MONDAY);
+        return CarbonImmutable::parse($meetingOn->format('Y-m-d'), self::timezone())->subDays(6);
     }
 
     /**

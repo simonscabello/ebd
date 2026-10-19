@@ -93,21 +93,23 @@ class AwardBadges
         ];
     }
 
-    /** Marcou as leituras de segunda a sábado de uma mesma lição. */
+    /** Marcou as leituras dos seis dias antes do encontro de uma mesma lição. */
     private function hasFullWeek(User $user): bool
     {
         return $this->bestWeekDays($user) >= 6;
     }
 
-    /** Maior número de dias (segunda a sábado) marcados numa mesma lição. */
+    /** Maior número de dias de leitura (fora o dia do encontro da turma) numa mesma lição. */
     private function bestWeekDays(User $user): int
     {
         return (int) DB::query()->fromSub(
             DB::table('reading_checkins')
-                ->where('user_id', $user->id)
-                ->whereBetween('weekday', [1, 6])
-                ->groupBy('lesson_id')
-                ->selectRaw('COUNT(DISTINCT weekday) AS days'),
+                ->join('lessons', 'lessons.id', '=', 'reading_checkins.lesson_id')
+                ->join('classrooms', 'classrooms.id', '=', 'lessons.classroom_id')
+                ->where('reading_checkins.user_id', $user->id)
+                ->whereColumn('reading_checkins.weekday', '<>', 'classrooms.meeting_weekday')
+                ->groupBy('reading_checkins.lesson_id')
+                ->selectRaw('COUNT(DISTINCT reading_checkins.weekday) AS days'),
             'weeks',
         )->max('days');
     }

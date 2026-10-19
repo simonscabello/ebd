@@ -129,7 +129,7 @@ function ReadingList({
                   day.readings.map((reading) => ({ day, reading })),
               )
             : days
-                  .filter((d) => d.weekday <= 6)
+                  .filter((d) => !d.is_meeting_day)
                   .map((day) => ({
                       day,
                       reading: baseTextReading(day, lesson.bible_reference),

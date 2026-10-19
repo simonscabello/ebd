@@ -233,6 +233,8 @@ export type StudyWeekDay = {
     label: string;
     short: string;
     is_today: boolean;
+    /** O dia do encontro (último da semana de leitura). */
+    is_meeting_day: boolean;
     is_future: boolean;
     done: boolean;
     readings: LessonReading[];

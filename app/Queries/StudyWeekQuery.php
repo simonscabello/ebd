@@ -44,11 +44,15 @@ class StudyWeekQuery
         $current ??= $this->current->for($classroom, $user);
         $lesson = $current->lesson;
 
-        // A semana de leitura é a do encontro (segunda até o domingo da aula),
-        // não a semana do calendário: no domingo à noite, a lição seguinte
-        // ainda não tem "leitura de hoje".
+        // A semana de leitura é a do encontro (os seis dias antes até o dia da
+        // aula), não a semana do calendário: na noite da aula, a lição
+        // seguinte ainda não tem "leitura de hoje".
         $meetingOn = $current->meeting?->held_on;
-        $monday = $meetingOn ? ChurchCalendar::readingWeekStart($meetingOn) : $today->startOfWeek(CarbonImmutable::MONDAY);
+        $meetingDay = $meetingOn !== null
+            ? CarbonImmutable::parse($meetingOn->format('Y-m-d'), ChurchCalendar::timezone())
+            : ChurchCalendar::nextMeetingDay($classroom->meeting_weekday);
+        $start = ChurchCalendar::readingWeekStart($meetingDay);
+        $meetingWeekday = $meetingDay->dayOfWeekIso;
         $todayWeekday = ChurchCalendar::readingWeekday($meetingOn, $today);
 
         $base = [
@@ -81,17 +85,22 @@ class StudyWeekQuery
             ->map(fn ($d) => (int) $d)
             ->all();
 
-        $blocksByDay = $this->dripSchedule($lesson->blocks);
+        // Os sete dias em ordem de data; o último é o dia do encontro.
+        $week = collect(range(0, 6))->map(fn (int $i) => $start->addDays($i));
+        $readingWeekdays = array_values($week->map->dayOfWeekIso->reject(fn (int $d) => $d === $meetingWeekday)->all());
+
+        $blocksByDay = $this->dripSchedule($lesson->blocks, $readingWeekdays);
         $days = [];
 
-        foreach (Weekday::cases() as $weekday) {
-            $date = $monday->addDays($weekday->value - 1);
+        foreach ($week as $date) {
+            $weekday = Weekday::from($date->dayOfWeekIso);
             $days[] = [
                 'date' => $date->toDateString(),
                 'weekday' => $weekday->value,
                 'label' => $weekday->label(),
                 'short' => $weekday->shortLabel(),
                 'is_today' => $weekday->value === $todayWeekday,
+                'is_meeting_day' => $weekday->value === $meetingWeekday,
                 'is_future' => $date->gt($today),
                 'done' => in_array($weekday->value, $checked, true),
                 'readings' => LessonReadingResource::forWeek(
@@ -102,9 +111,9 @@ class StudyWeekQuery
             ];
         }
 
-        $readingDays = $lesson->readings->filter(fn ($r) => $r->weekday !== null && $r->weekday !== Weekday::Sunday)
+        $readingDays = $lesson->readings->filter(fn ($r) => $r->weekday !== null && $r->weekday->value !== $meetingWeekday)
             ->pluck('weekday')->unique()->count();
-        $weekDone = collect($days)->filter(fn ($d) => $d['done'] && $d['weekday'] <= 6)->count();
+        $weekDone = collect($days)->filter(fn ($d) => $d['done'] && ! $d['is_meeting_day'])->count();
 
         return [
             ...$base,
@@ -128,12 +137,14 @@ class StudyWeekQuery
 
     /**
      * Distribui os blocos pelos dias: dia definido pelo professor ou, para
-     * curiosidades/conceitos sem dia, um por dia de segunda a sábado.
+     * curiosidades/conceitos sem dia, um por dia de leitura (os seis dias
+     * antes do encontro, em ordem).
      *
      * @param  Collection<int, LessonBlock>  $blocks
+     * @param  list<int>  $readingWeekdays
      * @return array<int, list<LessonBlock>>
      */
-    private function dripSchedule(Collection $blocks): array
+    private function dripSchedule(Collection $blocks, array $readingWeekdays): array
     {
         $schedule = [];
         $auto = 0;
@@ -142,7 +153,7 @@ class StudyWeekQuery
             if ($block->drip_weekday !== null) {
                 $schedule[$block->drip_weekday->value][] = $block;
             } elseif ($block->kind->isDrippable() && in_array($block->kind->value, ['curiosity', 'concept'], true)) {
-                $schedule[($auto % 6) + 1][] = $block;
+                $schedule[$readingWeekdays[$auto % count($readingWeekdays)]][] = $block;
                 $auto++;
             }
         }

@@ -27,7 +27,7 @@ enum Badge: string
     public function description(): string
     {
         return match ($this) {
-            self::FirstFullWeek => 'Leu as leituras de segunda a sábado de uma lição.',
+            self::FirstFullWeek => 'Leu as leituras de todos os dias antes do encontro de uma lição.',
             self::Streak7 => 'Uma semana inteira sem deixar de ler.',
             self::Streak30 => 'Um mês de leitura diária. Que constância!',
             self::FaithfulReader => 'Estudou durante a semana em quase todas as lições da série.',
