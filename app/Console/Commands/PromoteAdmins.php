@@ -49,6 +49,8 @@ class PromoteAdmins extends Command
             }
 
             $church?->admins()->syncWithoutDetaching([$user->id]);
+            // E a biblioteca oficial, onde ficam os estudos do dono.
+            Church::query()->where('is_official', true)->first()?->admins()->syncWithoutDetaching([$user->id]);
 
             if ($user->isAdmin()) {
                 $this->components->info("{$email} já é administrador(a).");

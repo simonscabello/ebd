@@ -34,6 +34,12 @@ return new class extends Migration
 
         if ($library !== null) {
             $classrooms = DB::table('classrooms')->where('church_id', $library)->pluck('id');
+
+            if (DB::table('series')->whereIn('classroom_id', $classrooms)->exists() || DB::table('lessons')->whereIn('classroom_id', $classrooms)->exists()) {
+                throw new RuntimeException('A biblioteca oficial já tem estudos: mova ou apague esses estudos antes de desfazer esta migração.');
+            }
+
+            DB::table('church_user')->where('church_id', $library)->delete();
             DB::table('classrooms')->whereIn('id', $classrooms)->delete();
             DB::table('programs')->where('church_id', $library)->delete();
             DB::table('churches')->where('id', $library)->delete();

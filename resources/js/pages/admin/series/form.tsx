@@ -243,7 +243,9 @@ function OfficialLibraryVersions({
                 <p className="text-sm text-muted-foreground">
                     Publicar uma versão tira um retrato das lições publicadas.
                     As igrejas copiam a versão mais recente; quem já copiou vê o
-                    aviso de versão nova.
+                    aviso de versão nova. A cópia leva também os blocos e
+                    materiais do professor: não cole versículos da NAA nem
+                    trechos da revista.
                 </p>
             </div>
 

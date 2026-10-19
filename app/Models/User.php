@@ -293,8 +293,10 @@ class User extends Authenticatable implements OAuthenticatable
     public function isFreeFor(int $churchId): bool
     {
         $elsewhere = fn (array $ids) => array_diff($ids, [$churchId]) !== [];
+        // Administrar a biblioteca oficial (o dono) não é estar em outra igreja.
+        $administered = array_diff($this->administeredChurchIds(), Church::query()->where('is_official', true)->pluck('id')->all());
 
-        if ($elsewhere($this->memberChurchIds()) || $elsewhere($this->administeredChurchIds())) {
+        if ($elsewhere($this->memberChurchIds()) || $elsewhere($administered)) {
             return false;
         }
 
