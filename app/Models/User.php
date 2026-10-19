@@ -272,6 +272,32 @@ class User extends Authenticatable implements OAuthenticatable
     }
 
     /**
+     * Gerencia todas as turmas de que a pessoa participa (e ela participa de
+     * alguma). Condição para emitir link pessoal ou editar os dados dela: nada
+     * de alguém de outra igreja mexendo numa conta que não acompanha.
+     */
+    public function managesAllClassroomsOf(User $person): bool
+    {
+        $theirs = $person->memberClassroomIds();
+
+        return $theirs !== [] && array_diff($theirs, $this->manageableClassroomIds() ?? []) === [];
+    }
+
+    /**
+     * Igrejas das turmas de que a pessoa participa.
+     *
+     * @return list<int>
+     */
+    public function memberChurchIds(): array
+    {
+        return array_values(array_unique(Classroom::query()
+            ->whereIn('id', $this->memberClassroomIds())
+            ->pluck('church_id')
+            ->map(fn ($id) => (int) $id)
+            ->all()));
+    }
+
+    /**
      * A igreja de quem está usando: a que administra ou, senão, a da primeira
      * turma. Sem nenhuma, null.
      */

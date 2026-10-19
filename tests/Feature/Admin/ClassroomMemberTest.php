@@ -15,11 +15,15 @@ class ClassroomMemberTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_teacher_adds_existing_user_as_student(): void
+    public function test_teacher_adds_a_student_from_another_of_their_classrooms(): void
     {
+        // Desde a etapa C2: por e-mail só se acha quem já está numa turma que o
+        // professor acompanha; os outros entram pelo link de acesso.
         $classroom = Classroom::factory()->create();
+        $other = Classroom::factory()->create();
         $teacher = User::factory()->teacherOf($classroom)->create();
-        $user = User::factory()->create(['email' => 'maria@example.com']);
+        $other->members()->attach($teacher->id, ['role' => 'teacher']);
+        $user = User::factory()->studentOf($other)->create(['email' => 'maria@example.com']);
 
         $this->actingAs($teacher)
             ->post("/admin/classes/{$classroom->slug}/membros", ['email' => 'MARIA@example.com', 'role' => 'student'])

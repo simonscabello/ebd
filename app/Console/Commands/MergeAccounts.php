@@ -50,6 +50,12 @@ class MergeAccounts extends Command
             return self::FAILURE;
         }
 
+        if (count(array_unique([...$keep->memberChurchIds(), ...$duplicate->memberChurchIds()])) > 1) {
+            $this->components->error('As contas estão em igrejas diferentes. Elas não são juntadas.');
+
+            return self::FAILURE;
+        }
+
         $this->components->twoColumnDetail('Fica', "#{$keep->id} {$keep->name} ".($keep->email ?? '(sem e-mail)'));
         $this->components->twoColumnDetail('Fica vazia', "#{$duplicate->id} {$duplicate->name} ".($duplicate->email ?? '(sem e-mail)'));
 

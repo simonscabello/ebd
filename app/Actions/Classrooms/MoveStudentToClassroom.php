@@ -17,6 +17,10 @@ class MoveStudentToClassroom
 {
     public function handle(User $student, Classroom $from, Classroom $to): void
     {
+        if ($from->church_id !== $to->church_id) {
+            throw ValidationException::withMessages(['to_classroom' => 'A classe de destino é de outra igreja.']);
+        }
+
         if ($from->is($to)) {
             throw ValidationException::withMessages(['to_classroom' => 'A classe de destino é a mesma de origem.']);
         }

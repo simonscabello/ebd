@@ -18,9 +18,20 @@ class AddClassroomMember
     {
         $user = User::query()->where('email', mb_strtolower(trim($email)))->first();
 
-        if ($user === null) {
+        // Pessoas não atravessam igrejas. Aluno: só quem já está numa turma que
+        // você acompanha (os outros entram pelo link de acesso). Professor: só
+        // uma conta sem vínculo com outra igreja. A mesma mensagem para "não
+        // existe" e "é de outro lugar": não revela quem tem conta.
+        $allowed = $user !== null && ($role === ClassroomRole::Teacher
+            ? array_diff($user->memberChurchIds(), [$classroom->church_id]) === []
+                && array_diff($user->administeredChurchIds(), [$classroom->church_id]) === []
+            : array_intersect($user->memberClassroomIds(), $actor->manageableClassroomIds() ?? []) !== []);
+
+        if (! $allowed) {
             throw ValidationException::withMessages([
-                'email' => 'Nenhuma conta encontrada com este e-mail. Peça para a pessoa criar a conta primeiro.',
+                'email' => $role === ClassroomRole::Teacher
+                    ? 'Não encontramos uma conta disponível com este e-mail.'
+                    : 'Não encontramos essa pessoa nas suas turmas. Envie um convite pelo link de acesso.',
             ]);
         }
 
