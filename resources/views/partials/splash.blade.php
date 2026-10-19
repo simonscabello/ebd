@@ -201,7 +201,7 @@
 
 <div id="splash" class="splash" role="status">
     <div class="splash__main">
-        <img class="splash__icon" src="/icons/icon.svg" width="76" height="76" alt="">
+        <img class="splash__icon" src="/icons/didache-icon.svg" width="76" height="76" alt="">
         <blockquote class="splash__verse">
             <p>{{ $splash['text'] }}</p>
             @if ($splash['reference'])
