@@ -71,4 +71,3 @@ class ProgramCoordinatorTest extends TestCase
         $this->assertNotNull($link->refresh()->revoked_at);
     }
 }
-
