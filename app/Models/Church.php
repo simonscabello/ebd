@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
  * @property bool $audio_enabled áudio do estudo liberado pelo dono
  * @property int $audio_monthly_limit áudios gerados por mês na igreja
  * @property bool $shows_bible_text texto da NAA (só onde há licença)
+ * @property bool $is_official a biblioteca oficial do dono (ver OfficialLibrary)
  */
 #[Fillable(['name', 'slug', 'timezone', 'helper_enabled', 'helper_daily_limit', 'audio_enabled', 'audio_monthly_limit', 'shows_bible_text'])]
 class Church extends Model
@@ -41,6 +42,7 @@ class Church extends Model
             'audio_enabled' => 'boolean',
             'audio_monthly_limit' => 'integer',
             'shows_bible_text' => 'boolean',
+            'is_official' => 'boolean',
         ];
     }
 
@@ -110,7 +112,8 @@ class Church extends Model
      */
     public static function primary(): ?self
     {
-        return self::query()->orderBy('id')->first();
+        // A biblioteca oficial nunca é a igreja principal.
+        return self::query()->where('is_official', false)->orderBy('id')->first();
     }
 
     /**

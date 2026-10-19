@@ -31,6 +31,7 @@ class OwnerChurchStats
         $classroomIds = fn (Builder $query) => $query->from('classrooms')->select('id')->whereColumn('classrooms.church_id', 'churches.id');
 
         return array_values(Church::query()
+            ->where('is_official', false)
             ->orderBy('id')
             ->withCount('classrooms')
             ->selectSub(fn (Builder $query) => $query

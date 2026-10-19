@@ -333,7 +333,8 @@ class User extends Authenticatable implements OAuthenticatable
      */
     public function currentChurch(): ?Church
     {
-        $id = $this->administeredChurchIds()[0]
+        // A biblioteca oficial (que o dono administra) não é a igreja dele.
+        $id = Church::query()->whereIn('id', $this->administeredChurchIds())->where('is_official', false)->orderBy('id')->value('id')
             ?? Classroom::query()->whereIn('id', $this->memberClassroomIds())->orderBy('id')->value('church_id');
 
         return $id === null ? null : Church::query()->whereKey($id)->first();

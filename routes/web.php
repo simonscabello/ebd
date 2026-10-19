@@ -188,6 +188,7 @@ Route::middleware(['auth', 'can:access-admin'])
             ->names('lessons')
             ->except(['show']);
 
+        Route::post('series/{series}/versoes', [Admin\SeriesVersionController::class, 'store'])->name('series.versions.store');
         Route::post('licoes/{lesson}/status', Admin\LessonStatusController::class)->name('lessons.status');
         Route::post('licoes/{lesson}/audio', Admin\LessonAudioController::class)->name('lessons.audio');
         Route::put('licoes/{lesson}/ordem/{relation}', Admin\LessonOrderController::class)
