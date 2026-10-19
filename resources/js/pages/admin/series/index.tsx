@@ -1,8 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
-import { Layers, Plus } from 'lucide-react';
+import { BookOpen, Layers, Plus } from 'lucide-react';
 import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { report } from '@/routes/admin/classrooms';
+import { index as libraryIndex } from '@/routes/admin/library';
 import { create as createLesson } from '@/routes/admin/lessons';
 import { create, edit } from '@/routes/admin/series';
 import type { Series } from '@/types';
@@ -16,11 +17,18 @@ export default function SeriesIndex({ series }: { series: Series[] }) {
                     title="Séries de estudo"
                     description="Cada série agrupa as lições de uma revista ou tema."
                     actions={
-                        <Button asChild>
-                            <Link href={create()}>
-                                <Plus /> Nova série
-                            </Link>
-                        </Button>
+                        <>
+                            <Button asChild variant="outline">
+                                <Link href={libraryIndex()}>
+                                    <BookOpen /> Biblioteca oficial
+                                </Link>
+                            </Button>
+                            <Button asChild>
+                                <Link href={create()}>
+                                    <Plus /> Nova série
+                                </Link>
+                            </Button>
+                        </>
                     }
                 />
 

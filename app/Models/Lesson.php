@@ -45,6 +45,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $audio_status
  * @property string|null $audio_error
  * @property Carbon|null $audio_requested_at
+ * @property int|null $source_lesson_id lição do estudo oficial de onde veio a cópia
  * @property-read Classroom $classroom
  * @property-read Series|null $series
  */
