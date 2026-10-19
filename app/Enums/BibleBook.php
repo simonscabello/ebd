@@ -239,27 +239,40 @@ enum BibleBook: int
     public static function fromName(string $name): ?self
     {
         $exact = self::key($name, keepAccents: true);
-        $loose = self::key($name, keepAccents: false);
 
         if ($exact === '') {
             return null;
         }
 
-        $fallback = null;
+        [$withAccents, $withoutAccents] = self::lookup();
 
-        foreach (self::cases() as $book) {
-            foreach ([$book->label(), ...$book->aliases()] as $candidate) {
-                if (self::key($candidate, keepAccents: true) === $exact) {
-                    return $book;
-                }
+        return $withAccents[$exact] ?? $withoutAccents[self::key($name, keepAccents: false)] ?? null;
+    }
 
-                if ($fallback === null && self::key($candidate, keepAccents: false) === $loose) {
-                    $fallback = $book;
+    /**
+     * Nomes e abreviações já normalizados, montados uma vez por processo: a
+     * busca roda várias vezes por referência e varrer os 66 livros a cada
+     * chamada pesava na renderização de lições longas. Em caso de nome
+     * repetido vale o primeiro livro, como na varredura em ordem.
+     *
+     * @return array{0: array<string, self>, 1: array<string, self>}
+     */
+    private static function lookup(): array
+    {
+        static $maps = null;
+
+        if ($maps === null) {
+            $maps = [[], []];
+
+            foreach (self::cases() as $book) {
+                foreach ([$book->label(), ...$book->aliases()] as $candidate) {
+                    $maps[0][self::key($candidate, keepAccents: true)] ??= $book;
+                    $maps[1][self::key($candidate, keepAccents: false)] ??= $book;
                 }
             }
         }
 
-        return $fallback;
+        return $maps;
     }
 
     private static function key(string $name, bool $keepAccents): string

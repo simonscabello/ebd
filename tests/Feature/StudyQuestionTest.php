@@ -10,6 +10,7 @@ use App\Models\StudyQuestion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -108,6 +109,33 @@ class StudyQuestionTest extends TestCase
             ->assertJsonValidationErrors(['question' => 'Não consegui responder agora.']);
 
         $this->assertDatabaseCount('study_questions', 0);
+    }
+
+    public function test_a_question_already_being_answered_blocks_a_parallel_one(): void
+    {
+        $this->fakeOpenAi();
+        $held = Cache::lock("study-question:{$this->student->id}", 60);
+        $held->get();
+
+        $this->actingAs($this->student)
+            ->postJson('/licoes/e-necessario/duvidas', ['question' => 'Quem era o cego?'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['question' => 'Ainda estou respondendo']);
+
+        $held->release();
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('study_questions', 0);
+    }
+
+    public function test_the_student_waits_for_at_most_one_retry(): void
+    {
+        Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'instável']], 503)]);
+
+        $this->actingAs($this->student)
+            ->postJson('/licoes/e-necessario/duvidas', ['question' => 'Quem era o cego?'])
+            ->assertUnprocessable();
+
+        Http::assertSentCount(2);
     }
 
     public function test_only_members_of_the_class_can_ask(): void

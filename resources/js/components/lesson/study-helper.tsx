@@ -117,7 +117,7 @@ export function StudyHelperSheet({
             description="A IA responde com base nesta lição."
             className="max-h-[92svh]"
         >
-            <div className="space-y-5 pb-2">
+            <div className="space-y-5 pb-2" aria-live="polite">
                 {exchanges.length === 0 && pending === null && (
                     <div>
                         <p className="text-sm text-muted-foreground">

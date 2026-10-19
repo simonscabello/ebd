@@ -173,7 +173,9 @@ export default function Install() {
                             </Step>
                             <Step n={5} icon={<KeyRound />}>
                                 O iPhone não leva o login do Safari para o app.
-                                Se pedir para entrar,{' '}
+                                Se pedir para entrar e você já criou sua senha,
+                                entre com <strong>e-mail e senha</strong>. Se
+                                ainda não criou,{' '}
                                 <strong>copie o link de acesso</strong> que o
                                 professor mandou no WhatsApp (toque e segure no
                                 link → Copiar) e cole em{' '}

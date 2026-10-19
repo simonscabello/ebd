@@ -161,6 +161,32 @@ class StudentPagesTest extends TestCase
         $this->assertSame('davi@example.com', $link->fresh()->email);
     }
 
+    public function test_email_of_another_account_in_other_case_is_a_validation_error(): void
+    {
+        User::factory()->create(['email' => 'ana@example.com']);
+        $link = User::factory()->managed()->create(['name' => 'Davi']);
+        $this->classroom->members()->attach($link->id, ['role' => 'student']);
+
+        $this->actingAs($this->teacher)
+            ->put("/admin/classes/jovens/alunos/{$link->id}", ['name' => 'Davi', 'email' => 'Ana@Example.com'])
+            ->assertSessionHasErrors('email');
+
+        $this->assertNull($link->fresh()->email);
+    }
+
+    public function test_a_phone_with_more_digits_than_the_column_is_a_validation_error(): void
+    {
+        $link = User::factory()->managed()->create(['name' => 'Davi', 'phone' => '5527999990000']);
+        $this->classroom->members()->attach($link->id, ['role' => 'student']);
+
+        // 23 dígitos: passa no formato antigo (até 30 caracteres), mas a coluna guarda 20.
+        $this->actingAs($this->teacher)
+            ->put("/admin/classes/jovens/alunos/{$link->id}", ['name' => 'Davi', 'phone' => '55279999911112233445566'])
+            ->assertSessionHasErrors('phone');
+
+        $this->assertSame('5527999990000', $link->fresh()->phone);
+    }
+
     public function test_moving_a_student_needs_both_classrooms(): void
     {
         $ana = $this->student('Ana');

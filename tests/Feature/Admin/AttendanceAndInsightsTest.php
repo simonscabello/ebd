@@ -99,6 +99,19 @@ class AttendanceAndInsightsTest extends TestCase
         $this->assertNull($next->refresh()->scheduled_for);
     }
 
+    public function test_finishing_with_continue_without_a_lesson_changes_nothing(): void
+    {
+        $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-09-27')->create();
+
+        $this->actingAs($this->teacher)
+            ->post("/admin/encontros/{$meeting->id}/encerrar", ['continues' => true, 'notes' => 'Anotação'])
+            ->assertSessionHasErrors('meeting');
+
+        $meeting->refresh();
+        $this->assertNull($meeting->finished_at);
+        $this->assertNull($meeting->notes);
+    }
+
     public function test_sunday_mode_gives_the_roster_only_to_teachers(): void
     {
         $ana = $this->student('Ana');

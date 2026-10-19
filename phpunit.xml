@@ -27,6 +27,8 @@
         <env name="DB_DATABASE" value="ebd_testing"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- Nenhum teste pode usar a chave real da OpenAI do .env. -->
+        <env name="OPENAI_API_KEY" value="" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="EBD_MATERIALS_DISK" value="local"/>
         <env name="EBD_REGISTRATION_ENABLED" value="true"/>

@@ -23,13 +23,21 @@ trait StudentValidationRules
     }
 
     /**
-     * WhatsApp com DDD (e DDI, se for de fora do Brasil).
+     * WhatsApp com DDD (e DDI, se for de fora do Brasil). Guardamos só os
+     * dígitos, e um número internacional tem no máximo 15 (E.164).
      *
-     * @return list<string>
+     * @return list<mixed>
      */
     protected function phoneRules(bool $required = false): array
     {
-        return [$required ? 'required' : 'nullable', 'string', 'max:30', 'regex:/^[0-9 ()+.-]{8,30}$/'];
+        return [
+            $required ? 'required' : 'nullable', 'string', 'max:30', 'regex:/^[0-9 ()+.-]{8,30}$/',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                if (is_string($value) && strlen((string) preg_replace('/\D+/', '', $value)) > 15) {
+                    $fail('O telefone tem dígitos demais. Use só DDD e número (e DDI, se for de fora do Brasil).');
+                }
+            },
+        ];
     }
 
     /**
