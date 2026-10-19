@@ -252,6 +252,7 @@ class User extends Authenticatable implements OAuthenticatable
     {
         return $this->administeredChurchIds ??= array_values(DB::table('church_user')
             ->where('user_id', $this->id)
+            ->orderBy('church_id')
             ->pluck('church_id')
             ->map(fn ($id) => (int) $id)
             ->all());
@@ -281,6 +282,35 @@ class User extends Authenticatable implements OAuthenticatable
         $theirs = $person->memberClassroomIds();
 
         return $theirs !== [] && array_diff($theirs, $this->manageableClassroomIds() ?? []) === [];
+    }
+
+    /**
+     * A pessoa pode ser vinculada a esta igreja sem atravessar outra: não está
+     * em turma, administração ou coordenação de outra igreja e não deixou
+     * histórico (presença, leitura, anotação, dúvida, link) em outra. É o que
+     * impede alguém de outra igreja de "capturar" uma conta e tomar o login.
+     */
+    public function isFreeFor(int $churchId): bool
+    {
+        $elsewhere = fn (array $ids) => array_diff($ids, [$churchId]) !== [];
+
+        if ($elsewhere($this->memberChurchIds()) || $elsewhere($this->administeredChurchIds())) {
+            return false;
+        }
+
+        $coordinated = DB::table('program_user')->join('programs', 'programs.id', '=', 'program_user.program_id')
+            ->where('program_user.user_id', $this->id)->where('programs.church_id', '<>', $churchId)->exists();
+
+        $classroomsElsewhere = Classroom::query()->where('church_id', '<>', $churchId)->select('id');
+        $lessonsElsewhere = DB::table('lessons')->whereIn('classroom_id', $classroomsElsewhere)->select('id');
+
+        return ! $coordinated
+            && ! DB::table('attendances')->join('class_meetings', 'class_meetings.id', '=', 'attendances.class_meeting_id')
+                ->where('attendances.user_id', $this->id)->whereIn('class_meetings.classroom_id', $classroomsElsewhere)->exists()
+            && ! DB::table('reading_checkins')->where('user_id', $this->id)->whereIn('lesson_id', $lessonsElsewhere)->exists()
+            && ! DB::table('lesson_notes')->where('user_id', $this->id)->whereIn('lesson_id', $lessonsElsewhere)->exists()
+            && ! DB::table('study_questions')->where('user_id', $this->id)->whereIn('lesson_id', $lessonsElsewhere)->exists()
+            && ! DB::table('access_links')->where('user_id', $this->id)->whereIn('classroom_id', $classroomsElsewhere)->exists();
     }
 
     /**

@@ -22,10 +22,8 @@ class AddClassroomMember
         // você acompanha (os outros entram pelo link de acesso). Professor: só
         // uma conta sem vínculo com outra igreja. A mesma mensagem para "não
         // existe" e "é de outro lugar": não revela quem tem conta.
-        $allowed = $user !== null && ($role === ClassroomRole::Teacher
-            ? array_diff($user->memberChurchIds(), [$classroom->church_id]) === []
-                && array_diff($user->administeredChurchIds(), [$classroom->church_id]) === []
-            : array_intersect($user->memberClassroomIds(), $actor->manageableClassroomIds() ?? []) !== []);
+        $allowed = $user !== null && $user->isFreeFor($classroom->church_id) && ($role === ClassroomRole::Teacher
+            || array_intersect($user->memberClassroomIds(), $actor->manageableClassroomIds() ?? []) !== []);
 
         if (! $allowed) {
             throw ValidationException::withMessages([
@@ -36,6 +34,12 @@ class AddClassroomMember
         }
 
         $current = $user->roleIn($classroom);
+
+        // Professor com senha não vira aluno por aqui: aluno recebe link pessoal,
+        // que apaga a senha (seria um jeito de tomar o login de alguém).
+        if ($current === ClassroomRole::Teacher && $role === ClassroomRole::Student && ! $user->isManaged()) {
+            throw ValidationException::withMessages(['email' => "{$user->name} entra com e-mail e senha e não pode virar aluno(a) por aqui. Remova o vínculo de professor(a) primeiro."]);
+        }
 
         if ($current !== null && $current !== $role && ! $actor->can('assignTeachers', $classroom)) {
             throw ValidationException::withMessages([
