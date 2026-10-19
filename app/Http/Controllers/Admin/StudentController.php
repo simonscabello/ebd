@@ -174,6 +174,12 @@ class StudentController extends Controller
     {
         Gate::authorize('viewStudentProgress', [$classroom, $user]);
 
+        // E-mails são guardados em minúsculas; normalizar antes de validar faz o
+        // unique enxergar "Ana@x" como a conta "ana@x" (senão o banco recusa e dá 500).
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => mb_strtolower(trim($request->input('email')))]);
+        }
+
         $data = $request->validate([
             'name' => $this->nameRules(),
             'phone' => $this->phoneRules(),
@@ -181,10 +187,6 @@ class StudentController extends Controller
             'gender' => $this->genderRules(),
             'email' => ['sometimes', 'nullable', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
         ], $this->studentMessages(), $this->studentAttributes());
-
-        if (isset($data['email'])) {
-            $data['email'] = mb_strtolower(trim($data['email']));
-        }
 
         $update->handle($user, $data, $request->user());
 

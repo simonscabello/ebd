@@ -25,6 +25,12 @@ class FinishMeeting
             throw ValidationException::withMessages(['meeting' => 'Este encontro não pode ser encerrado.']);
         }
 
+        // Conferido antes de gravar: sem isso o encerramento ficava salvo e só
+        // depois vinha o erro de ContinueLessonNextMeeting.
+        if ($continues && $meeting->lesson_id === null) {
+            throw ValidationException::withMessages(['meeting' => 'Só é possível continuar um encontro que tem lição.']);
+        }
+
         $meeting->forceFill([
             'status' => MeetingStatus::Held,
             'notes' => filled($notes) ? $notes : $meeting->notes,

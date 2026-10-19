@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { home } from '@/routes';
+import { home, login } from '@/routes';
 import { store } from '@/routes/access-link';
 
 type Props = {
@@ -156,9 +156,17 @@ export default function AccessLink({ currentUser }: Props) {
                 {error ? (
                     <>
                         <p className="text-balance">{error}</p>
-                        <Button asChild variant="outline">
-                            <Link href={home()}>Ir para o início</Link>
-                        </Button>
+                        {/* Quem já criou a senha tem o link revogado: o caminho é o login. */}
+                        <div className="flex flex-wrap justify-center gap-2">
+                            <Button asChild>
+                                <Link href={login()}>
+                                    Entrar com e-mail e senha
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link href={home()}>Ir para o início</Link>
+                            </Button>
+                        </div>
                     </>
                 ) : currentUser && token && !processing ? (
                     <>

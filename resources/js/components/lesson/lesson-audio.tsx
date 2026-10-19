@@ -118,7 +118,7 @@ export function LessonAudioPlayer({
                     aria-label={playing ? 'Pausar' : 'Ouvir estudo'}
                     className={cn(
                         'flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
-                        highlight && !playing && 'animate-pulse',
+                        highlight && !playing && 'motion-safe:animate-pulse',
                     )}
                 >
                     {playing ? (

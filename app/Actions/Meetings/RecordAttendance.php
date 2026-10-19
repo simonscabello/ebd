@@ -53,6 +53,11 @@ class RecordAttendance
         }
 
         DB::transaction(function () use ($meeting, $presentIds, $roster, $visitors, $by) {
+            // Cada salvamento manda a lista inteira. Travar o encontro enfileira
+            // dois salvamentos ao mesmo tempo (dois professores, dois toques):
+            // vale a última lista, e não a soma das duas.
+            ClassMeeting::query()->whereKey($meeting->id)->lockForUpdate()->first();
+
             $meeting->attendances()
                 ->whereIn('user_id', $roster)
                 ->whereNotIn('user_id', $presentIds)

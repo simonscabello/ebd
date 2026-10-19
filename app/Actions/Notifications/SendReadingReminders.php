@@ -81,10 +81,10 @@ final class SendReadingReminders
 
                 [$read, $recipients] = $recipients->partition(fn (User $user) => in_array($user->id, $done, true));
 
-                $sent += $this->send($read, $this->alreadyReadMessage($classroom, $lesson, $reading));
+                $sent += $this->send($read, $this->alreadyReadMessage($classroom, $lesson, $reading, $today));
             }
 
-            $sent += $this->send($recipients, $this->message($slot, $classroom, $lesson, $reading));
+            $sent += $this->send($recipients, $this->message($slot, $classroom, $lesson, $reading, $today));
         }
 
         return $sent;
@@ -148,23 +148,23 @@ final class SendReadingReminders
      *
      * @param  array{reference: string, notes: string|null}  $reading
      */
-    private function alreadyReadMessage(Classroom $classroom, Lesson $lesson, array $reading): PushMessage
+    private function alreadyReadMessage(Classroom $classroom, Lesson $lesson, array $reading, CarbonImmutable $today): PushMessage
     {
         return new PushMessage(
             title: "Leitura de hoje: {$reading['reference']}",
             body: 'Você já leu hoje. Que tal relembrar o texto antes de dormir?',
             url: route('home', ['classe' => $classroom->slug]),
-            tag: "reading:{$lesson->id}:".ChurchCalendar::today()->dayOfWeekIso,
+            tag: "reading:{$lesson->id}:".$today->dayOfWeekIso,
         );
     }
 
     /**
      * @param  array{reference: string, notes: string|null}  $reading
      */
-    private function message(ReminderSlot $slot, Classroom $classroom, Lesson $lesson, array $reading): PushMessage
+    private function message(ReminderSlot $slot, Classroom $classroom, Lesson $lesson, array $reading, CarbonImmutable $today): PushMessage
     {
         $url = route('home', ['classe' => $classroom->slug]);
-        $tag = "reading:{$lesson->id}:".ChurchCalendar::today()->dayOfWeekIso;
+        $tag = "reading:{$lesson->id}:".$today->dayOfWeekIso;
 
         if ($slot === ReminderSlot::Evening) {
             return new PushMessage(

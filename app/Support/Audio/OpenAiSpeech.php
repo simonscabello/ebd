@@ -6,6 +6,8 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Narra um trecho de texto pela API de voz da OpenAI e devolve o MP3; também
@@ -47,18 +49,19 @@ class OpenAiSpeech
 
     /**
      * Texto gerado por um modelo de texto (roteiro para ouvir, ver ListeningScript).
-     * $model e $timeout: padrão do roteiro do áudio.
+     * $model e $timeout: padrão do roteiro do áudio. $attempts conta a primeira
+     * tentativa: quem espera a resposta na tela (o "Tirar dúvida") usa menos.
      *
      * @throws SpeechFailed com mensagem amigável
      */
-    public function write(string $instructions, string $input, ?string $model = null, ?int $timeout = null): string
+    public function write(string $instructions, string $input, ?string $model = null, ?int $timeout = null, int $attempts = 3): string
     {
         $response = $this->post(self::RESPONSES_ENDPOINT, [
             'model' => $model ?? config('ebd.audio.script_model'),
             'instructions' => $instructions,
             'input' => $input,
             'reasoning' => ['effort' => 'low'],
-        ], $timeout);
+        ], $timeout, $attempts);
 
         $text = collect((array) $response->json('output'))
             ->where('type', 'message')
@@ -79,7 +82,7 @@ class OpenAiSpeech
      *
      * @throws SpeechFailed
      */
-    private function post(string $endpoint, array $payload, ?int $timeout = null): Response
+    private function post(string $endpoint, array $payload, ?int $timeout = null, int $attempts = 3): Response
     {
         if (! $this->isConfigured()) {
             throw SpeechFailed::because('A geração de áudio não está configurada no servidor (falta a chave da OpenAI).');
@@ -88,14 +91,25 @@ class OpenAiSpeech
         try {
             return Http::withToken((string) config('services.openai.key'))
                 ->timeout($timeout ?? (int) config('ebd.audio.timeout'))
-                ->retry(3, 2000, fn ($exception) => $exception instanceof ConnectionException
+                ->retry(max(1, $attempts), 2000, fn ($exception) => $exception instanceof ConnectionException
                     || ($exception instanceof RequestException && in_array($exception->response->status(), [429, 500, 502, 503, 504], true)
                         && ! $this->isQuotaError($exception->response)))
                 ->post($endpoint, $payload)
                 ->throw();
         } catch (ConnectionException $e) {
+            Log::warning('OpenAI: sem conexão.', ['endpoint' => $endpoint, 'error' => $e->getMessage()]);
+
             throw SpeechFailed::because('Não foi possível falar com a OpenAI agora. Tente de novo em alguns minutos.', $e);
         } catch (RequestException $e) {
+            // Só o status e o erro da OpenAI: o pedido (lição, pergunta) não vai para o log.
+            Log::warning('OpenAI: pedido recusado.', [
+                'endpoint' => $endpoint,
+                'model' => $payload['model'] ?? null,
+                'status' => $e->response->status(),
+                'code' => $e->response->json('error.code'),
+                'message' => Str::limit((string) $e->response->json('error.message'), 300),
+            ]);
+
             throw SpeechFailed::because($this->friendlyMessage($e->response), $e);
         }
     }
@@ -107,7 +121,7 @@ class OpenAiSpeech
             $this->isQuotaError($response) => 'A conta da OpenAI está sem créditos ou passou do limite de uso.',
             $response->status() === 429 => 'A OpenAI está recebendo pedidos demais agora. Tente de novo em alguns minutos.',
             $response->serverError() => 'A OpenAI está instável no momento. Tente de novo em alguns minutos.',
-            default => 'A OpenAI não aceitou o pedido de áudio. O erro ficou registrado.',
+            default => 'A OpenAI não aceitou o pedido. O erro ficou registrado.',
         };
     }
 

@@ -38,6 +38,7 @@ export function AttendanceSheet({
         'idle',
     );
     const touched = useRef(false);
+    const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
         onChange?.(present.length);
@@ -59,6 +60,18 @@ export function AttendanceSheet({
                     only: reloadOnly,
                     onSuccess: () => setStatus('saved'),
                     onError: () => setStatus('error'),
+                    // Sem rede ou com erro do servidor o Inertia não chama
+                    // onError; sem estes, a chamada ficava em "Salvando…".
+                    onHttpException: () => {
+                        setStatus('error');
+
+                        return false;
+                    },
+                    onNetworkError: () => {
+                        setStatus('error');
+
+                        return false;
+                    },
                 },
             );
         }, 800);
@@ -66,7 +79,19 @@ export function AttendanceSheet({
         return () => clearTimeout(timer);
         // reloadOnly é fixo por página; não reenvia a chamada se mudar.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [present, visitors, meetingId]);
+    }, [present, visitors, meetingId, attempt]);
+
+    // A lista inteira é reenviada: quando a rede volta, basta mandar de novo.
+    useEffect(() => {
+        if (status !== 'error') {
+            return;
+        }
+
+        const onOnline = () => setAttempt((n) => n + 1);
+        window.addEventListener('online', onOnline);
+
+        return () => window.removeEventListener('online', onOnline);
+    }, [status]);
 
     const toggle = (id: number) => {
         touched.current = true;
@@ -104,7 +129,18 @@ export function AttendanceSheet({
                 >
                     {status === 'saving' && 'Salvando…'}
                     {status === 'saved' && 'Salvo'}
-                    {status === 'error' && 'Não salvou. Tente de novo.'}
+                    {status === 'error' && (
+                        <>
+                            Não salvou.{' '}
+                            <button
+                                type="button"
+                                onClick={() => setAttempt((n) => n + 1)}
+                                className="underline underline-offset-2"
+                            >
+                                Tentar de novo
+                            </button>
+                        </>
+                    )}
                 </span>
             </div>
             {roster.length === 0 ? (

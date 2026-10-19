@@ -189,8 +189,9 @@ export function ReadingRow({
                         : 'bg-card hover:bg-muted',
                 )}
             >
-                <BookOpen className="size-4" />
+                <BookOpen className="size-4" aria-hidden />
                 Ler o texto
+                <span className="sr-only"> {reference}</span>
             </button>
         </div>
     );
