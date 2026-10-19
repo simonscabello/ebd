@@ -33,7 +33,7 @@ export function ClassroomHeader({
         { key: 'resumo', title: 'Resumo', href: show.url(classroom.slug) },
         {
             key: 'domingos',
-            title: 'Domingos',
+            title: classroom.meeting_name_plural ?? 'Domingos',
             href: meetingsIndex.url(classroom.slug),
         },
         {

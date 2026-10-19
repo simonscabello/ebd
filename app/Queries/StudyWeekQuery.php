@@ -62,6 +62,7 @@ class StudyWeekQuery
             'meeting' => $current->meeting && ! $current->isFallback ? [
                 'held_on' => $current->meeting->held_on->toDateString(),
                 'date_label' => ChurchCalendar::formatLong($current->meeting->held_on),
+                'day' => Weekday::from($current->meeting->held_on->dayOfWeekIso)->lowerLabel(),
                 'days_until' => ChurchCalendar::daysUntil($current->meeting->held_on),
                 'index' => $current->meetingIndex,
                 'total' => $current->meetingTotal,

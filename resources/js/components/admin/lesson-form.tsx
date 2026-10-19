@@ -88,6 +88,16 @@ export function LessonForm({
         }
     };
 
+    // "Domingo da aula" para quem se reúne no domingo; "Dia da aula" nos outros.
+    const chosenClassroom = classrooms?.find(
+        (item) => item.id === data.classroom_id,
+    );
+    const meetingName =
+        chosenClassroom?.meeting_weekday !== undefined &&
+        chosenClassroom.meeting_weekday !== 7
+            ? 'Dia'
+            : 'Domingo';
+
     return (
         <form noValidate onSubmit={submit} className="space-y-6">
             {!editing && classrooms && (
@@ -205,7 +215,7 @@ export function LessonForm({
             <div className="grid items-start gap-6 sm:grid-cols-2">
                 {!editing && (
                     <Field
-                        label="Domingo da aula"
+                        label={`${meetingName} da aula`}
                         htmlFor="meeting_on"
                         error={errors.meeting_on}
                         hint="Opcional. Depois é só ajustar pela agenda da classe."
