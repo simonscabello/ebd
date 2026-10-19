@@ -17,12 +17,14 @@ use App\Models\Series;
 final class SeriesSnapshot
 {
     /**
+     * @param  bool  $includeDrafts  também as lições em rascunho (para levar um
+     *                               estudo à biblioteca, não para publicar versão)
      * @return array{title: string, description: string|null, lessons: list<array<string, mixed>>}
      */
-    public static function of(Series $series): array
+    public static function of(Series $series, bool $includeDrafts = false): array
     {
         $lessons = $series->lessons()
-            ->where('status', LessonStatus::Published)
+            ->when(! $includeDrafts, fn ($query) => $query->where('status', LessonStatus::Published))
             ->with(['blocks', 'readings', 'materials'])
             ->orderByRaw('number is null, number')
             ->orderBy('id')

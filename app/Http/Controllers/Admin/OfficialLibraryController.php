@@ -93,7 +93,8 @@ class OfficialLibraryController extends Controller
             'classroom_id' => ['required', 'integer', Rule::in($targets->modelKeys())],
         ], ['classroom_id.in' => 'Escolha uma das suas turmas.']);
 
-        $copied = $copy->handle($request->user(), $latest, $targets->find($validated['classroom_id']));
+        $target = $targets->firstOrFail(fn (Classroom $classroom) => $classroom->id === (int) $validated['classroom_id']);
+        $copied = $copy->handle($request->user(), $latest, $target);
 
         $this->toast('Estudo copiado. As lições estão em rascunho: revise e publique quando quiser.');
 
