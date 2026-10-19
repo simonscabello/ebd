@@ -11,6 +11,7 @@ use App\Queries\Data\AttendanceBook;
 use App\Queries\Data\CurrentLesson;
 use App\Queries\Data\Period;
 use App\Support\ChurchCalendar;
+use App\Support\ProgramNames;
 use App\Support\WeeklyMessage;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -65,7 +66,7 @@ class ClassroomOverviewQuery
                     'id' => $meeting->id,
                     'held_on' => $meeting->held_on->toDateString(),
                     'status' => $meeting->status->value,
-                    'status_label' => $meeting->status->label(),
+                    'status_label' => app(ProgramNames::class)->statusLabel($meeting->status, $meeting->classroom_id),
                     'title' => $meeting->title,
                     'has_attendance' => $meeting->hasAttendance(),
                     'is_today' => $meeting->held_on->toDateString() === $todayString,

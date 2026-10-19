@@ -181,7 +181,10 @@ export default function LessonShow({
             ? `encontro ${meetings.indexOf(shownMeeting) + 1} de ${meetings.length}`
             : null;
     const countdown = nextMeeting
-        ? countdownLabel(nextMeeting.days_until)
+        ? countdownLabel(
+              nextMeeting.days_until,
+              lesson.classroom?.program_short_name ?? 'EBD',
+          )
         : shownMeeting
           ? 'Aula realizada'
           : null;

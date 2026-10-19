@@ -273,6 +273,7 @@ export default function ClassroomOverview({
                             <Birthdays
                                 items={overview.birthdays}
                                 today={overview.today}
+                                program={classroom.program_short_name ?? 'EBD'}
                             />
                         )}
                     </div>
@@ -378,7 +379,8 @@ function WeekCard({
                     key={item.held_on}
                     className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm"
                 >
-                    {longDate(item.held_on)}: sem EBD
+                    {longDate(item.held_on)}: sem{' '}
+                    {classroom.program_short_name ?? 'EBD'}
                     {item.title ? ` (${item.title})` : ''}.
                 </p>
             ))}
@@ -668,6 +670,7 @@ function Attention({
                                 text={missYouMessage(
                                     student.name,
                                     classroom.name,
+                                    classroom.program_short_name ?? 'EBD',
                                 )}
                                 variant="outline"
                             />
@@ -682,9 +685,11 @@ function Attention({
 function Birthdays({
     items,
     today,
+    program,
 }: {
     items: Overview['birthdays'];
     today: string;
+    program: string;
 }) {
     return (
         <Section title="Aniversariantes do mês" icon={<Cake />}>
@@ -718,7 +723,7 @@ function Birthdays({
                             </div>
                             <WhatsAppButton
                                 phone={person.phone}
-                                text={birthdayMessage(person.name)}
+                                text={birthdayMessage(person.name, program)}
                                 label="Parabéns"
                                 variant={
                                     person.is_today ? 'default' : 'outline'

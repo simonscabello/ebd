@@ -103,7 +103,7 @@ export default function Account({ classrooms }: Props) {
                                 <SettingsRow
                                     href={dashboard.url()}
                                     icon={<ShieldCheck />}
-                                    title="Gestão da EBD"
+                                    title="Gestão"
                                     description="Classes, lições e agenda"
                                     trailing={
                                         user.is_admin ? (

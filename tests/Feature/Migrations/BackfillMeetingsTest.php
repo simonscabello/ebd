@@ -26,7 +26,8 @@ class BackfillMeetingsTest extends TestCase
 
         // Desde 2026-10-20 toda classe pertence a uma igreja.
         $church = DB::table('churches')->insertGetId(['name' => 'Igreja', 'slug' => 'igreja', 'timezone' => 'Europe/Madrid', 'created_at' => now(), 'updated_at' => now()]);
-        $classroom = DB::table('classrooms')->insertGetId(['church_id' => $church, 'name' => 'Adultos', 'slug' => 'adultos', 'created_at' => now(), 'updated_at' => now()]);
+        $program = DB::table('programs')->insertGetId(['church_id' => $church, 'name' => 'Escola Bíblica Dominical', 'short_name' => 'EBD', 'slug' => 'ebd', 'created_at' => now(), 'updated_at' => now()]);
+        $classroom = DB::table('classrooms')->insertGetId(['church_id' => $church, 'program_id' => $program, 'name' => 'Adultos', 'slug' => 'adultos', 'created_at' => now(), 'updated_at' => now()]);
         $lesson = fn (array $data) => DB::table('lessons')->insertGetId([
             'classroom_id' => $classroom,
             'title' => $data['slug'],

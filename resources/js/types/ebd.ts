@@ -16,6 +16,9 @@ export type Classroom = {
     /** "Domingo" (Modo Domingo) ou "Encontro" nos outros dias. */
     meeting_name?: string;
     meeting_name_plural?: string;
+    program_name?: string | null;
+    /** "EBD", "Discipulado": entra nos textos ("Amanhã tem EBD!"). */
+    program_short_name?: string | null;
 };
 
 export type Series = {

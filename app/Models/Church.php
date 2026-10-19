@@ -34,6 +34,24 @@ class Church extends Model
     }
 
     /**
+     * @return HasMany<Program, $this>
+     */
+    public function programs(): HasMany
+    {
+        return $this->hasMany(Program::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * O programa onde entram as turmas novas quando a igreja tem um só (ou o
+     * primeiro). Igreja sem programa ganha a Escola Bíblica Dominical.
+     */
+    public function defaultProgram(): Program
+    {
+        return $this->programs()->first()
+            ?? $this->programs()->create(['name' => 'Escola Bíblica Dominical', 'short_name' => 'EBD', 'slug' => 'ebd']);
+    }
+
+    /**
      * @return BelongsToMany<User, $this>
      */
     public function admins(): BelongsToMany

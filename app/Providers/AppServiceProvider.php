@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Support\ProgramNames;
 use App\Support\Push\NullPushSender;
 use App\Support\Push\PushSender;
 use App\Support\Push\WebPushSender;
@@ -33,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // O MCP usa só authorization code + refresh token; sem as rotas /oauth/device.
         Passport::$deviceCodeGrantEnabled = false;
+
+        // Cache por requisição dos nomes de programa (ver ProgramNames).
+        $this->app->scoped(ProgramNames::class);
 
         $this->app->bind(PushSender::class, function (): PushSender {
             $public = (string) config('ebd.push.public_key');

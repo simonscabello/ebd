@@ -23,11 +23,14 @@ export function CancelMeetingDialog({
     dateLabel,
     open,
     onOpenChange,
+    program = 'EBD',
 }: {
     meeting: { id: number; lesson_id: number | null };
     dateLabel: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    /** Nome curto do programa ("EBD", "Discipulado"). */
+    program?: string;
 }) {
     const form = useForm({ reason: '', shift: meeting.lesson_id !== null });
 
@@ -46,7 +49,7 @@ export function CancelMeetingDialog({
                     className="space-y-4"
                 >
                     <DialogHeader>
-                        <DialogTitle>Domingo sem EBD</DialogTitle>
+                        <DialogTitle>Domingo sem {program}</DialogTitle>
                         <DialogDescription className="first-letter:uppercase">
                             {dateLabel}. O aviso aparece para a classe no
                             Início.
@@ -96,7 +99,7 @@ export function CancelMeetingDialog({
                             Voltar
                         </Button>
                         <Button type="submit" disabled={form.processing}>
-                            <CalendarOff /> Marcar sem EBD
+                            <CalendarOff /> Marcar sem {program}
                         </Button>
                     </DialogFooter>
                 </form>

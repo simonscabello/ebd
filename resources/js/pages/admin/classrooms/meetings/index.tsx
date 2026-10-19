@@ -63,7 +63,7 @@ export default function ClassroomMeetings({
                 <ClassroomHeader classroom={classroom} active="domingos" />
                 <PageHeader
                     title="Domingos"
-                    description="Todo domingo já está na agenda: escolha a lição de cada um ou marque “Sem EBD”. Uma lição pode ocupar mais de um domingo."
+                    description={`Todo domingo já está na agenda: escolha a lição de cada um ou marque “Sem ${classroom.program_short_name ?? 'EBD'}”. Uma lição pode ocupar mais de um domingo.`}
                     actions={
                         <PlanMeetingsDialog
                             classroom={classroom}
@@ -162,7 +162,7 @@ function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
     const tile = dateTile(row.held_on);
     const cancelled = row.status === 'cancelled';
     const title = cancelled
-        ? `Sem EBD${row.title ? ` · ${row.title}` : ''}`
+        ? `Sem ${classroom.program_short_name ?? 'EBD'}${row.title ? ` · ${row.title}` : ''}`
         : (row.lesson?.display_title ?? row.title ?? 'Lição a definir');
 
     return (

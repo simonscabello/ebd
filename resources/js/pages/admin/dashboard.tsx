@@ -71,7 +71,7 @@ export default function AdminDashboard({
 
             <Page width="wide">
                 <PageHeader
-                    eyebrow="Gestão da EBD"
+                    eyebrow="Gestão"
                     title={`Olá, ${auth.user?.first_name ?? ''}`}
                     description={
                         classrooms.length
