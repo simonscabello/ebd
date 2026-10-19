@@ -58,7 +58,7 @@ class ClassroomController extends Controller
 
     public function store(ClassroomRequest $request, CreateClassroom $create): RedirectResponse
     {
-        $classroom = $create->handle($request->validated(), Church::primaryOrCreate());
+        $classroom = $create->handle($request->validated(), Church::primaryOrCreate()->defaultProgram());
 
         $this->toast("Classe \"{$classroom->name}\" criada.");
 

@@ -19,6 +19,8 @@ class ClassroomFactory extends Factory
         return [
             // As classes de um teste ficam na mesma igreja, como em produção.
             'church_id' => fn () => Church::primary()->id ?? Church::factory(),
+            // O programa padrão da igreja da turma (a EBD), como em produção.
+            'program_id' => fn (array $attributes) => Church::query()->whereKey($attributes['church_id'])->firstOrFail()->defaultProgram()->id,
             'name' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),
             'description' => fake()->sentence(),

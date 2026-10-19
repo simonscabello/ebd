@@ -20,6 +20,8 @@ class CreateChurchesTest extends TestCase
 
     private function rollback(): void
     {
+        // Os programas (migration posterior) dependem da igreja: saem antes.
+        $this->artisan('migrate:rollback', ['--path' => 'database/migrations/2026_10_22_000100_create_programs_table.php'])->assertSuccessful();
         $this->artisan('migrate:rollback', ['--path' => self::MIGRATION])->assertSuccessful();
     }
 

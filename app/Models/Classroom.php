@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int $id
  * @property int $church_id
+ * @property int $program_id
  * @property string $name
  * @property string $slug
  * @property string|null $description
@@ -53,6 +54,14 @@ class Classroom extends Model
     public function church(): BelongsTo
     {
         return $this->belongsTo(Church::class);
+    }
+
+    /**
+     * @return BelongsTo<Program, $this>
+     */
+    public function program(): BelongsTo
+    {
+        return $this->belongsTo(Program::class);
     }
 
     /**

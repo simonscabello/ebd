@@ -90,6 +90,21 @@ class User extends Authenticatable implements OAuthenticatable
         return $this->belongsToMany(Church::class)->withTimestamps();
     }
 
+    /**
+     * Programas que a pessoa coordena (gerencia todas as turmas deles).
+     *
+     * @return BelongsToMany<Program, $this>
+     */
+    public function coordinatedPrograms(): BelongsToMany
+    {
+        return $this->belongsToMany(Program::class)->withTimestamps();
+    }
+
+    public function isCoordinatorOf(Program $program): bool
+    {
+        return $this->coordinatedPrograms()->whereKey($program->id)->exists();
+    }
+
     public function isChurchAdminOf(Church $church): bool
     {
         return $this->administeredChurches()->whereKey($church->id)->exists();
