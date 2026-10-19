@@ -20,7 +20,9 @@ class CreateChurchesTest extends TestCase
 
     private function rollback(): void
     {
-        // Os programas (migration posterior) dependem da igreja: saem antes.
+        // O uso da IA e os programas (migrations posteriores) dependem da igreja: saem antes.
+        $this->artisan('migrate:rollback', ['--path' => 'database/migrations/2026_10_23_000200_create_ai_usages_table.php'])->assertSuccessful();
+        $this->artisan('migrate:rollback', ['--path' => 'database/migrations/2026_10_23_000100_add_settings_to_churches.php'])->assertSuccessful();
         $this->artisan('migrate:rollback', ['--path' => 'database/migrations/2026_10_22_000100_create_programs_table.php'])->assertSuccessful();
         $this->artisan('migrate:rollback', ['--path' => self::MIGRATION])->assertSuccessful();
     }

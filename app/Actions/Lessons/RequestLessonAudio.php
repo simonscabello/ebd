@@ -4,6 +4,8 @@ namespace App\Actions\Lessons;
 
 use App\Models\Lesson;
 use App\Support\Audio\OpenAiSpeech;
+use App\Support\ChurchFeatures;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -33,12 +35,22 @@ class RequestLessonAudio
             return self::UP_TO_DATE;
         }
 
+        if (! ChurchFeatures::audioAvailable($lesson)) {
+            throw new AuthorizationException('O áudio do estudo não está liberado para esta igreja.');
+        }
+
         if (blank($lesson->content)) {
             throw ValidationException::withMessages(['audio' => 'Escreva o estudo antes de gerar o áudio.']);
         }
 
         if (! $this->speech->isConfigured()) {
             throw ValidationException::withMessages(['audio' => 'A geração de áudio não está configurada no servidor (falta a chave da OpenAI).']);
+        }
+
+        if (($remaining = ChurchFeatures::audioRemainingThisMonth($lesson)) === 0) {
+            $limit = ChurchFeatures::churchOf($lesson)->audio_monthly_limit;
+
+            throw ValidationException::withMessages(['audio' => "Limite de áudios do mês atingido ({$limit} por mês)."]);
         }
 
         $claimed = Lesson::query()

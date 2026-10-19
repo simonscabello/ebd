@@ -61,11 +61,17 @@ export function LessonAudioManager({
         });
     };
 
-    const button = (label: string) => (
-        <Button variant="outline" onClick={request}>
-            <AudioLines /> {label}
-        </Button>
-    );
+    const button = (label: string) =>
+        !audio.enabled ? null : audio.remaining === 0 ? (
+            <span className="text-muted-foreground">
+                Limite de áudios do mês atingido ({audio.monthly_limit} por
+                mês).
+            </span>
+        ) : (
+            <Button variant="outline" onClick={request}>
+                <AudioLines /> {label}
+            </Button>
+        );
 
     return (
         <div className="space-y-3">

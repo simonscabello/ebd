@@ -2,12 +2,15 @@
 
 namespace App\Actions\Lessons;
 
+use App\Enums\AiUsageKind;
+use App\Models\AiUsage;
 use App\Models\Lesson;
 use App\Support\Audio\ListeningScript;
 use App\Support\Audio\Mp3;
 use App\Support\Audio\OpenAiSpeech;
 use App\Support\Audio\SpeechFailed;
 use App\Support\Audio\StudyNarration;
+use App\Support\ChurchFeatures;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
@@ -79,6 +82,8 @@ class GenerateLessonAudio
             'audio_status' => null,
             'audio_error' => null,
         ])->save();
+
+        AiUsage::record(ChurchFeatures::churchOf($lesson), AiUsageKind::Audio, $lesson);
 
         if ($previous !== null) {
             Storage::disk((string) $previous[0])->delete((string) $previous[1]);

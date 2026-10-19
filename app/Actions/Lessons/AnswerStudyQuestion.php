@@ -2,7 +2,9 @@
 
 namespace App\Actions\Lessons;
 
+use App\Enums\AiUsageKind;
 use App\Enums\ContentAudience;
+use App\Models\AiUsage;
 use App\Models\Lesson;
 use App\Models\LessonBlock;
 use App\Models\StudyQuestion;
@@ -11,6 +13,7 @@ use App\Support\Audio\OpenAiSpeech;
 use App\Support\Audio\SpeechFailed;
 use App\Support\Bible\Bible;
 use App\Support\ChurchCalendar;
+use App\Support\ChurchFeatures;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -66,20 +69,21 @@ class AnswerStudyQuestion
 
     public function __construct(private OpenAiSpeech $openai) {}
 
-    public static function isAvailable(): bool
+    /** Ligado no servidor e liberado pelo dono para a igreja da lição. */
+    public static function isAvailable(Lesson $lesson): bool
     {
-        return (bool) config('ebd.helper.enabled') && app(OpenAiSpeech::class)->isConfigured();
+        return ChurchFeatures::helperAvailable($lesson);
     }
 
-    /** Perguntas que a pessoa ainda pode fazer hoje (fuso da igreja). */
-    public static function remainingToday(User $user): int
+    /** Perguntas que a pessoa ainda pode fazer hoje (fuso da igreja), no limite da igreja da lição. */
+    public static function remainingToday(User $user, Lesson $lesson): int
     {
         $asked = StudyQuestion::query()
             ->where('user_id', $user->id)
             ->where('created_at', '>=', ChurchCalendar::today()->utc())
             ->count();
 
-        return max(0, (int) config('ebd.helper.daily_limit') - $asked);
+        return max(0, ChurchFeatures::helperDailyLimit($lesson) - $asked);
     }
 
     /**
@@ -87,7 +91,7 @@ class AnswerStudyQuestion
      */
     public function handle(User $user, Lesson $lesson, string $question): StudyQuestion
     {
-        if (! self::isAvailable()) {
+        if (! self::isAvailable($lesson)) {
             throw ValidationException::withMessages(['question' => 'O "Tirar dúvida" não está disponível no momento.']);
         }
 
@@ -119,7 +123,7 @@ class AnswerStudyQuestion
      */
     private function answer(User $user, Lesson $lesson, string $question): StudyQuestion
     {
-        if (self::remainingToday($user) === 0) {
+        if (self::remainingToday($user, $lesson) === 0) {
             throw ValidationException::withMessages(['question' => 'Você já tirou todas as dúvidas de hoje. Amanhã tem mais; e no domingo, leve a sua para a aula!']);
         }
 
@@ -138,12 +142,16 @@ class AnswerStudyQuestion
             throw ValidationException::withMessages(['question' => 'Não consegui responder agora. Tente de novo em alguns minutos.']);
         }
 
-        return StudyQuestion::query()->create([
+        $asked = StudyQuestion::query()->create([
             'user_id' => $user->id,
             'lesson_id' => $lesson->id,
             'question' => $question,
             'answer' => $answer,
         ]);
+
+        AiUsage::record(ChurchFeatures::churchOf($lesson), AiUsageKind::Question, $lesson);
+
+        return $asked;
     }
 
     /** A lição como o aluno a vê, em texto, para o modelo. */

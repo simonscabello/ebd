@@ -10,6 +10,7 @@ use App\Http\Resources\LessonResource;
 use App\Models\Lesson;
 use App\Queries\MeetingForLessonQuery;
 use App\Support\ChurchCalendar;
+use App\Support\ChurchFeatures;
 use App\Support\WeeklyMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -138,13 +139,13 @@ class LessonController extends Controller
     {
         $user = $request->user();
 
-        if ($user === null || ! AnswerStudyQuestion::isAvailable() || ! StudyQuestionController::canAsk($user, $lesson)) {
+        if ($user === null || ! AnswerStudyQuestion::isAvailable($lesson) || ! StudyQuestionController::canAsk($user, $lesson)) {
             return null;
         }
 
         return [
-            'remaining' => AnswerStudyQuestion::remainingToday($user),
-            'daily_limit' => (int) config('ebd.helper.daily_limit'),
+            'remaining' => AnswerStudyQuestion::remainingToday($user, $lesson),
+            'daily_limit' => ChurchFeatures::helperDailyLimit($lesson),
         ];
     }
 

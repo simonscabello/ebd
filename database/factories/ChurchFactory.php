@@ -21,4 +21,10 @@ class ChurchFactory extends Factory
             'timezone' => 'America/Sao_Paulo',
         ];
     }
+
+    /** A igreja do dono: IA, áudio e texto bíblico ligados, como hoje. */
+    public function owner(): static
+    {
+        return $this->state(fn () => Church::ownerSettings());
+    }
 }
