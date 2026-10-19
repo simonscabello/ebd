@@ -8,6 +8,7 @@
 return [
     'name' => 'Didaché',
     'tagline' => 'Ensino bíblico em comunidade',
-    'theme_color' => '#3A4F41',
-    'background_color' => '#F4EFE6',
+    // Cores do navegador e do app instalado: a paleta do app (verde sálvia e papel).
+    'theme_color' => '#2f5f53',
+    'background_color' => '#faf7f2',
 ];
