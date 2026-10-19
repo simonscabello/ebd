@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
+    Building2,
     Layers,
     LayoutDashboard,
     Library,
@@ -20,6 +21,7 @@ import { home } from '@/routes';
 import { dashboard } from '@/routes/admin';
 import { index as classroomsIndex } from '@/routes/admin/classrooms';
 import { index as lessonsIndex } from '@/routes/admin/lessons';
+import { index as churchesIndex } from '@/routes/owner/churches';
 import { index as seriesIndex } from '@/routes/admin/series';
 
 /**
@@ -29,7 +31,7 @@ import { index as seriesIndex } from '@/routes/admin/series';
  * "Voltar ao app" leva de volta ao estudo (Início, Biblioteca).
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
-    const { church } = usePage().props;
+    const { church, auth } = usePage().props;
 
     const items: NavLinkItem[] = [
         {
@@ -41,6 +43,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         { title: 'Classes', href: classroomsIndex.url(), icon: Users },
         { title: 'Lições', href: lessonsIndex.url(), icon: Library },
         { title: 'Séries', href: seriesIndex.url(), icon: Layers },
+        // Dono do sistema: as igrejas que usam o app.
+        ...(auth.user?.is_owner
+            ? [{ title: 'Igrejas', href: churchesIndex.url(), icon: Building2 }]
+            : []),
     ];
 
     return (

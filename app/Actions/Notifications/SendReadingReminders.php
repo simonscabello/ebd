@@ -176,7 +176,7 @@ final class SendReadingReminders
         }
 
         $body = PushMessage::excerpt($reading['notes'])
-            ?? PushMessage::excerpt(Bible::passage($reading['reference'])['verses'][0]['text'] ?? null)
+            ?? PushMessage::excerpt(Bible::passageFor($lesson, $reading['reference'])['verses'][0]['text'] ?? null)
             ?? 'Abra o app e marque quando ler.';
 
         return new PushMessage(

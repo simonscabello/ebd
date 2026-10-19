@@ -18,12 +18,56 @@ use Illuminate\Support\Str;
  * @property string $name
  * @property string $slug
  * @property string $timezone
+ * @property bool $helper_enabled "Tirar dúvida" liberado pelo dono
+ * @property int $helper_daily_limit dúvidas por pessoa por dia
+ * @property bool $audio_enabled áudio do estudo liberado pelo dono
+ * @property int $audio_monthly_limit áudios gerados por mês na igreja
+ * @property bool $shows_bible_text texto da NAA (só onde há licença)
  */
-#[Fillable(['name', 'slug', 'timezone'])]
+#[Fillable(['name', 'slug', 'timezone', 'helper_enabled', 'helper_daily_limit', 'audio_enabled', 'audio_monthly_limit', 'shows_bible_text'])]
 class Church extends Model
 {
     /** @use HasFactory<ChurchFactory> */
     use HasFactory;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'helper_enabled' => 'boolean',
+            'helper_daily_limit' => 'integer',
+            'audio_enabled' => 'boolean',
+            'audio_monthly_limit' => 'integer',
+            'shows_bible_text' => 'boolean',
+        ];
+    }
+
+    /**
+     * Configurações da igreja do dono (a da configuração): IA, áudio e texto
+     * bíblico ligados, no limite diário do .env.
+     *
+     * @return array<string, bool|int>
+     */
+    public static function ownerSettings(): array
+    {
+        return [
+            'helper_enabled' => true,
+            'helper_daily_limit' => max(1, (int) config('ebd.helper.daily_limit')),
+            'audio_enabled' => true,
+            'audio_monthly_limit' => 30,
+            'shows_bible_text' => true,
+        ];
+    }
+
+    /**
+     * @return HasMany<AiUsage, $this>
+     */
+    public function aiUsages(): HasMany
+    {
+        return $this->hasMany(AiUsage::class);
+    }
 
     /**
      * @return HasMany<Classroom, $this>
@@ -117,6 +161,7 @@ class Church extends Model
             'name' => $name,
             'slug' => Str::slug($name) ?: 'igreja',
             'timezone' => (string) config('ebd.timezone'),
+            ...self::ownerSettings(),
         ]);
     }
 }

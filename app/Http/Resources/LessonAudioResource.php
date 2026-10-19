@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Lesson;
 use App\Support\ChurchCalendar;
+use App\Support\ChurchFeatures;
 use App\Support\WeeklyMessage;
 
 /**
@@ -47,6 +48,10 @@ final class LessonAudioResource
                 ? ChurchCalendar::formatShort($lesson->audio_generated_at->timezone(ChurchCalendar::timezone()))
                 : null,
             'has_content' => filled($lesson->content),
+            // Liberado pelo dono para a igreja, e quantos ainda cabem no mês.
+            'enabled' => ChurchFeatures::audioAvailable($lesson),
+            'remaining' => ChurchFeatures::audioAvailable($lesson) ? ChurchFeatures::audioRemainingThisMonth($lesson) : 0,
+            'monthly_limit' => ChurchFeatures::churchOf($lesson)->audio_monthly_limit,
         ];
     }
 }

@@ -4,6 +4,9 @@ namespace App\Actions\Lessons;
 
 use App\Models\Lesson;
 use App\Support\Audio\OpenAiSpeech;
+use App\Support\ChurchFeatures;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -33,6 +36,10 @@ class RequestLessonAudio
             return self::UP_TO_DATE;
         }
 
+        if (! ChurchFeatures::audioAvailable($lesson)) {
+            throw new AuthorizationException('O áudio do estudo não está liberado para esta igreja.');
+        }
+
         if (blank($lesson->content)) {
             throw ValidationException::withMessages(['audio' => 'Escreva o estudo antes de gerar o áudio.']);
         }
@@ -41,17 +48,20 @@ class RequestLessonAudio
             throw ValidationException::withMessages(['audio' => 'A geração de áudio não está configurada no servidor (falta a chave da OpenAI).']);
         }
 
-        $claimed = Lesson::query()
-            ->whereKey($lesson->id)
-            ->where(fn ($query) => $query
-                ->whereNull('audio_status')
-                ->orWhere('audio_status', '!=', Lesson::AUDIO_GENERATING)
-                ->orWhere('audio_requested_at', '<', now()->subMinutes(Lesson::AUDIO_GENERATION_TIMEOUT_MINUTES)))
-            ->update([
-                'audio_status' => Lesson::AUDIO_GENERATING,
-                'audio_error' => null,
-                'audio_requested_at' => now(),
-            ]);
+        // Contar e reservar sob um lock da igreja: dois pedidos ao mesmo tempo, em
+        // lições diferentes, não passam juntos pela última vaga do mês.
+        $church = ChurchFeatures::churchOf($lesson);
+        $lock = Cache::lock("church-audio:{$church->id}", 10);
+
+        if (! $lock->get()) {
+            throw ValidationException::withMessages(['audio' => 'Outro áudio desta igreja está sendo pedido agora. Tente de novo em instantes.']);
+        }
+
+        try {
+            $claimed = $this->claim($lesson);
+        } finally {
+            $lock->release();
+        }
 
         if ($claimed === 0) {
             return self::ALREADY_RUNNING;
@@ -69,5 +79,32 @@ class RequestLessonAudio
         });
 
         return self::STARTED;
+    }
+
+    /**
+     * Marca a lição como "gerando" se ainda cabe no limite do mês. Devolve 0
+     * quando outra geração da mesma lição já está em andamento.
+     *
+     * @throws ValidationException
+     */
+    private function claim(Lesson $lesson): int
+    {
+        if (ChurchFeatures::audioRemainingThisMonth($lesson) === 0) {
+            $limit = ChurchFeatures::churchOf($lesson)->audio_monthly_limit;
+
+            throw ValidationException::withMessages(['audio' => "Limite de áudios do mês atingido ({$limit} por mês)."]);
+        }
+
+        return Lesson::query()
+            ->whereKey($lesson->id)
+            ->where(fn ($query) => $query
+                ->whereNull('audio_status')
+                ->orWhere('audio_status', '!=', Lesson::AUDIO_GENERATING)
+                ->orWhere('audio_requested_at', '<', now()->subMinutes(Lesson::AUDIO_GENERATION_TIMEOUT_MINUTES)))
+            ->update([
+                'audio_status' => Lesson::AUDIO_GENERATING,
+                'audio_error' => null,
+                'audio_requested_at' => now(),
+            ]);
     }
 }

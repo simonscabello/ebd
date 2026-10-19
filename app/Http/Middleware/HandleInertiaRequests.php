@@ -59,6 +59,8 @@ class HandleInertiaRequests extends Middleware
                     // "Admin" na interface = administra a igreja.
                     'is_admin' => $user->administersAnyChurch(),
                     'can_access_admin' => $user->canAccessAdmin(),
+                    // Dono do sistema: vê o painel das igrejas.
+                    'is_owner' => $user->isAdmin(),
                     'is_student' => $user->isStudentAnywhere(),
                     // Aluno ou professor de ao menos uma classe: tem semana de estudo e "Meu progresso".
                     'is_member' => $user->memberClassroomIds() !== [],

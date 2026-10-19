@@ -7,6 +7,7 @@ export type User = {
     has_password: boolean;
     is_admin: boolean;
     can_access_admin: boolean;
+    is_owner: boolean;
     is_student: boolean;
     /** Aluno ou professor de ao menos uma classe. */
     is_member: boolean;

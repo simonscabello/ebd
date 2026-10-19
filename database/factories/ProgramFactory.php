@@ -17,7 +17,7 @@ class ProgramFactory extends Factory
         $name = fake()->unique()->randomElement(['Discipulado', 'Pequenos grupos', 'Escola de líderes', 'Estudos temáticos']);
 
         return [
-            'church_id' => fn () => Church::primary()->id ?? Church::factory(),
+            'church_id' => fn () => Church::primary()->id ?? Church::factory()->owner(),
             'name' => $name,
             'short_name' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),

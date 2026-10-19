@@ -6,7 +6,7 @@
     tempo de uma leitura rápida; tocar dispensa. Nas recargas seguintes
     ("quick") o conteúdo só aparece se o carregamento demorar.
 --}}
-@php($splash = \App\Support\SplashVerse::pick())
+@php($splash = \App\Support\SplashVerse::pick(auth()->user()))
 
 <style>
     .splash {

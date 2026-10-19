@@ -203,7 +203,9 @@ export default function EditLesson({
                     className="mb-8"
                     sections={[
                         { id: 'dados', label: 'Dados' },
-                        { id: 'audio', label: 'Áudio' },
+                        ...(audio.enabled || audio.file
+                            ? [{ id: 'audio', label: 'Áudio' }]
+                            : []),
                         {
                             id: 'domingos',
                             label: `Domingos (${lesson.meetings.length})`,
@@ -252,17 +254,19 @@ export default function EditLesson({
                         />
                     </Section>
 
-                    <Section
-                        id="audio"
-                        title="Áudio do estudo"
-                        icon={<AudioLines />}
-                        description="Narração do estudo para a classe ouvir no celular. Gerada uma vez; depois de editar o estudo, regenere."
-                    >
-                        <LessonAudioManager
-                            lessonId={lesson.id}
-                            audio={audio}
-                        />
-                    </Section>
+                    {(audio.enabled || audio.file) && (
+                        <Section
+                            id="audio"
+                            title="Áudio do estudo"
+                            icon={<AudioLines />}
+                            description="Narração do estudo para a classe ouvir no celular. Gerada uma vez; depois de editar o estudo, regenere."
+                        >
+                            <LessonAudioManager
+                                lessonId={lesson.id}
+                                audio={audio}
+                            />
+                        </Section>
+                    )}
 
                     <Section
                         id="domingos"
@@ -325,6 +329,7 @@ export default function EditLesson({
                     >
                         <ReadingsManager
                             lessonId={lesson.id}
+                            classroomId={lesson.classroom.id}
                             readings={lesson.readings}
                             weekdays={weekdays}
                         />

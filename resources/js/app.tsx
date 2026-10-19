@@ -35,6 +35,7 @@ void createInertiaApp({
                 return AuthLayout;
             // Gestão: área à parte, com casca e menu próprios.
             case name.startsWith('admin/'):
+            case name.startsWith('owner/'):
                 return AdminLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];

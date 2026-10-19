@@ -212,6 +212,11 @@ export type LessonAudioManage = {
     error: string | null;
     generated_at: string | null;
     has_content: boolean;
+    /** Liberado pelo dono para a igreja da lição. */
+    enabled: boolean;
+    /** Áudios que a igreja ainda pode gerar neste mês. */
+    remaining: number;
+    monthly_limit: number;
 };
 
 export type Option<T = string> = { value: T; label: string };

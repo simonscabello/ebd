@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Church;
+use App\Models\User;
 use App\Support\Bible\Bible;
 use Illuminate\Support\Arr;
 
@@ -50,8 +52,16 @@ final class SplashVerse
     /**
      * @return array{text: string, reference: string|null}
      */
-    public static function pick(): array
+    public static function pick(?User $user = null): array
     {
+        // O texto é licenciado: quem é de igreja sem licença vê a mensagem. O
+        // visitante segue a igreja do dono (a primeira).
+        $church = $user?->currentChurch() ?? Church::primary();
+
+        if ($church !== null && ! $church->shows_bible_text) {
+            return ['text' => self::FALLBACK, 'reference' => null];
+        }
+
         $passage = Bible::passage(Arr::random(self::REFERENCES));
 
         if ($passage === null) {

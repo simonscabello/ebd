@@ -111,6 +111,8 @@ class AppServiceProvider extends ServiceProvider
     protected function configureAuthorization(): void
     {
         Gate::define('access-admin', fn (User $user) => $user->canAccessAdmin());
+        // Dono do sistema (só o Simon): painel das igrejas, IA e biblioteca oficial.
+        Gate::define('own-platform', fn (User $user) => $user->isAdmin());
     }
 
     protected function configureRateLimiting(): void

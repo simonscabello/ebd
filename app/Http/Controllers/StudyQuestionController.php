@@ -20,7 +20,7 @@ class StudyQuestionController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        abort_unless(Gate::allows('view', $lesson) && self::canAsk($user, $lesson), 403);
+        abort_unless(Gate::allows('view', $lesson) && self::canAsk($user, $lesson) && AnswerStudyQuestion::isAvailable($lesson), 403);
 
         $question = trim((string) $request->validate([
             'question' => ['required', 'string', 'min:3', 'max:500'],
@@ -30,7 +30,7 @@ class StudyQuestionController extends Controller
 
         return response()->json([
             'answer' => $asked->answer,
-            'remaining' => AnswerStudyQuestion::remainingToday($user),
+            'remaining' => AnswerStudyQuestion::remainingToday($user, $lesson),
         ]);
     }
 
