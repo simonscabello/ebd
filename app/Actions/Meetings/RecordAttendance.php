@@ -34,7 +34,8 @@ class RecordAttendance
         }
 
         if ($meeting->held_on->toDateString() > ChurchCalendar::todayString()) {
-            throw ValidationException::withMessages(['meeting' => 'A chamada só pode ser feita no dia do domingo ou depois.']);
+            $day = mb_strtolower($meeting->classroom->meeting_weekday->meetingName());
+            throw ValidationException::withMessages(['meeting' => "A chamada só pode ser feita no dia do {$day} ou depois."]);
         }
 
         $presentIds = array_values(array_unique(array_map('intval', $presentIds)));

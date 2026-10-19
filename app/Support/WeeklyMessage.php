@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\Weekday;
 use App\Models\ClassMeeting;
 use App\Models\Lesson;
 use App\Support\Bible\Bible;
@@ -27,7 +28,7 @@ class WeeklyMessage
 
         $lines = [
             '📖 *'.$lesson->displayTitle().'*',
-            'Domingo, '.ChurchCalendar::formatShort($meeting->held_on),
+            Weekday::from($meeting->held_on->dayOfWeekIso)->label().', '.ChurchCalendar::formatShort($meeting->held_on),
         ];
 
         if ($lesson->bible_reference) {

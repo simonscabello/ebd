@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Classrooms\ChangeMeetingWeekday;
 use App\Actions\Classrooms\CreateClassroom;
+use App\Enums\Weekday;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ClassroomRequest;
 use App\Http\Resources\ClassroomResource;
@@ -11,6 +13,7 @@ use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -73,11 +76,22 @@ class ClassroomController extends Controller
         ]);
     }
 
-    public function update(ClassroomRequest $request, Classroom $classroom): RedirectResponse
+    public function update(ClassroomRequest $request, Classroom $classroom, ChangeMeetingWeekday $changeWeekday): RedirectResponse
     {
-        $classroom->update($request->validated());
+        $data = $request->validated();
+        $weekday = isset($data['meeting_weekday']) ? Weekday::from((int) $data['meeting_weekday']) : null;
+        unset($data['meeting_weekday']);
 
-        $this->toast('Classe atualizada.');
+        // Nome e dia juntos: ou salva tudo, ou nada.
+        $moved = DB::transaction(function () use ($classroom, $data, $weekday, $changeWeekday) {
+            $classroom->update($data);
+
+            return $weekday !== null && $weekday !== $classroom->meeting_weekday
+                ? $changeWeekday->handle($classroom, $weekday)
+                : 0;
+        });
+
+        $this->toast($moved > 0 ? "Classe atualizada. Encontros remarcados para {$weekday->label()}." : 'Classe atualizada.');
 
         return to_route('admin.classrooms.show', $classroom);
     }

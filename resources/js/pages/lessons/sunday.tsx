@@ -90,9 +90,11 @@ export default function SundayMode({
         meetings.find((m) => m.days_until >= 0) ??
         meetings[meetings.length - 1];
 
+    const meetingName = lesson.classroom?.meeting_name ?? 'Domingo';
+
     return (
         <div className="min-h-svh bg-background">
-            <Head title={`Modo Domingo · ${lesson.display_title}`} />
+            <Head title={`Modo ${meetingName} · ${lesson.display_title}`} />
 
             <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 backdrop-blur">
                 <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
@@ -103,7 +105,7 @@ export default function SundayMode({
                         <X className="size-4" /> Sair
                     </Link>
                     <span className="truncate text-sm font-semibold">
-                        Modo Domingo
+                        Modo {meetingName}
                     </span>
                     <div
                         className="flex items-center gap-1"

@@ -26,7 +26,8 @@ $timezone = (string) config('ebd.timezone');
 foreach ([
     'ebd:remind-readings morning' => fn (Event $event) => $event->dailyAt('09:00'),
     'ebd:remind-readings evening' => fn (Event $event) => $event->dailyAt('20:00'),
-    'ebd:remind-lesson' => fn (Event $event) => $event->saturdays()->at('08:00'),
+    // Véspera de cada turma: roda todo dia e só avisa quem tem encontro amanhã.
+    'ebd:remind-lesson' => fn (Event $event) => $event->dailyAt('08:00'),
 ] as $command => $when) {
     $when(Schedule::call(fn () => Artisan::call($command, [], new ConsoleOutput))
         ->name($command))

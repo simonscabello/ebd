@@ -57,16 +57,16 @@ final class SendReadingReminders
                 continue;
             }
 
-            // Só dentro da semana de leitura do encontro (segunda até o domingo
-            // da aula): no domingo, a leitura de domingo da próxima lição ainda
-            // não começou.
+            // Só dentro da semana de leitura do encontro (os seis dias antes até
+            // o dia da aula): no dia da aula, a leitura daquele dia da próxima
+            // lição ainda não começou.
             $weekday = ChurchCalendar::readingWeekday($current->meeting?->held_on, $today);
 
             if ($weekday === null) {
                 continue;
             }
 
-            $reading = self::todaysReading($lesson, $weekday);
+            $reading = self::todaysReading($lesson, $weekday, $current->meeting->held_on->dayOfWeekIso);
 
             if ($reading === null) {
                 continue;
@@ -118,7 +118,7 @@ final class SendReadingReminders
     /**
      * @return array{reference: string, notes: string|null}|null
      */
-    private static function todaysReading(Lesson $lesson, int $weekday): ?array
+    private static function todaysReading(Lesson $lesson, int $weekday, int $meetingWeekday): ?array
     {
         $lesson->loadMissing('readings');
 
@@ -136,7 +136,7 @@ final class SendReadingReminders
 
         $hasPlan = $lesson->readings->contains(fn ($reading) => $reading->weekday !== null);
 
-        if ($hasPlan || $weekday === 7 || ! $lesson->bible_reference) {
+        if ($hasPlan || $weekday === $meetingWeekday || ! $lesson->bible_reference) {
             return null;
         }
 

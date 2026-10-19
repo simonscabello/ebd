@@ -65,7 +65,7 @@ class ClassMeetingController extends Controller
         return Inertia::render('admin/classrooms/meetings/index', [
             'classroom' => ClassroomResource::make($classroom),
             'today' => $todayString,
-            'nextSunday' => ChurchCalendar::nextSunday()->toDateString(),
+            'nextSunday' => ChurchCalendar::nextMeetingDay($classroom->meeting_weekday)->toDateString(),
             'upcoming' => $upcoming->map($row)->values(),
             'past' => $past->reverse()->map($row)->values(),
             'showingAll' => $showAll,

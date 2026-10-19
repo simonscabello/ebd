@@ -8,7 +8,7 @@ use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
-use Carbon\CarbonImmutable;
+use App\Support\ChurchCalendar;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -37,10 +37,9 @@ class PlanMeetings
                 ->all();
 
             $created = 0;
-            $sunday = CarbonImmutable::parse($from->toDateString());
-            $sunday = $sunday->isSunday() ? $sunday : $sunday->next(CarbonImmutable::SUNDAY);
+            $sunday = ChurchCalendar::onOrAfter($from, $classroom->meeting_weekday);
 
-            while ($sunday->lte($to)) {
+            while ($sunday->toDateString() <= $to->toDateString()) {
                 if (! in_array($sunday->toDateString(), $existing, true)) {
                     ClassMeeting::query()->create([
                         'classroom_id' => $classroom->id,

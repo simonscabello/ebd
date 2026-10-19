@@ -14,6 +14,7 @@ use App\Support\ChurchCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Ações do domingo: sem EBD (e desfazer), continua no próximo, teve aula.
@@ -75,6 +76,12 @@ class MeetingStatusController extends Controller
 
         if (! $meeting->isCancelled()) {
             return back();
+        }
+
+        $weekday = $meeting->classroom->meeting_weekday;
+
+        if ($meeting->held_on->dayOfWeekIso !== $weekday->value) {
+            throw ValidationException::withMessages(['meeting' => $weekday->meetingDayMessage()]);
         }
 
         $meeting->update(['status' => MeetingStatus::Planned, 'title' => null]);

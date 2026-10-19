@@ -319,7 +319,7 @@ export default function LessonShow({
                             id="leituras"
                             title="Preparação da semana"
                             icon={<CalendarDays />}
-                            description="Um pouco por dia até domingo."
+                            description={`Um pouco por dia até ${lesson.classroom?.meeting_day ?? 'domingo'}.`}
                         >
                             {!readingsExpanded && collapsible && (
                                 <p className="mb-3 text-sm text-muted-foreground">

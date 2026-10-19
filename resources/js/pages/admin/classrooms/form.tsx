@@ -1,3 +1,4 @@
+import { NativeSelect } from '@/components/ui/native-select';
 import { Head, router, useForm } from '@inertiajs/react';
 import { GraduationCap, Save, UserMinus, UserPlus } from 'lucide-react';
 import { useConfirm } from '@/components/confirm-dialog';
@@ -22,6 +23,17 @@ import type { Classroom } from '@/types';
 
 type Teacher = { id: number; name: string; email: string | null };
 
+/** Dias da semana no padrão ISO, na ordem em que a igreja pensa: domingo primeiro. */
+const WEEKDAYS: [number, string][] = [
+    [7, 'Domingo'],
+    [1, 'Segunda-feira'],
+    [2, 'Terça-feira'],
+    [3, 'Quarta-feira'],
+    [4, 'Quinta-feira'],
+    [5, 'Sexta-feira'],
+    [6, 'Sábado'],
+];
+
 export default function ClassroomForm({
     classroom,
     teachers = [],
@@ -34,6 +46,7 @@ export default function ClassroomForm({
         description: classroom?.description ?? '',
         is_active: classroom?.is_active ?? true,
         position: classroom?.position ?? 0,
+        meeting_weekday: classroom?.meeting_weekday ?? 7,
     });
     const { data, setData, errors, processing } = form;
 
@@ -82,6 +95,29 @@ export default function ClassroomForm({
                             }
                             rows={3}
                         />
+                    </Field>
+                    <Field
+                        label="Dia do encontro"
+                        htmlFor="meeting_weekday"
+                        error={errors.meeting_weekday}
+                    >
+                        <NativeSelect
+                            id="meeting_weekday"
+                            value={data.meeting_weekday}
+                            onChange={(e) =>
+                                setData(
+                                    'meeting_weekday',
+                                    Number(e.target.value),
+                                )
+                            }
+                            className="w-56"
+                        >
+                            {WEEKDAYS.map(([value, label]) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </NativeSelect>
                     </Field>
                     <Field
                         label="Ordem de exibição"

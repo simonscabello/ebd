@@ -8,8 +8,9 @@ use App\Support\ChurchCalendar;
 use Carbon\CarbonImmutable;
 
 /**
- * Todo domingo da classe existe na agenda: do primeiro encontro (ou do domingo
- * desta semana, numa classe nova) até algumas semanas à frente. Domingo sem
+ * Todo dia de encontro da turma (o dia da semana dela; domingo por padrão)
+ * existe na agenda: do primeiro encontro (ou do encontro desta semana, numa
+ * turma nova) até algumas semanas à frente. Domingo sem
  * aula não é apagado, é marcado como "sem EBD" (CancelMeeting).
  *
  * Só cria o que falta; a chave única (classroom_id, held_on) segura duas
@@ -25,26 +26,33 @@ class FillSundays
      */
     public function handle(Classroom $classroom): int
     {
-        $today = ChurchCalendar::today();
-        $thisSunday = $today->isSunday() ? $today : $today->previous(CarbonImmutable::SUNDAY);
-        $until = $thisSunday->addWeeks(self::WEEKS_AHEAD)->toDateString();
+        $weekday = $classroom->meeting_weekday;
+        $thisWeek = ChurchCalendar::onOrBefore(ChurchCalendar::today(), $weekday);
+        $until = $thisWeek->addWeeks(self::WEEKS_AHEAD)->toDateString();
 
         $first = ClassMeeting::query()->whereBelongsTo($classroom)->min('held_on');
-        $sunday = CarbonImmutable::parse($first !== null ? substr((string) $first, 0, 10) : $thisSunday->toDateString());
-        $sunday = $sunday->isSunday() ? $sunday : $sunday->next(CarbonImmutable::SUNDAY);
+        $sunday = ChurchCalendar::onOrAfter(
+            CarbonImmutable::parse($first !== null ? substr((string) $first, 0, 10) : $thisWeek->toDateString()),
+            $weekday,
+        );
 
-        $existing = array_flip(ClassMeeting::query()
+        $existing = ClassMeeting::query()
             ->whereBelongsTo($classroom)
-            ->whereDate('held_on', '>=', $sunday->toDateString())
+            ->whereDate('held_on', '>=', $sunday->subDays(6)->toDateString())
             ->pluck('held_on')
             ->map(fn ($date) => $date->toDateString())
-            ->all());
+            ->all();
 
         $rows = [];
         $now = now();
 
         for (; $sunday->toDateString() <= $until; $sunday = $sunday->addWeek()) {
-            if (! isset($existing[$sunday->toDateString()])) {
+            // Uma semana que já tem encontro (mesmo em outro dia, como os
+            // antigos de uma turma que trocou de dia) não ganha outro.
+            $weekStart = $sunday->subDays(6)->toDateString();
+            $weekHasMeeting = array_filter($existing, fn (string $d) => $d >= $weekStart && $d <= $sunday->toDateString()) !== [];
+
+            if (! $weekHasMeeting) {
                 $rows[] = [
                     'classroom_id' => $classroom->id,
                     'held_on' => $sunday->toDateString(),

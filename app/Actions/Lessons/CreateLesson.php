@@ -7,6 +7,7 @@ use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -59,6 +60,10 @@ class CreateLesson
      */
     private function scheduleOn(Classroom $classroom, Lesson $lesson, string $date): void
     {
+        if (CarbonImmutable::parse($date)->dayOfWeekIso !== $classroom->meeting_weekday->value) {
+            throw ValidationException::withMessages(['meeting_on' => $classroom->meeting_weekday->meetingDayMessage()]);
+        }
+
         $meeting = ClassMeeting::query()->whereBelongsTo($classroom)->whereDate('held_on', $date)->first();
 
         if ($meeting !== null && $meeting->lesson_id !== null) {

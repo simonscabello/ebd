@@ -40,4 +40,52 @@ enum Weekday: int
             self::Sunday => 'Dom',
         };
     }
+
+    /**
+     * Plural para frases sobre o dia do encontro: "domingos", "quartas-feiras".
+     */
+    public function pluralLabel(): string
+    {
+        return match ($this) {
+            self::Saturday => 'sábados',
+            self::Sunday => 'domingos',
+            default => str_replace('-feira', 's-feiras', mb_strtolower($this->label())),
+        };
+    }
+
+    /** "Esta classe se reúne aos domingos." / "… às quartas-feiras." */
+    public function meetingDayMessage(): string
+    {
+        $article = in_array($this, [self::Saturday, self::Sunday], true) ? 'aos' : 'às';
+
+        return "Esta classe se reúne {$article} {$this->pluralLabel()}.";
+    }
+
+    /** "domingo", "quarta-feira": para frases como "faltam 3 dias para quarta-feira". */
+    public function lowerLabel(): string
+    {
+        return mb_strtolower($this->label());
+    }
+
+    /**
+     * Nome do encontro na interface: quem se reúne no domingo continua vendo
+     * "Domingo" (Modo Domingo); os outros dias, "Encontro".
+     */
+    public function meetingName(): string
+    {
+        return $this === self::Sunday ? 'Domingo' : 'Encontro';
+    }
+
+    public function meetingNamePlural(): string
+    {
+        return $this === self::Sunday ? 'Domingos' : 'Encontros';
+    }
+
+    /** "no próximo domingo", "na próxima quarta-feira". */
+    public function nextMeetingPhrase(): string
+    {
+        return in_array($this, [self::Saturday, self::Sunday], true)
+            ? "no próximo {$this->lowerLabel()}"
+            : "na próxima {$this->lowerLabel()}";
+    }
 }

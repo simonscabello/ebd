@@ -8,6 +8,14 @@ export type Classroom = {
     slug: string;
     description: string | null;
     is_active: boolean;
+    /** Dia do encontro (ISO: 1 = segunda ... 7 = domingo). */
+    meeting_weekday?: number;
+    meeting_weekday_label?: string;
+    /** "domingo", "quarta-feira". */
+    meeting_day?: string;
+    /** "Domingo" (Modo Domingo) ou "Encontro" nos outros dias. */
+    meeting_name?: string;
+    meeting_name_plural?: string;
 };
 
 export type Series = {
@@ -230,6 +238,8 @@ export type StudyWeekDay = {
     label: string;
     short: string;
     is_today: boolean;
+    /** O dia do encontro (último da semana de leitura). */
+    is_meeting_day: boolean;
     is_future: boolean;
     done: boolean;
     readings: LessonReading[];
@@ -244,6 +254,8 @@ export type StudyWeek = {
     meeting: {
         held_on: string;
         date_label: string;
+        /** Dia da semana do encontro, minúsculo ("domingo"). */
+        day: string;
         days_until: number;
         index: number;
         total: number;

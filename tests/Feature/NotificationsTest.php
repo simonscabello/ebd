@@ -262,6 +262,6 @@ class NotificationsTest extends TestCase
 
         $this->assertSame(['0 9 * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings morning']);
         $this->assertSame(['0 20 * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings evening']);
-        $this->assertSame(['0 8 * * 6', 'America/Sao_Paulo'], $events['ebd:remind-lesson']);
+        $this->assertSame(['0 8 * * *', 'America/Sao_Paulo'], $events['ebd:remind-lesson']);
     }
 }

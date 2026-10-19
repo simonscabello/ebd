@@ -22,6 +22,11 @@ class ClassroomResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'is_active' => $this->is_active,
+            'meeting_weekday' => $this->meeting_weekday->value,
+            'meeting_weekday_label' => $this->meeting_weekday->label(),
+            'meeting_day' => $this->meeting_weekday->lowerLabel(),
+            'meeting_name' => $this->meeting_weekday->meetingName(),
+            'meeting_name_plural' => $this->meeting_weekday->meetingNamePlural(),
         ];
     }
 }

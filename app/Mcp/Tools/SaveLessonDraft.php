@@ -38,7 +38,7 @@ class SaveLessonDraft extends EbdTool
             'lesson_id' => $schema->integer()->description('Id do rascunho a editar. Omita para criar uma lição nova.'),
             'classroom' => $schema->string()->description('Slug, nome ou id da classe (obrigatório na criação).'),
             'series' => $schema->string()->description('Slug ou id da série da revista.'),
-            'meeting_on' => $schema->string()->format('date')->description('Domingo da aula (AAAA-MM-DD), só na criação. Ajustes depois pela agenda (save_meeting).'),
+            'meeting_on' => $schema->string()->format('date')->description('Dia da aula (AAAA-MM-DD), no dia de encontro da classe, só na criação. Ajustes depois pela agenda (save_meeting).'),
             'number' => $schema->integer()->description('Número da lição na revista (único na série).'),
             'title' => $schema->string()->description('Título da lição.'),
             'summary' => $schema->string()->description('Resumo curto.'),
