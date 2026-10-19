@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ClassroomRole;
+use App\Enums\Weekday;
 use Database\Factories\ClassroomFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -23,12 +24,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $description
  * @property bool $is_active
  * @property int $position
+ * @property Weekday $meeting_weekday
  */
-#[Fillable(['name', 'slug', 'description', 'is_active', 'position'])]
+#[Fillable(['name', 'slug', 'description', 'is_active', 'position', 'meeting_weekday'])]
 class Classroom extends Model
 {
     /** @use HasFactory<ClassroomFactory> */
     use HasFactory;
+
+    /** Turma nova se reúne no domingo, até alguém escolher outro dia. */
+    protected $attributes = ['meeting_weekday' => 7];
 
     /**
      * @return array<string, string>
@@ -38,6 +43,7 @@ class Classroom extends Model
         return [
             'is_active' => 'boolean',
             'position' => 'integer',
+            'meeting_weekday' => Weekday::class,
         ];
     }
 

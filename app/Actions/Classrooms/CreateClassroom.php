@@ -14,7 +14,7 @@ class CreateClassroom
      */
     public function handle(array $data, Church $church): Classroom
     {
-        $classroom = new Classroom(Arr::only($data, ['name', 'description', 'is_active', 'position']));
+        $classroom = new Classroom(Arr::only($data, ['name', 'description', 'is_active', 'position', 'meeting_weekday']));
         $classroom->church_id = $church->id;
         $classroom->slug = $this->uniqueSlug((string) $classroom->name);
         $classroom->save();

@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\Weekday;
 use App\Models\Classroom;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ClassroomRequest extends FormRequest
 {
@@ -26,6 +28,7 @@ class ClassroomRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['boolean'],
             'position' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'meeting_weekday' => ['sometimes', Rule::enum(Weekday::class)],
         ];
     }
 
@@ -34,6 +37,6 @@ class ClassroomRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['name' => 'nome', 'description' => 'descrição', 'position' => 'ordem'];
+        return ['name' => 'nome', 'description' => 'descrição', 'position' => 'ordem', 'meeting_weekday' => 'dia do encontro'];
     }
 }

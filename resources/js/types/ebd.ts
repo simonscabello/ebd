@@ -8,6 +8,9 @@ export type Classroom = {
     slug: string;
     description: string | null;
     is_active: boolean;
+    /** Dia do encontro (ISO: 1 = segunda ... 7 = domingo). */
+    meeting_weekday?: number;
+    meeting_weekday_label?: string;
 };
 
 export type Series = {
