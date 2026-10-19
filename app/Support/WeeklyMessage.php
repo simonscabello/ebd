@@ -67,7 +67,7 @@ class WeeklyMessage
      */
     private function keyVerse(Lesson $lesson): string
     {
-        $passage = Bible::passage($lesson->key_verse);
+        $passage = Bible::passageFor($lesson, $lesson->key_verse);
 
         if ($passage === null) {
             return trim((string) $lesson->key_verse);

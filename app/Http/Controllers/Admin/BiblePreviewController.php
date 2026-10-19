@@ -19,6 +19,13 @@ class BiblePreviewController extends Controller
             'reference' => ['required', 'string', 'max:160'],
         ]);
 
-        return response()->json(['passage' => Bible::passage($validated['reference'])]);
+        $passage = Bible::passage($validated['reference']);
+
+        // Sem licença do texto, a prévia só confirma a referência entendida.
+        if ($passage !== null && ! $request->user()?->currentChurch()?->shows_bible_text) {
+            $passage['verses'] = array_map(fn (array $verse) => [...$verse, 'text' => ''], $passage['verses']);
+        }
+
+        return response()->json(['passage' => $passage]);
     }
 }

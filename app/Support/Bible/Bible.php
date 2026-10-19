@@ -3,6 +3,8 @@
 namespace App\Support\Bible;
 
 use App\Models\BibleVerse;
+use App\Models\Lesson;
+use App\Support\ChurchFeatures;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -17,6 +19,17 @@ final class Bible
     /**
      * @return array{label: string, version: string, credit: string, verses: list<array{chapter: int, verse: int, text: string}>}|null
      */
+    /**
+     * O trecho só quando a igreja da lição tem licença do texto (ver
+     * ChurchFeatures::showsBibleText). Sem lição, ou sem licença, null.
+     *
+     * @return array{label: string, version: string, credit: string, verses: list<array{chapter: int, verse: int, text: string}>}|null
+     */
+    public static function passageFor(?Lesson $lesson, ?string $reference): ?array
+    {
+        return ChurchFeatures::showsBibleText($lesson) ? self::passage($reference) : null;
+    }
+
     public static function passage(?string $reference): ?array
     {
         $parsed = Reference::parse($reference);

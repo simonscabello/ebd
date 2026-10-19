@@ -34,9 +34,11 @@ export function BiblePreview({ reference }: { reference: string }) {
                 {passage.label} · {count}{' '}
                 {count === 1 ? 'versículo' : 'versículos'} ({passage.version})
             </p>
-            <p className="mt-1 line-clamp-2 font-serif text-muted-foreground">
-                {passage.verses[0].text}
-            </p>
+            {passage.verses[0].text && (
+                <p className="mt-1 line-clamp-2 font-serif text-muted-foreground">
+                    {passage.verses[0].text}
+                </p>
+            )}
         </div>
     );
 }

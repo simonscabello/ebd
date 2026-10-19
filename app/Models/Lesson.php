@@ -147,7 +147,7 @@ class Lesson extends Model
      */
     public function readings(): HasMany
     {
-        return $this->hasMany(LessonReading::class)->ordered();
+        return $this->hasMany(LessonReading::class)->ordered()->chaperone();
     }
 
     /**

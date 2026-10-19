@@ -160,11 +160,11 @@ class AnswerStudyQuestion
         $parts = ['# Lição: '.$lesson->displayTitle()];
 
         if ($lesson->bible_reference) {
-            $parts[] = "## Texto bíblico ({$lesson->bible_reference})\n\n".$this->passageText($lesson->bible_reference);
+            $parts[] = "## Texto bíblico ({$lesson->bible_reference})\n\n".$this->passageText($lesson, $lesson->bible_reference);
         }
 
         if ($lesson->key_verse) {
-            $parts[] = "## Versículo-chave ({$lesson->key_verse})\n\n".$this->passageText($lesson->key_verse);
+            $parts[] = "## Versículo-chave ({$lesson->key_verse})\n\n".$this->passageText($lesson, $lesson->key_verse);
         }
 
         if ($lesson->goal) {
@@ -191,9 +191,9 @@ class AnswerStudyQuestion
         return Str::limit(implode("\n\n", $parts), self::MAX_CONTEXT, '…');
     }
 
-    private function passageText(string $reference): string
+    private function passageText(Lesson $lesson, string $reference): string
     {
-        $passage = Bible::passage($reference);
+        $passage = Bible::passageFor($lesson, $reference);
 
         if ($passage === null) {
             return '(texto não disponível)';

@@ -42,7 +42,8 @@ class LessonReadingResource extends JsonResource
             'weekday_short' => $this->weekday?->shortLabel(),
             'is_today' => $this->todayWeekday !== null && $this->weekday?->value === $this->todayWeekday,
             'reference' => $this->reference,
-            'passage' => Bible::passage($this->reference),
+            // Texto só na igreja com licença (a lição vem pelo chaperone de Lesson::readings).
+            'passage' => Bible::passageFor($this->resource->lesson, $this->reference),
             'notes' => $this->notes,
             'position' => $this->position,
         ];

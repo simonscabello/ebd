@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { PassageVerses } from '@/components/lesson/passage-text';
@@ -12,6 +13,19 @@ type State =
     | { status: 'loading' }
     | { status: 'done'; passages: Found[] }
     | { status: 'error' };
+
+/**
+ * Lição da página (a aberta, ou a da semana no início). O texto bíblico
+ * segue a igreja dela: o servidor só manda o trecho onde há licença.
+ */
+function usePageLessonSlug(): string | undefined {
+    const props = usePage().props as {
+        lesson?: { slug?: string } | null;
+        week?: { lesson?: { slug?: string } | null } | null;
+    };
+
+    return props.lesson?.slug ?? props.week?.lesson?.slug;
+}
 
 /**
  * HTML de uma lição gerado no servidor (Markdown com HTML bruto removido).
@@ -69,6 +83,7 @@ function BibleReferenceSheet({
     onOpenChange: (open: boolean) => void;
 }) {
     const [loaded, setLoaded] = useState<{ group: string; state: State }>();
+    const lesson = usePageLessonSlug();
 
     // Busca ao abrir um grupo novo; o mesmo grupo de novo usa o que já veio.
     useEffect(() => {
@@ -78,7 +93,7 @@ function BibleReferenceSheet({
 
         const controller = new AbortController();
 
-        fetch(show.url({ query: { ref: group } }), {
+        fetch(show.url({ query: { ref: group, licao: lesson } }), {
             headers: {
                 Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -101,7 +116,7 @@ function BibleReferenceSheet({
             });
 
         return () => controller.abort();
-    }, [group]);
+    }, [group, lesson]);
 
     const references = group ? group.split('|') : [];
     const state: State =

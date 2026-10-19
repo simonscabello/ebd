@@ -65,7 +65,7 @@ class LessonResource extends JsonResource
             ] : null,
             'bible_reference' => $this->bible_reference,
             'key_verse' => $this->key_verse,
-            'key_verse_passage' => Bible::passage($this->key_verse),
+            'key_verse_passage' => Bible::passageFor($this->resource, $this->key_verse),
             'goal' => $this->goal,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
@@ -82,7 +82,7 @@ class LessonResource extends JsonResource
             'meetings' => ClassMeetingResource::collection($this->whenLoaded('meetings')),
             'materials_count' => $this->whenCounted('materials'),
             $this->mergeWhen($this->withContent, fn () => [
-                'bible_passage' => Bible::passage($this->bible_reference),
+                'bible_passage' => Bible::passageFor($this->resource, $this->bible_reference),
                 'content_html' => Markdown::toHtml($this->content),
                 'topics' => Markdown::headings($this->content),
             ]),
