@@ -6,6 +6,7 @@ use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\User;
 use Database\Seeders\ClassroomSeeder;
+use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -74,5 +75,12 @@ class ChurchModelTest extends TestCase
         config(['ebd.church_name' => 'Igreja da Configuração']);
 
         $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('church.name', 'Igreja da Configuração'));
+    }
+
+    public function test_the_seeded_admin_administers_the_seeded_church(): void
+    {
+        $this->seed([ClassroomSeeder::class, UserSeeder::class]);
+
+        $this->assertTrue(User::query()->where('email', 'admin@ebd.test')->sole()->isChurchAdminOf(Church::primary()));
     }
 }

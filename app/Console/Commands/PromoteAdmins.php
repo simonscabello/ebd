@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Church;
 use App\Models\User;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -35,6 +36,9 @@ class PromoteAdmins extends Command
             return self::SUCCESS;
         }
 
+        // O dono do sistema também administra a igreja dele (a mais antiga).
+        $church = Church::primary();
+
         foreach ($emails as $email) {
             $user = User::query()->where('email', $email)->first();
 
@@ -43,6 +47,8 @@ class PromoteAdmins extends Command
 
                 continue;
             }
+
+            $church?->admins()->syncWithoutDetaching([$user->id]);
 
             if ($user->isAdmin()) {
                 $this->components->info("{$email} já é administrador(a).");
