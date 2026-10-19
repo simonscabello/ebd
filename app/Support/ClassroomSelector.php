@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -18,7 +19,7 @@ class ClassroomSelector
      */
     public function available(?User $user, bool $onlyMine = false): Collection
     {
-        $classrooms = Classroom::query()->active()->ordered()->get();
+        $classrooms = Classroom::query()->active()->whereIn('church_id', Church::idsVisibleTo($user))->ordered()->get();
 
         if ($user === null) {
             return $onlyMine ? collect() : $classrooms;

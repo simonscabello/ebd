@@ -252,15 +252,15 @@ class Lesson extends Model
     {
         $query->visible();
 
-        if ($user?->isAdmin()) {
-            return;
-        }
+        // Só a(s) igreja(s) de quem vê (ver Church::idsVisibleTo). Lição
+        // pública de outra igreja continua abrindo pelo link (LessonPolicy).
+        $query->whereIn($query->qualifyColumn('classroom_id'), Classroom::query()->whereIn('church_id', Church::idsVisibleTo($user))->select('id'));
 
         $query->where(function (Builder $query) use ($user) {
             $query->where($query->qualifyColumn('visibility'), LessonVisibility::Public);
 
-            if ($user !== null && $user->memberClassroomIds() !== []) {
-                $query->orWhereIn($query->qualifyColumn('classroom_id'), $user->memberClassroomIds());
+            if ($user !== null) {
+                $query->orWhereIn($query->qualifyColumn('classroom_id'), [...$user->memberClassroomIds(), ...$user->manageableClassroomIds() ?? []]);
             }
         });
     }
