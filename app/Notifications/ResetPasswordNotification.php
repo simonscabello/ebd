@@ -24,9 +24,9 @@ class ResetPasswordNotification extends ResetPassword implements ShouldQueue
         $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
 
         return (new MailMessage)
-            ->subject('Redefinição de senha · EBD')
+            ->subject('Redefinição de senha · '.config('brand.name'))
             ->greeting('Olá!')
-            ->line('Recebemos um pedido para redefinir a senha da sua conta na EBD.')
+            ->line('Recebemos um pedido para redefinir a senha da sua conta na '.config('brand.name').'.')
             ->action('Criar nova senha', $this->resetUrl($notifiable))
             ->line("O link vale por {$minutes} minutos.")
             ->line('Se não foi você, pode ignorar este e-mail com tranquilidade.')

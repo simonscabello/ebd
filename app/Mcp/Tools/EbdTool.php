@@ -46,7 +46,7 @@ abstract class EbdTool extends Tool
         $user = $request->user();
 
         if (! $user instanceof User) {
-            throw new AuthenticationException('Entre com sua conta do EBD para usar esta ferramenta.');
+            throw new AuthenticationException('Entre com sua conta da '.config('brand.name').' para usar esta ferramenta.');
         }
 
         return $user;

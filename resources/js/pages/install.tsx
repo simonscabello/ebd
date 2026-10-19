@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { Head, Link } from '@inertiajs/react';
 import {
     CheckCircle2,
@@ -47,9 +48,9 @@ export default function Install() {
             <Head title="Instalar o app" />
             <Page>
                 <PageHeader
-                    eyebrow="EBD no seu celular"
+                    eyebrow={`${brand.name} no seu celular`}
                     title="Instalar o app"
-                    description="Leva menos de um minuto e não precisa de loja de aplicativos. O ícone da EBD fica na tela inicial, junto dos seus apps."
+                    description="Leva menos de um minuto e não precisa de loja de aplicativos. O ícone da Didaché fica na tela inicial, junto dos seus apps."
                 />
 
                 {installed && (
@@ -137,7 +138,7 @@ export default function Install() {
                             </Step>
                             <Step n={4} icon={<CheckCircle2 />}>
                                 Confirme em <strong>Instalar</strong>. Pronto:
-                                abra pelo ícone da EBD na tela inicial.
+                                abra pelo ícone da Didaché na tela inicial.
                             </Step>
                         </Steps>
                         <p className="text-sm text-muted-foreground">
@@ -169,7 +170,7 @@ export default function Install() {
                                 Depois toque em <strong>Adicionar</strong>.
                             </Step>
                             <Step n={4} icon={<CheckCircle2 />}>
-                                Abra pelo novo ícone da EBD na tela inicial.
+                                Abra pelo novo ícone da Didaché na tela inicial.
                             </Step>
                             <Step n={5} icon={<KeyRound />}>
                                 O iPhone não leva o login do Safari para o app.

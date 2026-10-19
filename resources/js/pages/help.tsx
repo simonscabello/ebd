@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Award,
@@ -51,7 +52,7 @@ export default function Help() {
                 <PageHeader
                     eyebrow="Ajuda"
                     title="Como funciona"
-                    description="O essencial da EBD no celular, em poucos minutos de leitura."
+                    description={`O essencial da ${brand.name} no celular, em poucos minutos de leitura.`}
                 />
 
                 <div
@@ -156,7 +157,8 @@ function ForStudents() {
                 novas.
             </Topic>
             <Topic icon={<Smartphone />} title="Instalar o app">
-                A EBD pode ficar na tela inicial, como um aplicativo. Veja o{' '}
+                A {brand.name} pode ficar na tela inicial, como um aplicativo.
+                Veja o{' '}
                 <Link
                     href={install()}
                     className="font-medium text-primary underline-offset-4 hover:underline"

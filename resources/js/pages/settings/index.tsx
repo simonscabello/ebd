@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { Head, usePage } from '@inertiajs/react';
 import {
     CircleHelp,
@@ -167,7 +168,7 @@ export default function Account({ classrooms }: Props) {
                         href={install.url()}
                         icon={<Smartphone />}
                         title="Instalar o app"
-                        description="A EBD na tela inicial do celular"
+                        description={`A ${brand.name} na tela inicial do celular`}
                     />
                     <SettingsRow
                         href={logout.url()}

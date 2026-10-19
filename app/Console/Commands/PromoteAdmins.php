@@ -17,7 +17,7 @@ use Illuminate\Console\Command;
  * roda no pre-deploy, então pode ficar configurado sem efeito colateral.
  */
 #[Signature('ebd:promote-admins {emails?* : E-mails das contas a promover (padrão: EBD_ADMIN_EMAILS)}')]
-#[Description('Promove contas existentes a administrador da EBD')]
+#[Description('Promove contas existentes a administrador do sistema')]
 class PromoteAdmins extends Command
 {
     public function handle(): int

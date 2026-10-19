@@ -19,8 +19,8 @@
         justify-content: center;
         gap: 2rem;
         padding: max(2rem, env(safe-area-inset-top)) 1.5rem max(2rem, env(safe-area-inset-bottom));
-        background: var(--background, #faf7f2);
-        color: var(--foreground, #2a2521);
+        background: var(--background, #F4EFE6);
+        color: var(--foreground, #2C2D2A);
         text-align: center;
         transition: opacity 280ms ease-out;
         -webkit-user-select: none;
@@ -57,7 +57,7 @@
         width: 76px;
         height: 76px;
         border-radius: 22%;
-        box-shadow: 0 10px 30px -12px rgb(28 50 44 / 0.45);
+        box-shadow: 0 10px 30px -12px rgb(21 40 34 / 0.45);
     }
 
     .splash__verse {
@@ -68,7 +68,7 @@
 
     .splash__verse p {
         margin: 0;
-        font-family: 'Literata Variable', Georgia, 'Times New Roman', serif;
+        font-family: 'Lora Variable', Georgia, 'Times New Roman', serif;
         font-size: clamp(1.2rem, 5vw, 1.4rem);
         line-height: 1.5;
         text-wrap: balance;
@@ -82,7 +82,7 @@
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--primary, #2f5f53);
+        color: var(--primary, #415646);
     }
 
     .splash__bar {
@@ -91,7 +91,7 @@
         height: 3px;
         overflow: hidden;
         border-radius: 999px;
-        background: var(--border, #e7e1d8);
+        background: var(--border, #E2D9CA);
     }
 
     .splash__bar::after {
@@ -100,13 +100,13 @@
         inset: 0;
         width: 40%;
         border-radius: inherit;
-        background: var(--primary, #2f5f53);
+        background: var(--primary, #415646);
         animation: splash-bar 1.3s ease-in-out infinite;
     }
 
     .splash__name {
         font-size: 0.8125rem;
-        color: var(--muted-foreground, #6b635a);
+        color: var(--muted-foreground, #665F55);
     }
 
     .splash__sr {
@@ -133,7 +133,7 @@
         gap: 0.75rem;
         max-width: 19rem;
         font-size: 0.875rem;
-        color: var(--muted-foreground, #6b635a);
+        color: var(--muted-foreground, #665F55);
     }
 
     .splash__stuck p {
@@ -148,7 +148,7 @@
         font: inherit;
         font-weight: 600;
         color: #fff;
-        background: var(--primary, #2f5f53);
+        background: var(--primary, #415646);
         cursor: pointer;
     }
 

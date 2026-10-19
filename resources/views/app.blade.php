@@ -21,29 +21,36 @@
 
         <style>
             html {
-                background-color: oklch(0.982 0.006 85);
+                background-color: oklch(0.954 0.013 82.4);
             }
 
             html.dark {
-                background-color: oklch(0.18 0.008 70);
+                background-color: oklch(0.258 0.028 172.0);
             }
         </style>
 
         {{-- PWA --}}
         <link rel="manifest" href="/manifest.webmanifest">
-        <meta name="theme-color" content="#2f5f53">
+        <meta name="theme-color" content="{{ config('brand.theme_color') }}">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-title" content="EBD">
+        <meta name="apple-mobile-web-app-title" content="{{ config('brand.name') }}">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="icon" href="/favicon.ico" sizes="32x32">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
+        {{-- Prévia do link (WhatsApp, redes). As páginas de lição completam título e descrição. --}}
+        <meta property="og:site_name" content="{{ config('brand.name') }}">
+        <meta property="og:image" content="{{ url('/brand/og-didache.png') }}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta name="description" content="{{ config('brand.name') }} · {{ config('brand.tagline') }}">
+
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'EBD') }}</title>
+            <title>{{ config('brand.name') }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { Link, usePage } from '@inertiajs/react';
 import { AppLogoMark } from '@/components/app-logo';
 import { home } from '@/routes';
@@ -21,7 +22,7 @@ export default function AuthSimpleLayout({
                         >
                             <AppLogoMark className="size-12" />
                             <span className="text-sm text-muted-foreground">
-                                EBD · {church.name}
+                                {brand.name} · {church.name}
                             </span>
                         </Link>
 
