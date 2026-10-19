@@ -10,16 +10,26 @@ import { login } from '@/routes';
 import { store } from '@/routes/register';
 
 type Props = {
-    passwordRules: string;
+    passwordRules?: string;
+    /** Já tem conta: só os dados da igreja (POST /criar-igreja). */
+    churchOnly?: boolean;
 };
 
-export default function Register({ passwordRules }: Props) {
+/**
+ * "Criar minha igreja": cadastro de quem vai organizar o estudo de uma igreja
+ * ou grupo. Alunos e professores não se cadastram aqui: entram pelo convite.
+ */
+export default function Register({ passwordRules, churchOnly = false }: Props) {
+    const form = churchOnly
+        ? { action: '/criar-igreja', method: 'post' as const }
+        : store.form();
+
     return (
         <>
-            <Head title="Criar conta" />
+            <Head title="Criar minha igreja" />
             <Form
                 noValidate
-                {...store.form()}
+                {...form}
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
                 className="flex flex-col gap-6"
@@ -27,87 +37,117 @@ export default function Register({ passwordRules }: Props) {
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">
+                            {!churchOnly && (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="name">Seu nome</Label>
+                                        <Input
+                                            id="name"
+                                            type="text"
+                                            required
+                                            autoFocus
+                                            autoComplete="name"
+                                            name="name"
+                                            placeholder="Seu nome completo"
+                                        />
+                                        <InputError message={errors.name} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="email">E-mail</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            required
+                                            autoComplete="email"
+                                            name="email"
+                                            placeholder="seu@email.com"
+                                        />
+                                        <InputError message={errors.email} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="password">Senha</Label>
+                                        <PasswordInput
+                                            id="password"
+                                            required
+                                            autoComplete="new-password"
+                                            name="password"
+                                            placeholder="Crie uma senha"
+                                            passwordrules={passwordRules}
+                                        />
+                                        <InputError message={errors.password} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="password_confirmation">
+                                            Confirme a senha
+                                        </Label>
+                                        <PasswordInput
+                                            id="password_confirmation"
+                                            required
+                                            autoComplete="new-password"
+                                            name="password_confirmation"
+                                            placeholder="Repita a senha"
+                                            passwordrules={passwordRules}
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.password_confirmation
+                                            }
+                                        />
+                                    </div>
+                                </>
+                            )}
+
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Nome</Label>
+                                <Label htmlFor="church_name">
+                                    Nome da igreja ou grupo
+                                </Label>
                                 <Input
-                                    id="name"
+                                    id="church_name"
                                     type="text"
                                     required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="name"
-                                    name="name"
-                                    placeholder="Seu nome completo"
+                                    autoFocus={churchOnly}
+                                    name="church_name"
+                                    placeholder="Ex.: Igreja Batista Esperança"
                                 />
-                                <InputError
-                                    message={errors.name}
-                                    className="mt-2"
-                                />
+                                <InputError message={errors.church_name} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">E-mail</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="email"
-                                    name="email"
-                                    placeholder="seu@email.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Senha</Label>
-                                <PasswordInput
-                                    id="password"
-                                    required
-                                    tabIndex={3}
-                                    autoComplete="new-password"
-                                    name="password"
-                                    placeholder="Crie uma senha"
-                                    passwordrules={passwordRules}
-                                />
-                                <InputError message={errors.password} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
-                                    Confirme a senha
+                                <Label htmlFor="program_name">
+                                    Primeiro programa de ensino
                                 </Label>
-                                <PasswordInput
-                                    id="password_confirmation"
-                                    required
-                                    tabIndex={4}
-                                    autoComplete="new-password"
-                                    name="password_confirmation"
-                                    placeholder="Repita a senha"
-                                    passwordrules={passwordRules}
+                                <Input
+                                    id="program_name"
+                                    type="text"
+                                    name="program_name"
+                                    defaultValue="Escola Bíblica Dominical"
                                 />
-                                <InputError
-                                    message={errors.password_confirmation}
-                                />
+                                <p className="text-sm text-muted-foreground">
+                                    Ex.: Escola Bíblica Dominical, Discipulado,
+                                    Pequeno grupo. Dá para ter outros depois.
+                                </p>
+                                <InputError message={errors.program_name} />
                             </div>
 
                             <Button
                                 type="submit"
                                 className="mt-2 w-full"
-                                tabIndex={5}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
-                                Criar conta
+                                Criar minha igreja
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
-                            Já tem conta?{' '}
-                            <TextLink href={login()} tabIndex={6}>
-                                Entrar
-                            </TextLink>
-                        </div>
+                        {!churchOnly && (
+                            <div className="text-center text-sm text-muted-foreground">
+                                Já tem conta?{' '}
+                                <TextLink href={login()}>Entrar</TextLink>
+                            </div>
+                        )}
                     </>
                 )}
             </Form>
@@ -116,7 +156,7 @@ export default function Register({ passwordRules }: Props) {
 }
 
 Register.layout = {
-    title: 'Criar conta',
+    title: 'Criar minha igreja',
     description:
-        'Depois de criar a conta, peça ao seu professor para adicionar você à classe.',
+        'É gratuito. Você organiza as turmas, convida professores e alunos e acompanha o estudo. É aluno? Peça o link de acesso ao seu professor.',
 };

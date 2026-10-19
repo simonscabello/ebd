@@ -104,9 +104,10 @@ export default function Login({ status, canResetPassword }: Props) {
                         <div className="space-y-2 text-center text-sm text-muted-foreground">
                             {features.registration && (
                                 <p>
-                                    Ainda não tem conta?{' '}
+                                    Vai organizar o estudo da sua igreja ou
+                                    grupo?{' '}
                                     <TextLink href={register()}>
-                                        Criar conta
+                                        Criar minha igreja
                                     </TextLink>
                                 </p>
                             )}
