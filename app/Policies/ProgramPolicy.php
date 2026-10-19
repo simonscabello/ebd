@@ -7,9 +7,9 @@ use App\Models\User;
 
 class ProgramPolicy
 {
-    /** Quem nomeia professores nomeia coordenadores (hoje, a administração). */
+    /** Quem nomeia professores nomeia coordenadores: a administração da igreja. */
     public function appointCoordinators(User $user, Program $program): bool
     {
-        return $user->isAdmin();
+        return in_array($program->church_id, $user->administeredChurchIds(), true);
     }
 }

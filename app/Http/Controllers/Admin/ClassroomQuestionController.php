@@ -31,7 +31,7 @@ class ClassroomQuestionController extends Controller
         $questions = StudyQuestion::query()
             ->whereIn('lesson_id', $classroom->lessons()->select('id'))
             ->whereNotIn('user_id', $staff)
-            ->whereHas('user', fn ($query) => $query->where('is_admin', false))
+            ->whereDoesntHave('user.administeredChurches', fn ($query) => $query->whereKey($classroom->church_id))
             ->latest()
             ->latest('id')
             ->get(['id', 'user_id', 'lesson_id', 'question', 'answer', 'created_at']);

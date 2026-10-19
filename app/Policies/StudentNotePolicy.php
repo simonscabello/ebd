@@ -13,7 +13,7 @@ class StudentNotePolicy
     public function update(User $user, StudentNote $note): bool
     {
         return $user->canManageClassroom($note->classroom_id)
-            && ($user->isAdmin() || $note->author_id === $user->id);
+            && (in_array($note->classroom->church_id, $user->administeredChurchIds(), true) || $note->author_id === $user->id);
     }
 
     public function delete(User $user, StudentNote $note): bool

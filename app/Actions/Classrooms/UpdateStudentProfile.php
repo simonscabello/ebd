@@ -24,7 +24,7 @@ class UpdateStudentProfile
             throw ValidationException::withMessages(['student' => 'Professores e administradores editam os próprios dados no perfil.']);
         }
 
-        if (array_key_exists('email', $data) && ! $student->isManaged() && ! $editor->isAdmin()) {
+        if (array_key_exists('email', $data) && ! $student->isManaged() && ! $editor->administersAnyChurch()) {
             throw ValidationException::withMessages(['email' => 'O e-mail é o login desta pessoa: só ela, no perfil, ou a administração podem trocá-lo.']);
         }
 

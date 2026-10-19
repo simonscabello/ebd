@@ -46,7 +46,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('brand.name'),
             'church' => [
-                'name' => Church::displayName(),
+                'name' => Church::displayName($user),
             ],
             'auth' => [
                 'user' => $user ? [
@@ -56,7 +56,8 @@ class HandleInertiaRequests extends Middleware
                     'email' => $user->email,
                     'avatar_url' => $user->avatarUrl(),
                     'has_password' => ! $user->isManaged(),
-                    'is_admin' => $user->isAdmin(),
+                    // "Admin" na interface = administra a igreja.
+                    'is_admin' => $user->administersAnyChurch(),
                     'can_access_admin' => $user->canAccessAdmin(),
                     'is_student' => $user->isStudentAnywhere(),
                     // Aluno ou professor de ao menos uma classe: tem semana de estudo e "Meu progresso".

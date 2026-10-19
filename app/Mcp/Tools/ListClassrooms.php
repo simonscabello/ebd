@@ -44,7 +44,7 @@ class ListClassrooms extends EbdTool
             ->keyBy('classroom_id');
 
         return $this->json([
-            'you' => ['name' => $user->name, 'is_admin' => $user->isAdmin()],
+            'you' => ['name' => $user->name, 'is_admin' => $user->administersAnyChurch()],
             'today' => $today->toDateString(),
             'classrooms' => $classrooms->map(fn (Classroom $classroom) => [
                 ...Presenter::classroom($classroom),

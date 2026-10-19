@@ -51,6 +51,12 @@ class User extends Authenticatable implements OAuthenticatable
     /** @var list<int>|null */
     protected ?array $coordinatedClassroomIds = null;
 
+    /** @var list<int>|null */
+    protected ?array $administeredChurchIds = null;
+
+    /** @var list<int>|null */
+    protected ?array $administeredClassroomIds = null;
+
     /**
      * Espelha o default do banco para instâncias recém-criadas (ex.: após o cadastro).
      *
@@ -218,7 +224,9 @@ class User extends Authenticatable implements OAuthenticatable
     {
         $id = $classroom instanceof Classroom ? $classroom->id : $classroom;
 
-        return $this->isAdmin() || $this->isTeacherOf($classroom) || in_array($id, $this->coordinatedClassroomIds(), true);
+        return $this->isTeacherOf($classroom)
+            || in_array($id, $this->coordinatedClassroomIds(), true)
+            || in_array($id, $this->administeredClassroomIds(), true);
     }
 
     /**
@@ -226,9 +234,53 @@ class User extends Authenticatable implements OAuthenticatable
      */
     public function canAccessAdmin(): bool
     {
-        return $this->isAdmin()
-            || in_array(ClassroomRole::Teacher, $this->classroomRoles(), true)
-            || $this->coordinatedClassroomIds() !== [];
+        return in_array(ClassroomRole::Teacher, $this->classroomRoles(), true)
+            || $this->coordinatedClassroomIds() !== []
+            || $this->administersAnyChurch();
+    }
+
+    /** Administra alguma igreja (o dono do sistema administra a dele). */
+    public function administersAnyChurch(): bool
+    {
+        return $this->administeredChurchIds() !== [];
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function administeredChurchIds(): array
+    {
+        return $this->administeredChurchIds ??= array_values(DB::table('church_user')
+            ->where('user_id', $this->id)
+            ->pluck('church_id')
+            ->map(fn ($id) => (int) $id)
+            ->all());
+    }
+
+    /**
+     * Turmas das igrejas que a pessoa administra.
+     *
+     * @return list<int>
+     */
+    public function administeredClassroomIds(): array
+    {
+        return $this->administeredClassroomIds ??= $this->administeredChurchIds() === [] ? [] : array_values(Classroom::query()
+            ->whereIn('church_id', $this->administeredChurchIds())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all());
+    }
+
+    /**
+     * A igreja de quem está usando: a que administra ou, senão, a da primeira
+     * turma. Sem nenhuma, null.
+     */
+    public function currentChurch(): ?Church
+    {
+        $id = $this->administeredChurchIds()[0]
+            ?? Classroom::query()->whereIn('id', $this->memberClassroomIds())->orderBy('id')->value('church_id');
+
+        return $id === null ? null : Church::query()->whereKey($id)->first();
     }
 
     /**
@@ -305,16 +357,14 @@ class User extends Authenticatable implements OAuthenticatable
      */
     public function manageableClassroomIds(): ?array
     {
-        if ($this->isAdmin()) {
-            return null;
-        }
-
+        // Nunca "todas": cada um gerencia as turmas da própria igreja.
         return array_values(array_unique([
             ...array_keys(array_filter(
                 $this->classroomRoles(),
                 fn (ClassroomRole $role) => $role === ClassroomRole::Teacher,
             )),
             ...$this->coordinatedClassroomIds(),
+            ...$this->administeredClassroomIds(),
         ]));
     }
 
@@ -337,6 +387,8 @@ class User extends Authenticatable implements OAuthenticatable
     {
         $this->classroomRoles = null;
         $this->coordinatedClassroomIds = null;
+        $this->administeredChurchIds = null;
+        $this->administeredClassroomIds = null;
 
         return $this;
     }

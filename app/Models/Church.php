@@ -73,9 +73,9 @@ class Church extends Model
      * Nome mostrado no app e nos e-mails. Só leitura: sem igreja cadastrada,
      * vale o da configuração.
      */
-    public static function displayName(): string
+    public static function displayName(?User $user = null): string
     {
-        return self::primary()->name ?? (string) config('ebd.church_name');
+        return ($user?->currentChurch() ?? self::primary())->name ?? (string) config('ebd.church_name');
     }
 
     /**
