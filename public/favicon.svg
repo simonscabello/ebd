@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="132 132 760 760">
-  <rect x="132" y="132" width="760" height="760" rx="170" fill="#2f5f53"/>
-  <path d="M 396 208 H 628 A 36 36 0 0 1 664 244 V 816 L 512 716 L 360 816 V 244 A 36 36 0 0 1 396 208 Z" fill="#f6f2e9" stroke="#f6f2e9" stroke-width="16" stroke-linejoin="round"/>
-  <g fill="#2f5f53"><rect x="489" y="300" width="46" height="270" rx="9"/><rect x="429" y="370" width="166" height="46" rx="9"/></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Didaché"><rect width="1024" height="1024" rx="230" fill="#3A4F41"/><g transform="translate(60.4 167.8) scale(1.0503)"><g fill="#F3EDE3"><path d="M110 308 L138 308 L126 488 C230 490 345 520 420 598 L414 630 C330 572 200 543 52 542 Z"/><path d="M714 296 L740 268 L798 538 C650 542 520 572 440 630 L446 598 C520 524 640 492 730 490 Z"/></g><g fill="#C29A6B" fill-rule="evenodd"><path d="M432 568 C468 420 570 300 740 268 L714 296 C590 318 498 415 452 585 Z"/><path d="M175 235 C300 245 402 330 430 505 L426 585 C372 515 290 470 236 420 C196 382 180 320 175 235 Z"/><path d="M605 45 C618 140 598 230 548 288 C515 326 478 350 452 372 C446 300 462 205 514 135 C548 92 578 66 605 45 Z"/></g></g></svg>

@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { Head, Link, router } from '@inertiajs/react';
 import { KeyRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -101,7 +102,7 @@ export default function AccessLink({ currentUser }: Props) {
 
                         if (!value) {
                             setError(
-                                'Este não parece ser o link da EBD. Copie a mensagem do professor de novo e cole aqui.',
+                                `Este não parece ser o link da ${brand.name}. Copie a mensagem do professor de novo e cole aqui.`,
                             );
 
                             return;

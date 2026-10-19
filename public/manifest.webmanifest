@@ -1,15 +1,18 @@
 {
-    "name": "EBD — Escola Bíblica Dominical",
-    "short_name": "EBD",
-    "description": "Próxima aula, preparação da semana e biblioteca de estudos da Escola Bíblica Dominical.",
+    "name": "Didaché — Ensino bíblico em comunidade",
+    "short_name": "Didaché",
+    "description": "Estudos bíblicos, preparação da semana e encontros da sua turma, em comunidade.",
     "lang": "pt-BR",
     "start_url": "/?origem=app",
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait-primary",
-    "background_color": "#faf7f2",
-    "theme_color": "#2f5f53",
-    "categories": ["education", "books"],
+    "background_color": "#F4EFE6",
+    "theme_color": "#3A4F41",
+    "categories": [
+        "education",
+        "books"
+    ],
     "icons": [
         {
             "src": "/icons/icon-192.png",
@@ -40,7 +43,12 @@
         {
             "name": "Biblioteca",
             "url": "/biblioteca",
-            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+            "icons": [
+                {
+                    "src": "/icons/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
         }
     ]
 }

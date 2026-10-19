@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { Link } from '@inertiajs/react';
 import { Smartphone, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -77,7 +78,7 @@ export function InstallAppBanner() {
             <p className="min-w-0 flex-1 text-sm leading-snug">
                 <span className="font-medium">Instale o app</span>
                 <span className="block text-muted-foreground">
-                    A EBD a um toque, no seu celular.
+                    A {brand.name} a um toque, no seu celular.
                 </span>
             </p>
             {nativePrompt ? (

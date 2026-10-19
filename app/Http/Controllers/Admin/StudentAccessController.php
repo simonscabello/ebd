@@ -88,7 +88,7 @@ class StudentAccessController extends Controller
             'name' => $user->name,
             'phone' => $user->phone,
             'url' => $url,
-            'message' => "Olá, {$user->name}! Este é o seu link de acesso à EBD. Toque para entrar (não compartilhe):\n{$url}",
+            'message' => "Olá, {$user->name}! Este é o seu link de acesso à ".config('brand.name').". Toque para entrar (não compartilhe):\n{$url}",
         ]);
     }
 }

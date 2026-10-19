@@ -130,6 +130,6 @@ class McpOAuthTest extends TestCase
         Passport::actingAs(User::factory()->teacherOf($classroom)->create(), ['mcp:use']);
         $this->postJson('/mcp', $this->initialize())
             ->assertOk()
-            ->assertJsonPath('result.serverInfo.name', 'EBD');
+            ->assertJsonPath('result.serverInfo.name', 'Didaché');
     }
 }

@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -271,7 +272,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         navigator.mediaSession.metadata = track
             ? new MediaMetadata({
                   title: track.title,
-                  artist: 'Ouvir estudo · EBD',
+                  artist: `Ouvir estudo · ${brand.name}`,
               })
             : null;
     }, [track]);

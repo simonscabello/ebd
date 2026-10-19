@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { Form, Head, usePage } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -122,6 +123,6 @@ export default function Login({ status, canResetPassword }: Props) {
 }
 
 Login.layout = {
-    title: 'Entrar na EBD',
+    title: `Entrar na ${brand.name}`,
     description: 'Use seu e-mail e senha para acessar sua conta',
 };

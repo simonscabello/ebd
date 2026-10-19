@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { createInertiaApp } from '@inertiajs/react';
 import { useEffect } from 'react';
 // Registra o JS dos componentes do Flowbite (drawer, dropdown, tooltip...).
@@ -14,7 +15,7 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
-const appName = import.meta.env.VITE_APP_NAME || 'EBD';
+const appName = brand.name;
 
 /** Tira a tela de abertura depois que a primeira página é pintada. */
 function SplashDismisser() {

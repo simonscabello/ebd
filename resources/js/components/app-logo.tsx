@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 /** O ícone do app (o mesmo da tela de início do celular). */
@@ -17,8 +18,8 @@ export default function AppLogo({ churchName }: { churchName?: string }) {
         <span className="flex min-w-0 items-center gap-2.5">
             <AppLogoMark />
             <span className="flex min-w-0 flex-col leading-tight">
-                <span className="text-[15px] font-semibold tracking-tight">
-                    EBD
+                <span className="font-serif text-[17px] font-medium tracking-tight">
+                    {brand.name}
                 </span>
                 {churchName && (
                     <span className="max-w-[14rem] truncate text-xs text-muted-foreground">

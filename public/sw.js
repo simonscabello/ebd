@@ -1,5 +1,5 @@
 /*
- * Service worker básico do EBD.
+ * Service worker básico da Didaché.
  *
  * - Assets versionados do Vite (/build/*) e ícones: cache-first.
  * - Navegação (páginas): sempre pela rede; sem conexão, mostra /offline.html.
@@ -8,7 +8,7 @@
  * - Push: mostra a notificação enviada pelo servidor e, ao tocar, abre a
  *   página indicada (reaproveitando uma janela do app, se houver).
  */
-const VERSION = 'ebd-v4';
+const VERSION = 'didache-v5';
 const STATIC_CACHE = `${VERSION}-static`;
 const PRECACHE = [
     '/offline.html',
@@ -103,7 +103,7 @@ self.addEventListener('push', (event) => {
     };
 
     event.waitUntil(
-        self.registration.showNotification(data.title || 'EBD', options),
+        self.registration.showNotification(data.title || 'Didaché', options),
     );
 });
 

@@ -33,7 +33,7 @@ use Laravel\Mcp\Server;
  */
 class EbdServer extends Server
 {
-    protected string $name = 'EBD';
+    protected string $name = 'Didaché';
 
     protected string $version = '1.0.0';
 
