@@ -27,6 +27,8 @@ class ClassroomResource extends JsonResource
             'meeting_day' => $this->meeting_weekday->lowerLabel(),
             'meeting_name' => $this->meeting_weekday->meetingName(),
             'meeting_name_plural' => $this->meeting_weekday->meetingNamePlural(),
+            'program_name' => $this->program?->name,
+            'program_short_name' => $this->program?->short_name,
         ];
     }
 }

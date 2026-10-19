@@ -47,7 +47,7 @@ final class SendLessonReminder
             $visible = $lesson !== null && $lesson->status->isVisible();
 
             $message = new PushMessage(
-                title: 'Amanhã tem EBD!',
+                title: "Amanhã tem {$classroom->program->short_name}!",
                 body: $visible
                     ? PushMessage::excerpt($lesson->displayTitle().($lesson->bible_reference ? " · {$lesson->bible_reference}" : ''))
                     : "Nos vemos amanhã na classe {$classroom->name}.",

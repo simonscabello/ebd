@@ -79,7 +79,7 @@ if ($execute && ! $openai->isConfigured()) {
 // --- Prompt: sempre o da classe, nunca uma cópia ------------------------------
 
 $actionClass = new ReflectionClass(AnswerStudyQuestion::class);
-$instructions = (string) $actionClass->getReflectionConstant('INSTRUCTIONS')->getValue();
+$instructions = str_replace('{programa}', 'da Escola Bíblica Dominical (EBD)', (string) $actionClass->getReflectionConstant('INSTRUCTIONS')->getValue());
 $contextMethod = $actionClass->getMethod('context');
 $action = app(AnswerStudyQuestion::class);
 

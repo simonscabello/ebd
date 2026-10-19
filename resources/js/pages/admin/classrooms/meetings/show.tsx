@@ -196,7 +196,9 @@ export default function MeetingPage({
                             {cancelled ? (
                                 <div className="rounded-2xl border border-dashed p-4 text-sm">
                                     <p className="text-muted-foreground">
-                                        Não teve EBD neste domingo
+                                        Não teve{' '}
+                                        {classroom.program_short_name ?? 'EBD'}{' '}
+                                        neste domingo
                                         {meeting.title
                                             ? ` (${meeting.title})`
                                             : ''}
@@ -210,7 +212,8 @@ export default function MeetingPage({
                                             post(restore.url(meeting.id))
                                         }
                                     >
-                                        <RotateCcw /> Voltar a ter EBD
+                                        <RotateCcw /> Voltar a ter{' '}
+                                        {classroom.program_short_name ?? 'EBD'}
                                     </Button>
                                 </div>
                             ) : attendance ? (
@@ -288,7 +291,8 @@ export default function MeetingPage({
                                         variant="outline"
                                         onClick={() => setCancelOpen(true)}
                                     >
-                                        <CalendarOff /> Sem EBD
+                                        <CalendarOff /> Sem{' '}
+                                        {classroom.program_short_name ?? 'EBD'}
                                     </Button>
                                 )}
                                 <Button
@@ -302,6 +306,7 @@ export default function MeetingPage({
                     </div>
 
                     <CancelMeetingDialog
+                        program={classroom.program_short_name ?? 'EBD'}
                         meeting={meeting}
                         dateLabel={title}
                         open={cancelOpen}

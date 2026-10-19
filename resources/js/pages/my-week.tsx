@@ -47,7 +47,11 @@ export default function WeekReadings({ classrooms, classroom, week }: Props) {
                         <p className="mt-1 text-muted-foreground">
                             {week.lesson.display_title}
                             {week.meeting &&
-                                ` · ${countdown(week.meeting.days_until, week.meeting.day)}`}
+                                ` · ${countdown(
+                                    week.meeting.days_until,
+                                    week.meeting.day,
+                                    classroom?.program_short_name ?? 'EBD',
+                                )}`}
                         </p>
                     )}
                 </header>
@@ -220,9 +224,9 @@ function baseTextReading(
     };
 }
 
-function countdown(days: number, day: string): string {
-    if (days <= 0) return 'hoje é dia de EBD';
-    if (days === 1) return 'amanhã é dia de EBD';
+function countdown(days: number, day: string, program = 'EBD'): string {
+    if (days <= 0) return `hoje é dia de ${program}`;
+    if (days === 1) return `amanhã é dia de ${program}`;
 
     return `faltam ${days} dias para ${day}`;
 }

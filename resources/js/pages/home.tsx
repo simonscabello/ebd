@@ -84,7 +84,10 @@ export default function Home({
                         {name ? `, ${name}` : ''}.
                     </h1>
                     <p className="mt-2 text-lg text-muted-foreground">
-                        {headline(meeting)}
+                        {headline(
+                            meeting,
+                            classroom?.program_short_name ?? 'EBD',
+                        )}
                     </p>
                 </header>
 
@@ -140,7 +143,8 @@ export default function Home({
                     >
                         <CalendarOff className="size-4 shrink-0" />
                         <span className="first-letter:uppercase">
-                            {cancelled.date_short}: não teremos EBD
+                            {cancelled.date_short}: não teremos{' '}
+                            {classroom?.program_short_name ?? 'EBD'}
                             {cancelled.title ? ` (${cancelled.title})` : ''}.
                         </span>
                     </p>
@@ -246,20 +250,23 @@ export default function Home({
     );
 }
 
-function headline(meeting: ClassMeeting | null): string {
+function headline(meeting: ClassMeeting | null, program = 'EBD'): string {
     if (!meeting || meeting.days_until < 0) {
         return 'Que bom ter você por aqui.';
     }
 
     if (meeting.days_until === 0) {
-        return 'Hoje é dia de EBD!';
+        return `Hoje é dia de ${program}!`;
     }
 
     if (meeting.days_until === 1) {
-        return 'Amanhã tem EBD. Vamos nos preparar?';
+        return `Amanhã tem ${program}. Vamos nos preparar?`;
     }
 
-    return `Faltam ${meeting.days_until} dias para a nossa próxima EBD.`;
+    // "nossa próxima EBD" pede artigo: os outros programas falam do encontro.
+    return program === 'EBD'
+        ? `Faltam ${meeting.days_until} dias para a nossa próxima EBD.`
+        : `Faltam ${meeting.days_until} dias para o próximo encontro.`;
 }
 
 function NextLesson({

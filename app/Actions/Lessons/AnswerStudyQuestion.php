@@ -25,7 +25,7 @@ use Illuminate\Validation\ValidationException;
 class AnswerStudyQuestion
 {
     private const INSTRUCTIONS = <<<'TXT'
-        Você ajuda alunos da Escola Bíblica Dominical (EBD) de uma igreja evangélica a tirar dúvidas sobre a lição da semana, em português do Brasil.
+        Você ajuda alunos {programa} de uma igreja evangélica a tirar dúvidas sobre a lição da semana, em português do Brasil.
 
         Base da resposta:
         - Responda a partir da lição que vem abaixo (estudo, texto bíblico, versículo-chave e complementos). Ela é a referência principal.
@@ -46,6 +46,20 @@ class AnswerStudyQuestion
         - Linguagem simples, próxima e respeitosa, como um professor conversando com o aluno.
         - Texto corrido em parágrafos. Sem markdown, títulos, listas, negrito ou emojis.
         TXT;
+
+    /**
+     * As instruções com o programa da turma: "da Escola Bíblica Dominical
+     * (EBD)" ou "do programa “Discipulado”". O resto do texto não muda.
+     */
+    public static function instructionsFor(Lesson $lesson): string
+    {
+        $program = $lesson->loadMissing('classroom')->classroom->program;
+        $who = $program->short_name === 'EBD'
+            ? 'da Escola Bíblica Dominical (EBD)'
+            : "do programa “{$program->name}”";
+
+        return str_replace('{programa}', $who, self::INSTRUCTIONS);
+    }
 
     /** Limite do contexto enviado (caracteres), para lições muito longas. */
     private const MAX_CONTEXT = 60000;
@@ -111,7 +125,7 @@ class AnswerStudyQuestion
 
         try {
             $answer = $this->openai->write(
-                self::INSTRUCTIONS,
+                self::instructionsFor($lesson),
                 $this->context($lesson)."\n\n# Dúvida do aluno\n\n".$question,
                 (string) config('ebd.helper.model'),
                 (int) config('ebd.helper.timeout'),

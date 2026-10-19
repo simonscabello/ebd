@@ -116,8 +116,8 @@ export default function ClassroomReport({
                 <ClassroomHeader classroom={classroom} active="relatorio" />
 
                 <p className="mb-2 hidden text-sm text-muted-foreground print:block">
-                    EBD · Classe {classroom.name} · impresso em{' '}
-                    {longDate(printedAt)}
+                    {classroom.program_short_name ?? 'EBD'} · Classe{' '}
+                    {classroom.name} · impresso em {longDate(printedAt)}
                 </p>
                 <PageHeader
                     title={`Relatório · ${period.label}`}
@@ -306,7 +306,7 @@ function SundaysSection({
             description={[
                 plural(calendar.total, 'domingo', 'domingos'),
                 `${calendar.held} com aula`,
-                `${calendar.cancelled.length} sem EBD`,
+                `${calendar.cancelled.length} sem ${classroom.program_short_name ?? 'EBD'}`,
                 calendar.pending.length > 0 &&
                     plural(calendar.pending.length, 'pendente', 'pendentes'),
             ]
@@ -325,7 +325,7 @@ function SundaysSection({
                                 {dayMonth(sunday.held_on)}
                             </span>
                             <span className="text-muted-foreground">
-                                Sem EBD
+                                Sem {classroom.program_short_name ?? 'EBD'}
                                 {sunday.reason ? ` · ${sunday.reason}` : ''}
                             </span>
                         </li>
@@ -343,7 +343,8 @@ function SundaysSection({
                                     {dayMonth(sunday.held_on)}
                                 </span>
                                 <span className="font-medium text-warning-foreground">
-                                    Pendente: faça a chamada ou marque “Sem EBD”
+                                    Pendente: faça a chamada ou marque “Sem{' '}
+                                    {classroom.program_short_name ?? 'EBD'}”
                                 </span>
                             </Link>
                         </li>

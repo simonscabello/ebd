@@ -1,7 +1,10 @@
 /**
  * Texto amigável para a distância até a aula.
  */
-export function countdownLabel(daysUntil: number | null): string | null {
+export function countdownLabel(
+    daysUntil: number | null,
+    program = 'EBD',
+): string | null {
     if (daysUntil === null) {
         return null;
     }
@@ -11,11 +14,11 @@ export function countdownLabel(daysUntil: number | null): string | null {
     }
 
     if (daysUntil === 0) {
-        return 'Hoje é dia de EBD!';
+        return `Hoje é dia de ${program}!`;
     }
 
     if (daysUntil === 1) {
-        return 'Amanhã tem EBD';
+        return `Amanhã tem ${program}`;
     }
 
     return `Faltam ${daysUntil} dias`;

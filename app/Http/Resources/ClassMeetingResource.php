@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\ClassMeeting;
 use App\Support\ChurchCalendar;
+use App\Support\ProgramNames;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -35,7 +36,7 @@ class ClassMeetingResource extends JsonResource
             'date_short' => ChurchCalendar::formatShort($this->held_on),
             'days_until' => ChurchCalendar::daysUntil($this->held_on),
             'status' => $this->status->value,
-            'status_label' => $this->status->label(),
+            'status_label' => app(ProgramNames::class)->statusLabel($this->status, $this->classroom_id),
             'title' => $this->title,
             'lesson_id' => $this->lesson_id,
             'lesson' => $this->whenLoaded('lesson', fn () => $this->lesson ? [

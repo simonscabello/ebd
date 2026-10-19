@@ -12,10 +12,22 @@ function firstName(name: string): string {
     return name.trim().split(/\s+/)[0] ?? name;
 }
 
-export function missYouMessage(name: string, classroom: string): string {
-    return `Oi, ${firstName(name)}! Sentimos sua falta na EBD da classe ${classroom}. Está tudo bem com você? Conte com a gente. 🙏`;
+// "na EBD", "da EBD": os outros programas recebem a frase sem o nome.
+export function missYouMessage(
+    name: string,
+    classroom: string,
+    program = 'EBD',
+): string {
+    const where =
+        program === 'EBD'
+            ? `na EBD da classe ${classroom}`
+            : `nos encontros da classe ${classroom}`;
+
+    return `Oi, ${firstName(name)}! Sentimos sua falta ${where}. Está tudo bem com você? Conte com a gente. 🙏`;
 }
 
-export function birthdayMessage(name: string): string {
-    return `Feliz aniversário, ${firstName(name)}! 🎉 Que Deus abençoe o seu novo ano de vida. Um abraço da sua classe da EBD!`;
+export function birthdayMessage(name: string, program = 'EBD'): string {
+    const from = program === 'EBD' ? 'da sua classe da EBD' : 'da sua classe';
+
+    return `Feliz aniversário, ${firstName(name)}! 🎉 Que Deus abençoe o seu novo ano de vida. Um abraço ${from}!`;
 }

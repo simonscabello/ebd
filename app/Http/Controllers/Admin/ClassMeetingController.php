@@ -19,6 +19,7 @@ use App\Queries\AttendanceBookQuery;
 use App\Queries\Data\AttendanceBook;
 use App\Queries\Data\Period;
 use App\Support\ChurchCalendar;
+use App\Support\ProgramNames;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -161,7 +162,7 @@ class ClassMeetingController extends Controller
             'id' => $meeting->id,
             'held_on' => $date,
             'status' => $meeting->status->value,
-            'status_label' => $meeting->status->label(),
+            'status_label' => app(ProgramNames::class)->statusLabel($meeting->status, $meeting->classroom_id),
             'title' => $meeting->title,
             'lesson' => $meeting->lesson ? [
                 'id' => $meeting->lesson->id,

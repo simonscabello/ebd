@@ -33,6 +33,9 @@ class Classroom extends Model
     /** @use HasFactory<ClassroomFactory> */
     use HasFactory;
 
+    /** O programa entra nos textos ("Amanhã tem EBD!"): vem sempre junto. */
+    protected $with = ['program'];
+
     /** Turma nova se reúne no domingo, até alguém escolher outro dia. */
     protected $attributes = ['meeting_weekday' => 7];
 
