@@ -26,6 +26,7 @@ class UserSeeder extends Seeder
 
         $admin = $this->user('admin@ebd.test', 'Coordenação da EBD');
         $admin->forceFill(['is_admin' => true])->save();
+        $jovens->church->admins()->syncWithoutDetaching([$admin->id]);
 
         $this->user('professor@ebd.test', 'Marcos Oliveira')
             ->classrooms()->syncWithoutDetaching([$jovens->id => ['role' => ClassroomRole::Teacher]]);

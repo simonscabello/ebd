@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Church;
 use App\Models\Classroom;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -16,6 +17,8 @@ class ClassroomFactory extends Factory
         $name = fake()->unique()->randomElement(['Jovens', 'Adultos', 'Adolescentes', 'Casais', 'Novos Convertidos', 'Senhoras', 'Homens']);
 
         return [
+            // As classes de um teste ficam na mesma igreja, como em produção.
+            'church_id' => fn () => Church::primary()->id ?? Church::factory(),
             'name' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),
             'description' => fake()->sentence(),

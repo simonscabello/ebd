@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Church;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +66,20 @@ class ProductionReadinessTest extends TestCase
             ->assertSuccessful();
 
         $this->assertTrue($user->refresh()->isAdmin());
+    }
+
+    public function test_promoted_admins_also_administer_the_church(): void
+    {
+        $church = Church::factory()->create();
+        $new = User::factory()->create(['email' => 'nova@example.com']);
+        $already = User::factory()->admin()->create(['email' => 'simon@example.com']);
+
+        $this->artisan('ebd:promote-admins', ['emails' => ['nova@example.com', 'simon@example.com']])->assertSuccessful();
+        $this->artisan('ebd:promote-admins', ['emails' => ['simon@example.com']])->assertSuccessful();
+
+        $this->assertTrue($new->isChurchAdminOf($church));
+        $this->assertTrue($already->isChurchAdminOf($church));
+        $this->assertSame(2, $church->admins()->count());
     }
 
     public function test_promote_admins_without_configuration_is_a_no_op(): void

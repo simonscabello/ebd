@@ -81,6 +81,21 @@ class User extends Authenticatable implements OAuthenticatable
     }
 
     /**
+     * Igrejas que a pessoa administra (monta classes, nomeia professores).
+     *
+     * @return BelongsToMany<Church, $this>
+     */
+    public function administeredChurches(): BelongsToMany
+    {
+        return $this->belongsToMany(Church::class)->withTimestamps();
+    }
+
+    public function isChurchAdminOf(Church $church): bool
+    {
+        return $this->administeredChurches()->whereKey($church->id)->exists();
+    }
+
+    /**
      * @return BelongsToMany<Classroom, $this, ClassroomMember>
      */
     public function classrooms(): BelongsToMany

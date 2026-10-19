@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Church;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -45,7 +46,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'church' => [
-                'name' => config('ebd.church_name'),
+                'name' => Church::displayName(),
             ],
             'auth' => [
                 'user' => $user ? [
