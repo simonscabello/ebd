@@ -34,7 +34,7 @@ class BibleController extends Controller
         // de quem pede, então não vai para caches compartilhados.
         $shows = $lesson !== null
             ? ChurchFeatures::showsBibleText($lesson)
-            : (($request->user()?->currentChurch() ?? Church::primary())?->shows_bible_text ?? true);
+            : (($request->user()?->currentChurch() ?? Church::primary())->shows_bible_text ?? true);
 
         $references = array_slice(array_filter(array_map('trim', explode('|', $validated['ref']))), 0, 12);
 

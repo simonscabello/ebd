@@ -13,6 +13,7 @@ use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\MaterialFileController;
 use App\Http\Controllers\MyProgressController;
 use App\Http\Controllers\MyWeekController;
+use App\Http\Controllers\Owner;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReadingCheckinController;
 use App\Http\Controllers\StudyQuestionController;
@@ -106,6 +107,15 @@ Route::get('biblioteca', LibraryController::class)
 | Gestão de conteúdo (professores e administradores)
 |--------------------------------------------------------------------------
 */
+
+// Painel do dono do sistema: as igrejas, só com números, e o que cada uma tem liberado.
+Route::middleware(['auth', 'can:own-platform'])
+    ->prefix('dono')
+    ->name('owner.')
+    ->group(function () {
+        Route::get('igrejas', [Owner\ChurchController::class, 'index'])->name('churches.index');
+        Route::put('igrejas/{church}', [Owner\ChurchController::class, 'update'])->name('churches.update');
+    });
 
 Route::middleware(['auth', 'can:access-admin'])
     ->prefix('admin')
