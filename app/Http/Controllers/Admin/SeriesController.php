@@ -32,6 +32,10 @@ class SeriesController extends Controller
             ->when($manageable !== null, fn ($q) => $q->whereIn('classroom_id', $manageable))
             ->with('classroom')
             ->withCount('lessons')
+            // Última versão do estudo oficial de origem (aviso de versão nova).
+            ->addSelect(['latest_source_version' => SeriesVersion::query()
+                ->selectRaw('max(version)')
+                ->whereColumn('series_versions.series_id', 'series.source_series_id')])
             ->orderByDesc('starts_on')
             ->orderBy('title')
             ->get();
@@ -50,6 +54,7 @@ class SeriesController extends Controller
             'classrooms' => $this->manageableClassrooms($request->user()),
             'defaultClassroomId' => $request->integer('classe') ?: null,
             'official' => null,
+            'update_available' => null,
         ]);
     }
 
@@ -74,6 +79,7 @@ class SeriesController extends Controller
             'classrooms' => $this->manageableClassrooms($request->user()),
             'defaultClassroomId' => $series->classroom_id,
             'official' => $this->official($request, $series),
+            'update_available' => $series->updateAvailable(),
         ]);
     }
 

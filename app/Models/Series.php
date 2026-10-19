@@ -69,6 +69,28 @@ class Series extends Model
         return $this->hasMany(SeriesVersion::class);
     }
 
+    /**
+     * Cópia de estudo oficial com versão nova publicada: {from, to}. Usa a
+     * última versão já carregada em latest_source_version, quando houver
+     * (listas), para não consultar uma vez por série.
+     *
+     * @return array{from: int, to: int}|null
+     */
+    public function updateAvailable(): ?array
+    {
+        if ($this->source_series_id === null || $this->source_version === null) {
+            return null;
+        }
+
+        $latest = $this->hasAttribute('latest_source_version')
+            ? $this->getAttribute('latest_source_version')
+            : SeriesVersion::query()->where('series_id', $this->source_series_id)->max('version');
+
+        return $latest !== null && (int) $latest > $this->source_version
+            ? ['from' => $this->source_version, 'to' => (int) $latest]
+            : null;
+    }
+
     public function latestVersion(): ?SeriesVersion
     {
         return $this->versions()->orderByDesc('version')->first();

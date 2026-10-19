@@ -189,6 +189,8 @@ Route::middleware(['auth', 'can:access-admin'])
             ->except(['show']);
 
         Route::post('series/{series}/versoes', [Admin\SeriesVersionController::class, 'store'])->name('series.versions.store');
+        Route::get('series/{series}/atualizacao', [Admin\SeriesUpdateController::class, 'show'])->name('series.changes');
+        Route::post('series/{series}/atualizacao/vista', [Admin\SeriesUpdateController::class, 'acknowledge'])->name('series.changes.acknowledge');
         Route::get('biblioteca-oficial', [Admin\OfficialLibraryController::class, 'index'])->name('library.index');
         Route::get('biblioteca-oficial/{series}', [Admin\OfficialLibraryController::class, 'show'])->name('library.show');
         Route::post('biblioteca-oficial/{series}/usar', [Admin\OfficialLibraryController::class, 'copy'])->name('library.copy');

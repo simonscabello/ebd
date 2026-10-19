@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Save, Trash2 } from 'lucide-react';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
@@ -15,6 +15,7 @@ import {
     store,
     update,
 } from '@/routes/admin/series';
+import { changes } from '@/routes/admin/series';
 import { store as storeVersion } from '@/routes/admin/series/versions';
 import type { Classroom, Series } from '@/types';
 
@@ -29,6 +30,8 @@ type Props = {
     defaultClassroomId: number | null;
     /** Estudo da biblioteca oficial, visto pelo dono. */
     official: OfficialVersions | null;
+    /** Cópia de estudo oficial com versão nova publicada. */
+    update_available: { from: number; to: number } | null;
 };
 
 export default function SeriesForm({
@@ -36,6 +39,7 @@ export default function SeriesForm({
     classrooms,
     defaultClassroomId,
     official,
+    update_available,
 }: Props) {
     const confirm = useConfirm();
     const form = useForm({
@@ -199,6 +203,13 @@ export default function SeriesForm({
                     )}
                 </form>
 
+                {series && update_available && (
+                    <UpdateNotice
+                        seriesId={series.id}
+                        update={update_available}
+                    />
+                )}
+
                 {series && official && (
                     <OfficialLibraryVersions
                         seriesId={series.id}
@@ -288,6 +299,28 @@ function OfficialLibraryVersions({
                     ))}
                 </ul>
             )}
+        </section>
+    );
+}
+
+/** Aviso de versão nova do estudo oficial de onde a série foi copiada. */
+function UpdateNotice({
+    seriesId,
+    update,
+}: {
+    seriesId: number;
+    update: { from: number; to: number };
+}) {
+    return (
+        <section className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <p className="text-sm">
+                <span className="font-medium">Versão nova disponível.</span>{' '}
+                Esta série veio da versão {update.from} do estudo oficial; já
+                saiu a {update.to}.
+            </p>
+            <Button asChild variant="outline" size="sm">
+                <Link href={changes(seriesId)}>Ver o que mudou</Link>
+            </Button>
         </section>
     );
 }

@@ -26,6 +26,7 @@ class SeriesResource extends JsonResource
             'classroom_id' => $this->classroom_id,
             'classroom' => ClassroomResource::make($this->whenLoaded('classroom')),
             'lessons_count' => $this->whenCounted('lessons'),
+            'update_available' => $this->resource->updateAvailable(),
         ];
     }
 }

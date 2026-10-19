@@ -31,6 +31,8 @@ export type Series = {
     classroom_id: number;
     classroom?: Classroom;
     lessons_count?: number;
+    /** Cópia de estudo oficial com versão nova publicada. */
+    update_available?: { from: number; to: number } | null;
 };
 
 export type MaterialTypeValue =

@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { BookOpen, Layers, Plus } from 'lucide-react';
 import { EmptyState, Page, PageHeader } from '@/components/page';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { report } from '@/routes/admin/classrooms';
 import { index as libraryIndex } from '@/routes/admin/library';
@@ -44,8 +45,13 @@ export default function SeriesIndex({ series }: { series: Series[] }) {
                                 key={item.id}
                                 className="flex flex-col rounded-2xl border bg-card p-4"
                             >
-                                <p className="text-sm text-muted-foreground">
+                                <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                                     {item.classroom?.name}
+                                    {item.update_available && (
+                                        <Badge variant="secondary">
+                                            Versão nova disponível
+                                        </Badge>
+                                    )}
                                 </p>
                                 <Link
                                     href={edit(item.id)}
