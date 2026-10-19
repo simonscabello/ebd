@@ -57,4 +57,18 @@ class ProgramCoordinatorTest extends TestCase
             ->assertSessionHasNoErrors();
         $this->assertFalse($candidate->fresh()->isCoordinatorOf($program));
     }
+
+    public function test_appointing_a_coordinator_revokes_personal_links(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $student = User::factory()->studentOf($classroom)->create(['email' => 'aluna@example.com']);
+        $link = $student->accessLinks()->forceCreate(['classroom_id' => $classroom->id, 'token_hash' => str_repeat('a', 64)]);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->post("/admin/programas/{$classroom->program_id}/coordenadores", ['email' => 'aluna@example.com'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertNotNull($link->refresh()->revoked_at);
+    }
 }
+

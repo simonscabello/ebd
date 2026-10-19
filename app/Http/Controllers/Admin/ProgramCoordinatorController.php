@@ -28,6 +28,10 @@ class ProgramCoordinatorController extends Controller
         }
 
         $program->coordinators()->syncWithoutDetaching([$user->id]);
+
+        // Como ao virar professor: quem gerencia entra com e-mail e senha, e um
+        // link pessoal antigo não pode voltar a valer se a coordenação acabar.
+        $user->accessLinks()->active()->update(['revoked_at' => now()]);
         $this->toast("{$user->name} agora coordena {$program->name}.");
 
         return back();
