@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\Weekday;
 use Carbon\CarbonImmutable;
 
 /**
@@ -80,13 +81,31 @@ class ChurchCalendar
     }
 
     /**
-     * Próximo domingo (hoje, se hoje for domingo).
+     * Próximo dia de encontro (hoje, se hoje for o dia).
      */
-    public static function nextSunday(): CarbonImmutable
+    public static function nextMeetingDay(Weekday $weekday): CarbonImmutable
     {
-        $today = self::today();
+        return self::onOrAfter(self::today(), $weekday);
+    }
 
-        return $today->isSunday() ? $today : $today->next(CarbonImmutable::SUNDAY);
+    /**
+     * O primeiro $weekday a partir da data, inclusive.
+     */
+    public static function onOrAfter(\DateTimeInterface $date, Weekday $weekday): CarbonImmutable
+    {
+        $day = CarbonImmutable::parse($date->format('Y-m-d'), self::timezone());
+
+        return $day->addDays(($weekday->value - $day->dayOfWeekIso + 7) % 7);
+    }
+
+    /**
+     * O último $weekday até a data, inclusive (o encontro "desta semana").
+     */
+    public static function onOrBefore(\DateTimeInterface $date, Weekday $weekday): CarbonImmutable
+    {
+        $day = CarbonImmutable::parse($date->format('Y-m-d'), self::timezone());
+
+        return $day->subDays(($day->dayOfWeekIso - $weekday->value + 7) % 7);
     }
 
     public static function greeting(): string

@@ -70,7 +70,10 @@ class ContinueLessonNextMeeting
 
     private function freeSundayAfter(ClassMeeting $meeting): string
     {
-        $date = CarbonImmutable::parse($meeting->held_on->toDateString())->next(CarbonImmutable::SUNDAY);
+        $date = ChurchCalendar::onOrAfter(
+            CarbonImmutable::parse($meeting->held_on->toDateString())->addDay(),
+            $meeting->classroom->meeting_weekday,
+        );
 
         $taken = ClassMeeting::query()
             ->where('classroom_id', $meeting->classroom_id)

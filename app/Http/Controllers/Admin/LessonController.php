@@ -96,7 +96,8 @@ class LessonController extends Controller
             'defaults' => [
                 'classroom_id' => $request->integer('classe') ?: $classroomIds->first(),
                 'series_id' => $request->integer('serie') ?: null,
-                'meeting_on' => ChurchCalendar::nextSunday()->toDateString(),
+                // Do dia da turma sugerida; trocar de turma no formulário pede outra data.
+                'meeting_on' => ChurchCalendar::nextMeetingDay($this->meetingWeekdayOf((int) ($request->integer('classe') ?: $classroomIds->first())))->toDateString(),
             ],
             'visibilities' => $this->visibilityOptions(),
         ]);
@@ -224,5 +225,12 @@ class LessonController extends Controller
             fn (LessonVisibility $v) => ['value' => $v->value, 'label' => $v->label()],
             LessonVisibility::cases(),
         );
+    }
+
+    private function meetingWeekdayOf(int $classroomId): Weekday
+    {
+        $classroom = Classroom::query()->whereKey($classroomId)->first();
+
+        return $classroom === null ? Weekday::Sunday : $classroom->meeting_weekday;
     }
 }

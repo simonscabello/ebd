@@ -40,4 +40,24 @@ enum Weekday: int
             self::Sunday => 'Dom',
         };
     }
+
+    /**
+     * Plural para frases sobre o dia do encontro: "domingos", "quartas-feiras".
+     */
+    public function pluralLabel(): string
+    {
+        return match ($this) {
+            self::Saturday => 'sábados',
+            self::Sunday => 'domingos',
+            default => str_replace('-feira', 's-feiras', mb_strtolower($this->label())),
+        };
+    }
+
+    /** "Esta classe se reúne aos domingos." / "… às quartas-feiras." */
+    public function meetingDayMessage(): string
+    {
+        $article = in_array($this, [self::Saturday, self::Sunday], true) ? 'aos' : 'às';
+
+        return "Esta classe se reúne {$article} {$this->pluralLabel()}.";
+    }
 }

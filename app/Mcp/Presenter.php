@@ -28,6 +28,7 @@ final class Presenter
             'id' => $classroom->id,
             'slug' => $classroom->slug,
             'name' => $classroom->name,
+            'meeting_weekday' => $classroom->meeting_weekday->label(),
             'is_active' => $classroom->is_active,
         ];
     }

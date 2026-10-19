@@ -20,7 +20,7 @@ trait MeetingValidationRules
     {
         return [
             'held_on' => [
-                'required', 'date',
+                'required', 'date', $this->meetingDayRule($classroom),
                 Rule::unique('class_meetings', 'held_on')
                     ->where('classroom_id', $classroom->id)
                     ->ignore($meeting?->id),
@@ -32,7 +32,21 @@ trait MeetingValidationRules
     }
 
     /**
-     * "Planejar trimestre": no máximo um ano de domingos por vez.
+     * A data precisa cair no dia de encontro da turma.
+     */
+    protected function meetingDayRule(Classroom $classroom): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($classroom): void {
+            $date = rescue(fn () => CarbonImmutable::parse((string) $value), null, false);
+
+            if ($date !== null && $date->dayOfWeekIso !== $classroom->meeting_weekday->value) {
+                $fail($classroom->meeting_weekday->meetingDayMessage());
+            }
+        };
+    }
+
+    /**
+     * "Planejar trimestre": no máximo um ano de encontros por vez.
      *
      * @return array<string, mixed>
      */

@@ -48,7 +48,7 @@ class EbdServer extends Server
         - Comece com list_classrooms para saber as classes (use o slug nas outras ferramentas).
         - Nomes de alunos podem ser ambíguos: se uma ferramenta devolver candidatos, pergunte à
           pessoa qual é o certo e use o id.
-        - Datas sempre em AAAA-MM-DD, no fuso da igreja. Os encontros da EBD são aos domingos.
+        - Datas sempre em AAAA-MM-DD, no fuso da igreja. Cada classe se reúne num dia da semana (veja list_classrooms); datas fora desse dia são recusadas.
         - Lições criadas ou editadas por aqui ficam como rascunho. Publicar (o que avisa a
           classe inteira por notificação) é sempre feito pela pessoa no app; ofereça o link.
         - Antes de alterar dados que a pessoa não pediu explicitamente, confirme com ela.

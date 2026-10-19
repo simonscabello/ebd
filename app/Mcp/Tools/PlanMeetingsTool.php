@@ -22,7 +22,7 @@ class PlanMeetingsTool extends EbdTool
 
     protected string $title = 'Planejar a agenda';
 
-    protected string $description = 'Cria um encontro para cada domingo do período (os que já existem ficam como estão) e, se informar a série, distribui nos domingos livres as lições da série que ainda não têm data, na ordem do número. Até um ano por vez.';
+    protected string $description = 'Cria um encontro para cada dia de encontro da classe no período (os que já existem ficam como estão) e, se informar a série, distribui nos encontros livres as lições da série que ainda não têm data, na ordem do número. Até um ano por vez.';
 
     public function schema(JsonSchema $schema): array
     {

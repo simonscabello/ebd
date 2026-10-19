@@ -31,7 +31,7 @@ class LessonContentSeeder extends Seeder
 
     public function run(): void
     {
-        $this->nextSunday = ChurchCalendar::nextSunday();
+        $this->nextSunday = ChurchCalendar::nextMeetingDay(Weekday::Sunday);
 
         $this->seedJovens();
         $this->seedAdultos();
