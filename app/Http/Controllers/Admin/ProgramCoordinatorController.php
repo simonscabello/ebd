@@ -23,8 +23,10 @@ class ProgramCoordinatorController extends Controller
         $data = $request->validate(['email' => ['required', 'string', 'email', 'max:255']], [], ['email' => 'e-mail']);
         $user = User::query()->where('email', mb_strtolower(trim($data['email'])))->first();
 
-        if ($user === null) {
-            throw ValidationException::withMessages(['email' => 'Nenhuma conta encontrada com este e-mail.']);
+        // A mesma regra de nomear professor: só quem é livre para esta igreja,
+        // e a mesma mensagem para "não existe" e "é de outro lugar".
+        if ($user === null || ! $user->isFreeFor($program->church_id)) {
+            throw ValidationException::withMessages(['email' => 'Não encontramos uma conta disponível com este e-mail.']);
         }
 
         $program->coordinators()->syncWithoutDetaching([$user->id]);
@@ -40,6 +42,7 @@ class ProgramCoordinatorController extends Controller
     public function destroy(Program $program, User $user): RedirectResponse
     {
         Gate::authorize('appointCoordinators', $program);
+        abort_unless($user->isCoordinatorOf($program), 404);
 
         $program->coordinators()->detach($user->id);
         $this->toast("{$user->name} não coordena mais {$program->name}.");

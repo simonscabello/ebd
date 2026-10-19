@@ -30,6 +30,11 @@ class IssueAccessLink
             throw ValidationException::withMessages(['user' => 'O link de acesso é só para alunos desta classe.']);
         }
 
+        // O link apaga a senha: só quem acompanha todas as turmas da pessoa.
+        if (! $issuer->managesAllClassroomsOf($student)) {
+            throw ValidationException::withMessages(['user' => 'O link de acesso desta pessoa só pode ser gerado por quem acompanha todas as turmas dela.']);
+        }
+
         if ($student->isAdmin() || $student->canAccessAdmin()) {
             throw ValidationException::withMessages(['user' => 'Professores e administradores entram com e-mail e senha.']);
         }

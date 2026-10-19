@@ -6,6 +6,7 @@ use App\Http\Requests\LibraryRequest;
 use App\Http\Resources\ClassroomResource;
 use App\Http\Resources\LessonResource;
 use App\Http\Resources\SeriesResource;
+use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
@@ -38,7 +39,7 @@ class LibraryController extends Controller
                 'ano' => $filters['year'],
             ],
             'results' => LessonResource::collection($results),
-            'classrooms' => ClassroomResource::collection(Classroom::query()->ordered()->get()),
+            'classrooms' => ClassroomResource::collection(Classroom::query()->whereIn('church_id', Church::idsVisibleTo($user))->ordered()->get()),
             'series' => SeriesResource::collection($series),
             'years' => $library->availableYears($user),
         ]);

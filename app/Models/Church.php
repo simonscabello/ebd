@@ -73,9 +73,32 @@ class Church extends Model
      * Nome mostrado no app e nos e-mails. Só leitura: sem igreja cadastrada,
      * vale o da configuração.
      */
-    public static function displayName(): string
+    /**
+     * Igrejas cujo conteúdo a pessoa vê nas listas (início, biblioteca): as
+     * das turmas dela, as que administra e as dos programas que coordena.
+     * Visitante, ou quem ainda não tem igreja, vê a primeira (a do Simon),
+     * como hoje, até existir o site institucional.
+     *
+     * @return list<int>
+     */
+    public static function idsVisibleTo(?User $user): array
     {
-        return self::primary()->name ?? (string) config('ebd.church_name');
+        $ids = $user === null ? [] : array_values(array_unique([
+            ...$user->memberChurchIds(),
+            ...$user->administeredChurchIds(),
+            ...Classroom::query()->whereIn('id', $user->coordinatedClassroomIds())->pluck('church_id')->map(fn ($id) => (int) $id)->all(),
+        ]));
+
+        if ($ids === [] && ($primary = self::primary()) !== null) {
+            $ids = [$primary->id];
+        }
+
+        return $ids;
+    }
+
+    public static function displayName(?User $user = null): string
+    {
+        return ($user?->currentChurch() ?? self::primary())->name ?? (string) config('ebd.church_name');
     }
 
     /**

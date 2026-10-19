@@ -31,6 +31,8 @@ class ClassroomMemberController extends Controller
     public function destroy(Request $request, Classroom $classroom, User $user, RevokeStudentAccess $revoke): RedirectResponse
     {
         Gate::authorize('manageMembers', $classroom);
+        // Só quem é da turma: não confirma (nem nomeia) quem é de outro lugar.
+        abort_unless($user->isMemberOf($classroom), 404);
 
         // Professores só podem ser removidos pela administração.
         $wasTeacher = $user->isTeacherOf($classroom);

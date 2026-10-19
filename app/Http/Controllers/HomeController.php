@@ -12,6 +12,7 @@ use App\Queries\CurrentLessonQuery;
 use App\Queries\StudyWeekQuery;
 use App\Support\ChurchCalendar;
 use App\Support\ClassroomSelector;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,10 +26,17 @@ use Inertia\Response;
  */
 class HomeController extends Controller
 {
-    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector, StudyWeekQuery $week): Response
+    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector, StudyWeekQuery $week): Response|RedirectResponse
     {
         /** @var User|null $user */
         $user = $request->user();
+
+        // Quem acabou de criar a igreja (ainda sem nenhuma turma) começa pela
+        // gestão, no passo a passo. Igreja que já tem turmas: tudo como antes.
+        if ($user !== null && $user->memberClassroomIds() === [] && $user->administersAnyChurch()
+            && $user->administeredClassroomIds() === []) {
+            return redirect('/admin');
+        }
 
         $classrooms = $selector->available($user);
         $classroom = $selector->selected($classrooms, $request->query('classe'));

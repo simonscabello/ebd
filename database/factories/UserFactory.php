@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\ClassroomRole;
 use App\Enums\Gender;
+use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -65,11 +66,15 @@ class UserFactory extends Factory
         ]);
     }
 
+    /**
+     * Dono do sistema e administrador da igreja principal (como o Simon em
+     * produção).
+     */
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
             'is_admin' => true,
-        ]);
+        ])->afterCreating(fn (User $user) => Church::primaryOrCreate()->admins()->syncWithoutDetaching([$user->id]));
     }
 
     /**

@@ -165,7 +165,7 @@ class StudentController extends Controller
                 ->ordered()
                 ->get(['id', 'name', 'slug'])
                 ->map(fn (Classroom $c) => ['slug' => $c->slug, 'name' => $c->name]),
-            'canEditEmail' => $user->isManaged() || $actor->isAdmin(),
+            'canEditEmail' => $user->isManaged() || in_array($classroom->church_id, $actor->administeredChurchIds(), true),
             'genders' => Gender::options(),
         ]);
     }

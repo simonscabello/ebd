@@ -31,6 +31,8 @@ class RegistrationTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
+            // Desde a etapa C2 o cadastro é "Criar minha igreja".
+            'church_name' => 'Igreja de Teste',
         ]);
 
         $this->assertAuthenticated();

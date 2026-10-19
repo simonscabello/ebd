@@ -33,8 +33,9 @@ class ClassroomController extends Controller
             ->withCount(['students', 'lessons', 'series'])
             ->get();
 
-        // Professor de uma classe só: a lista seria um passo a mais.
-        if ($manageable !== null && $classrooms->count() === 1) {
+        // Professor de uma classe só: a lista seria um passo a mais. Quem
+        // administra a igreja fica na lista, onde se cria turma.
+        if (! $user->can('create', Classroom::class) && $classrooms->count() === 1) {
             return to_route('admin.classrooms.show', $classrooms->first());
         }
 
@@ -58,7 +59,8 @@ class ClassroomController extends Controller
 
     public function store(ClassroomRequest $request, CreateClassroom $create): RedirectResponse
     {
-        $classroom = $create->handle($request->validated(), Church::primaryOrCreate()->defaultProgram());
+        $church = Church::query()->whereKey($request->user()->administeredChurchIds()[0] ?? 0)->firstOrFail();
+        $classroom = $create->handle($request->validated(), $church->defaultProgram());
 
         $this->toast("Classe \"{$classroom->name}\" criada.");
 

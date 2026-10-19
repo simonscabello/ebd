@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\BibleController;
 use App\Http\Controllers\CompleteProfileController;
+use App\Http\Controllers\CreateChurchController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LessonAudioController;
 use App\Http\Controllers\LessonController;
@@ -84,6 +85,8 @@ Route::post('entrar', [AccessLinkController::class, 'store'])
 
 // Cadastro que o aluno completa no primeiro acesso (ver EnsureProfileIsComplete).
 Route::middleware('auth')->group(function () {
+    Route::get('criar-igreja', [CreateChurchController::class, 'create'])->name('churches.create');
+    Route::post('criar-igreja', [CreateChurchController::class, 'store'])->name('churches.store');
     Route::get('completar-cadastro', [CompleteProfileController::class, 'show'])->name('onboarding.show');
     Route::post('completar-cadastro', [CompleteProfileController::class, 'store'])->name('onboarding.store');
 });

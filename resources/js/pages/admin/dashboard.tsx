@@ -14,7 +14,10 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { dateTile, dayMonth } from '@/lib/dates';
-import { show as classroomPage } from '@/routes/admin/classrooms';
+import {
+    create as createClassroom,
+    show as classroomPage,
+} from '@/routes/admin/classrooms';
 import { show as meetingPage } from '@/routes/admin/classrooms/meetings';
 import {
     create as createLesson,
@@ -95,6 +98,45 @@ export default function AdminDashboard({
                 />
 
                 <HelpHint />
+
+                {classrooms.length === 0 && auth.user?.is_admin && (
+                    <Section title="Para começar" icon={<Layers />}>
+                        <ol className="space-y-3 rounded-2xl border bg-card p-5 text-[0.95rem]">
+                            <li>
+                                <span className="font-medium">
+                                    1. Crie a primeira turma
+                                </span>{' '}
+                                (por exemplo, Jovens ou Adultos) e escolha o dia
+                                do encontro.{' '}
+                                <Link
+                                    href={createClassroom()}
+                                    className="font-medium text-primary underline underline-offset-4"
+                                >
+                                    Criar turma
+                                </Link>
+                            </li>
+                            <li>
+                                <span className="font-medium">
+                                    2. Convide quem vai ensinar e estudar.
+                                </span>{' '}
+                                Na turma, em Alunos, cadastre cada pessoa e
+                                envie o link de acesso pelo WhatsApp.
+                            </li>
+                            <li>
+                                <span className="font-medium">
+                                    3. Cadastre a primeira lição
+                                </span>{' '}
+                                e publique quando estiver pronta.{' '}
+                                <Link
+                                    href={createLesson()}
+                                    className="font-medium text-primary underline underline-offset-4"
+                                >
+                                    Nova lição
+                                </Link>
+                            </li>
+                        </ol>
+                    </Section>
+                )}
 
                 <div className="space-y-10">
                     {classrooms.length > 0 && (

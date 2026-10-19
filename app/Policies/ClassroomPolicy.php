@@ -7,21 +7,21 @@ use App\Models\User;
 
 class ClassroomPolicy
 {
-    /** Lista de classes: cada professor vê as suas; a administração, todas. */
+    /** Lista de classes: cada um vê as que gerencia (a administração, as da igreja). */
     public function viewAny(User $user): bool
     {
         return $user->canAccessAdmin();
     }
 
-    /** Cadastro de classes é tarefa da administração geral. */
+    /** Cadastro de classes é tarefa da administração da igreja. */
     public function create(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->administersAnyChurch();
     }
 
     public function update(User $user, Classroom $classroom): bool
     {
-        return $user->isAdmin();
+        return in_array($classroom->church_id, $user->administeredChurchIds(), true);
     }
 
     /** Criar séries e lições na classe. */
@@ -36,10 +36,10 @@ class ClassroomPolicy
         return $user->canManageClassroom($classroom);
     }
 
-    /** Definir quem é professor(a) é restrito à administração. */
+    /** Definir quem é professor(a) é restrito à administração da igreja. */
     public function assignTeachers(User $user, Classroom $classroom): bool
     {
-        return $user->isAdmin();
+        return in_array($classroom->church_id, $user->administeredChurchIds(), true);
     }
 
     /** Painel de evolução da classe. */

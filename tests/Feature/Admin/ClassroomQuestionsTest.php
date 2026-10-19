@@ -33,7 +33,7 @@ class ClassroomQuestionsTest extends TestCase
         $teacher = User::factory()->teacherOf($classroom)->create();
         $ana = User::factory()->studentOf($classroom)->create(['name' => 'Ana Souza']);
         $bia = User::factory()->studentOf($classroom)->create();
-        $admin = User::factory()->create(['is_admin' => true]);
+        $admin = User::factory()->admin()->create();
 
         $older = Lesson::factory()->for($classroom)->published()->create(['slug' => 'antiga', 'title' => 'Antiga']);
         $newer = Lesson::factory()->for($classroom)->published()->number(2)->create(['slug' => 'nova', 'title' => 'Nova']);
