@@ -123,4 +123,13 @@ class MeetingWeekdayTest extends TestCase
 
         $this->assertSame([], $this->dates());
     }
+
+    public function test_plan_includes_a_last_day_that_is_a_meeting_day(): void
+    {
+        $this->actingAs($this->teacher)
+            ->post('/admin/classes/quarta/domingos/planejar', ['from' => '2026-10-01', 'to' => '2026-10-28'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(['2026-10-07', '2026-10-14', '2026-10-21', '2026-10-28'], $this->dates());
+    }
 }

@@ -12,10 +12,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Troca o dia do encontro da turma. Os encontros futuros ainda planejados e
- * sem chamada vão para o novo dia dentro da mesma semana de leitura (os seis
- * dias antes do encontro até ele), mantendo lição e ordem. Passados,
- * realizados, cancelados ou com chamada ficam como estão.
+ * Troca o dia do encontro da turma. Os encontros futuros ainda sem chamada
+ * (planejados ou "sem EBD") vão para o novo dia dentro da mesma semana de
+ * leitura (os seis dias antes do encontro até ele), mantendo lição e ordem.
+ * Ficam como estão: passados, realizados, com chamada, o desta semana cujo
+ * novo dia já passou e o que cairia numa data já ocupada.
  *
  * @return int encontros remarcados
  */
@@ -32,28 +33,30 @@ class ChangeMeetingWeekday
 
             $meetings = ClassMeeting::query()
                 ->whereBelongsTo($classroom)
-                ->where('status', MeetingStatus::Planned)
+                ->whereIn('status', [MeetingStatus::Planned, MeetingStatus::Cancelled])
                 ->whereNull('attendance_taken_at')
                 ->whereDate('held_on', '>', $today)
                 ->whereDoesntHave('attendances')
                 ->orderBy('held_on')
                 ->get();
 
+            $taken = array_flip(ClassMeeting::query()->whereBelongsTo($classroom)
+                ->pluck('held_on')->map(fn ($d) => $d->toDateString())->all());
             $moved = 0;
 
             foreach ($meetings as $meeting) {
-                $old = CarbonImmutable::parse($meeting->held_on->toDateString());
+                $old = $meeting->held_on->toDateString();
                 // O novo dia dentro da janela (antigo − 6 … antigo).
-                $new = $old->subDays(($old->dayOfWeekIso - $weekday->value + 7) % 7);
+                $new = ChurchCalendar::onOrBefore(CarbonImmutable::parse($old), $weekday)->toDateString();
 
-                if ($new->toDateString() <= $today) {
-                    $new = $new->addWeek();
+                if ($new === $old || $new <= $today || isset($taken[$new])) {
+                    continue;
                 }
 
-                if ($new->toDateString() !== $old->toDateString()) {
-                    $meeting->forceFill(['held_on' => $new->toDateString()])->save();
-                    $moved++;
-                }
+                $meeting->forceFill(['held_on' => $new])->save();
+                unset($taken[$old]);
+                $taken[$new] = true;
+                $moved++;
             }
 
             $this->syncSchedule->handle($classroom);

@@ -13,6 +13,7 @@ use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -81,11 +82,14 @@ class ClassroomController extends Controller
         $weekday = isset($data['meeting_weekday']) ? Weekday::from((int) $data['meeting_weekday']) : null;
         unset($data['meeting_weekday']);
 
-        $classroom->update($data);
+        // Nome e dia juntos: ou salva tudo, ou nada.
+        $moved = DB::transaction(function () use ($classroom, $data, $weekday, $changeWeekday) {
+            $classroom->update($data);
 
-        $moved = $weekday !== null && $weekday !== $classroom->meeting_weekday
-            ? $changeWeekday->handle($classroom, $weekday)
-            : 0;
+            return $weekday !== null && $weekday !== $classroom->meeting_weekday
+                ? $changeWeekday->handle($classroom, $weekday)
+                : 0;
+        });
 
         $this->toast($moved > 0 ? "Classe atualizada. Encontros remarcados para {$weekday->label()}." : 'Classe atualizada.');
 

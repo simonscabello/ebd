@@ -20,7 +20,7 @@ trait MeetingValidationRules
     {
         return [
             'held_on' => [
-                'required', 'date', $this->meetingDayRule($classroom),
+                'required', 'date', $this->meetingDayRule($classroom, $meeting),
                 Rule::unique('class_meetings', 'held_on')
                     ->where('classroom_id', $classroom->id)
                     ->ignore($meeting?->id),
@@ -32,12 +32,17 @@ trait MeetingValidationRules
     }
 
     /**
-     * A data precisa cair no dia de encontro da turma.
+     * A data precisa cair no dia de encontro da turma. Um encontro que ficou
+     * no dia antigo (a turma trocou de dia) pode ser editado sem mudar a data.
      */
-    protected function meetingDayRule(Classroom $classroom): \Closure
+    protected function meetingDayRule(Classroom $classroom, ?ClassMeeting $meeting = null): \Closure
     {
-        return function (string $attribute, mixed $value, \Closure $fail) use ($classroom): void {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($classroom, $meeting): void {
             $date = rescue(fn () => CarbonImmutable::parse((string) $value), null, false);
+
+            if ($date !== null && $meeting !== null && $date->toDateString() === $meeting->held_on->toDateString()) {
+                return;
+            }
 
             if ($date !== null && $date->dayOfWeekIso !== $classroom->meeting_weekday->value) {
                 $fail($classroom->meeting_weekday->meetingDayMessage());

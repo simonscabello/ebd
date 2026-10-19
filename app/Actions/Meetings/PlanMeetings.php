@@ -39,7 +39,7 @@ class PlanMeetings
             $created = 0;
             $sunday = ChurchCalendar::onOrAfter($from, $classroom->meeting_weekday);
 
-            while ($sunday->lte($to)) {
+            while ($sunday->toDateString() <= $to->toDateString()) {
                 if (! in_array($sunday->toDateString(), $existing, true)) {
                     ClassMeeting::query()->create([
                         'classroom_id' => $classroom->id,

@@ -36,18 +36,23 @@ class FillSundays
             $weekday,
         );
 
-        $existing = array_flip(ClassMeeting::query()
+        $existing = ClassMeeting::query()
             ->whereBelongsTo($classroom)
-            ->whereDate('held_on', '>=', $sunday->toDateString())
+            ->whereDate('held_on', '>=', $sunday->subDays(6)->toDateString())
             ->pluck('held_on')
             ->map(fn ($date) => $date->toDateString())
-            ->all());
+            ->all();
 
         $rows = [];
         $now = now();
 
         for (; $sunday->toDateString() <= $until; $sunday = $sunday->addWeek()) {
-            if (! isset($existing[$sunday->toDateString()])) {
+            // Uma semana que já tem encontro (mesmo em outro dia, como os
+            // antigos de uma turma que trocou de dia) não ganha outro.
+            $weekStart = $sunday->subDays(6)->toDateString();
+            $weekHasMeeting = array_filter($existing, fn (string $d) => $d >= $weekStart && $d <= $sunday->toDateString()) !== [];
+
+            if (! $weekHasMeeting) {
                 $rows[] = [
                     'classroom_id' => $classroom->id,
                     'held_on' => $sunday->toDateString(),
