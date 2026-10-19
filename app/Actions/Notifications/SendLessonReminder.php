@@ -10,8 +10,8 @@ use App\Support\Push\PushSender;
 use Carbon\CarbonImmutable;
 
 /**
- * Véspera da EBD (sábado de manhã): se a classe tem encontro amanhã, lembra a
- * lição. Sem encontro (ou domingo sem EBD), silêncio.
+ * Véspera do encontro (8h do dia anterior; roda todo dia): se a turma tem
+ * encontro amanhã, lembra a lição. Sem encontro (ou "sem EBD"), silêncio.
  */
 final class SendLessonReminder
 {

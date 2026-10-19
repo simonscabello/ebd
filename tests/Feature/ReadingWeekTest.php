@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Notifications\SendLessonReminder;
 use App\Actions\Notifications\SendReadingReminders;
 use App\Enums\Badge;
 use App\Enums\ReminderSlot;
@@ -106,4 +107,24 @@ class ReadingWeekTest extends TestCase
         app(SendReadingReminders::class)->handle(ReminderSlot::Morning);
         $this->assertSame('Releia o texto base da lição.', $push->sentTo($this->student)->first()->body);
     }
+
+    public function test_eve_reminder_goes_out_the_day_before_a_wednesday_meeting(): void
+    {
+        $push = new FakePushSender;
+        $this->app->instance(PushSender::class, $push);
+        PushSubscription::factory()->for($this->student)->create();
+
+        $sunday = Classroom::factory()->create(['slug' => 'domingo']);
+        $other = User::factory()->studentOf($sunday)->create();
+        PushSubscription::factory()->for($other)->create();
+        Lesson::factory()->for($sunday)->published()->on('2026-10-11')->create();
+
+        // Terça, 06/10, 8h: véspera da turma de quarta.
+        $this->travelTo(now('America/Sao_Paulo')->setDate(2026, 10, 6)->setTime(8, 0));
+        app(SendLessonReminder::class)->handle();
+
+        $this->assertSame('Amanhã tem EBD!', $push->sentTo($this->student)->first()->title);
+        $this->assertCount(0, $push->sentTo($other));
+    }
 }
+
