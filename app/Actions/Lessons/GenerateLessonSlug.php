@@ -22,7 +22,10 @@ class GenerateLessonSlug
     {
         $base = Str::of(Str::slug($title))->limit(150, '')->trim('-')->value() ?: 'licao';
 
-        $candidates = [$base, "{$base}-{$classroom->slug}"];
+        // A coluna tem 180 caracteres: o slug com a turma é cortado deixando
+        // espaço para o sufixo numérico ("-12").
+        $withClassroom = Str::of("{$base}-{$classroom->slug}")->limit(170, '')->trim('-')->value();
+        $candidates = [$base, $withClassroom];
 
         foreach ($candidates as $candidate) {
             if (! $this->exists($candidate, $ignoreLessonId)) {

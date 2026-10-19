@@ -8,7 +8,6 @@ use App\Enums\Weekday;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ClassroomRequest;
 use App\Http\Resources\ClassroomResource;
-use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -59,7 +58,9 @@ class ClassroomController extends Controller
 
     public function store(ClassroomRequest $request, CreateClassroom $create): RedirectResponse
     {
-        $church = Church::query()->whereKey($request->user()->administeredChurchIds()[0] ?? 0)->firstOrFail();
+        // A igreja da pessoa (a biblioteca oficial nunca é).
+        $church = $request->user()->currentChurch();
+        abort_if($church === null || ! $request->user()->isChurchAdminOf($church), 403);
         $classroom = $create->handle($request->validated(), $church->defaultProgram());
 
         $this->toast("Classe \"{$classroom->name}\" criada.");

@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Save, Trash2 } from 'lucide-react';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
@@ -15,18 +15,31 @@ import {
     store,
     update,
 } from '@/routes/admin/series';
+import { changes } from '@/routes/admin/series';
+import { store as storeVersion } from '@/routes/admin/series/versions';
 import type { Classroom, Series } from '@/types';
+
+type OfficialVersions = {
+    next_version: number;
+    versions: { version: number; notes: string | null; created_at: string }[];
+};
 
 type Props = {
     series: Series | null;
     classrooms: Classroom[];
     defaultClassroomId: number | null;
+    /** Estudo da biblioteca oficial, visto pelo dono. */
+    official: OfficialVersions | null;
+    /** Cópia de estudo oficial com versão nova publicada. */
+    update_available: { from: number; to: number } | null;
 };
 
 export default function SeriesForm({
     series,
     classrooms,
     defaultClassroomId,
+    official,
+    update_available,
 }: Props) {
     const confirm = useConfirm();
     const form = useForm({
@@ -189,7 +202,127 @@ export default function SeriesForm({
                         </p>
                     )}
                 </form>
+
+                {series && update_available && (
+                    <UpdateNotice
+                        seriesId={series.id}
+                        update={update_available}
+                    />
+                )}
+
+                {series && official && (
+                    <OfficialLibraryVersions
+                        seriesId={series.id}
+                        official={official}
+                    />
+                )}
             </Page>
         </>
+    );
+}
+
+/**
+ * Biblioteca oficial: publicar a próxima versão (o retrato que as igrejas
+ * copiam) e ver as anteriores. Só as lições publicadas entram.
+ */
+function OfficialLibraryVersions({
+    seriesId,
+    official,
+}: {
+    seriesId: number;
+    official: OfficialVersions;
+}) {
+    const form = useForm({ notes: '' });
+
+    return (
+        <section className="mt-10 space-y-4 rounded-2xl border bg-card p-4 sm:p-5">
+            <div>
+                <h2 className="font-serif text-lg font-semibold">
+                    Biblioteca oficial
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                    Publicar uma versão tira um retrato das lições publicadas.
+                    As igrejas copiam a versão mais recente; quem já copiou vê o
+                    aviso de versão nova. A cópia leva também os blocos e
+                    materiais do professor: não cole versículos da NAA nem
+                    trechos da revista.
+                </p>
+            </div>
+
+            <form
+                className="space-y-3"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post(storeVersion.url(seriesId), {
+                        preserveScroll: true,
+                        onSuccess: () => form.reset(),
+                    });
+                }}
+            >
+                <Field
+                    label="O que mudou (opcional)"
+                    htmlFor="version-notes"
+                    error={
+                        form.errors.notes ??
+                        (form.errors as Record<string, string>).version
+                    }
+                >
+                    <Textarea
+                        id="version-notes"
+                        value={form.data.notes}
+                        onChange={(event) =>
+                            form.setData('notes', event.target.value)
+                        }
+                        rows={2}
+                    />
+                </Field>
+                <Button type="submit" disabled={form.processing}>
+                    {form.processing && <Spinner />}
+                    Publicar versão {official.next_version}
+                </Button>
+            </form>
+
+            {official.versions.length > 0 && (
+                <ul className="divide-y text-sm">
+                    {official.versions.map((item) => (
+                        <li key={item.version} className="py-2">
+                            <span className="font-medium">
+                                Versão {item.version}
+                            </span>{' '}
+                            <span className="text-muted-foreground">
+                                · {item.created_at}
+                            </span>
+                            {item.notes && (
+                                <p className="text-muted-foreground">
+                                    {item.notes}
+                                </p>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
+    );
+}
+
+/** Aviso de versão nova do estudo oficial de onde a série foi copiada. */
+function UpdateNotice({
+    seriesId,
+    update,
+}: {
+    seriesId: number;
+    update: { from: number; to: number };
+}) {
+    return (
+        <section className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <p className="text-sm">
+                <span className="font-medium">Versão nova disponível.</span>{' '}
+                Esta série veio da versão {update.from} do estudo oficial; já
+                saiu a {update.to}.
+            </p>
+            <Button asChild variant="outline" size="sm">
+                <Link href={changes(seriesId)}>Ver o que mudou</Link>
+            </Button>
+        </section>
     );
 }

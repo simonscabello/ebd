@@ -10,7 +10,10 @@ use App\Http\Resources\ClassroomResource;
 use App\Http\Resources\SeriesResource;
 use App\Models\Classroom;
 use App\Models\Series;
+use App\Models\SeriesVersion;
 use App\Models\User;
+use App\Support\ChurchCalendar;
+use App\Support\OfficialLibrary;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -29,6 +32,10 @@ class SeriesController extends Controller
             ->when($manageable !== null, fn ($q) => $q->whereIn('classroom_id', $manageable))
             ->with('classroom')
             ->withCount('lessons')
+            // Última versão do estudo oficial de origem (aviso de versão nova).
+            ->addSelect(['latest_source_version' => SeriesVersion::query()
+                ->selectRaw('max(version)')
+                ->whereColumn('series_versions.series_id', 'series.source_series_id')])
             ->orderByDesc('starts_on')
             ->orderBy('title')
             ->get();
@@ -46,6 +53,8 @@ class SeriesController extends Controller
             'series' => null,
             'classrooms' => $this->manageableClassrooms($request->user()),
             'defaultClassroomId' => $request->integer('classe') ?: null,
+            'official' => null,
+            'update_available' => null,
         ]);
     }
 
@@ -69,7 +78,32 @@ class SeriesController extends Controller
             'series' => SeriesResource::make($series),
             'classrooms' => $this->manageableClassrooms($request->user()),
             'defaultClassroomId' => $series->classroom_id,
+            'official' => $this->official($request, $series),
+            'update_available' => $series->updateAvailable(),
         ]);
+    }
+
+    /**
+     * Estudo da biblioteca oficial, visto pelo dono: as versões publicadas.
+     *
+     * @return array{next_version: int, versions: list<array{version: int, notes: string|null, created_at: string}>}|null
+     */
+    private function official(Request $request, Series $series): ?array
+    {
+        if (! OfficialLibrary::isOfficial($series->classroom) || ! $request->user()->can('own-platform')) {
+            return null;
+        }
+
+        $versions = SeriesVersion::query()->where('series_id', $series->id)->orderByDesc('version')->get(['version', 'notes', 'created_at']);
+
+        return [
+            'next_version' => ((int) $versions->max('version')) + 1,
+            'versions' => array_values($versions->map(fn (SeriesVersion $version) => [
+                'version' => $version->version,
+                'notes' => $version->notes,
+                'created_at' => ChurchCalendar::formatShort($version->created_at->timezone(ChurchCalendar::timezone())),
+            ])->all()),
+        ];
     }
 
     public function update(SeriesRequest $request, Series $series): RedirectResponse
