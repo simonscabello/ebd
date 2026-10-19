@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
@@ -46,6 +47,9 @@ class User extends Authenticatable implements OAuthenticatable
      * @var array<int, ClassroomRole>|null
      */
     protected ?array $classroomRoles = null;
+
+    /** @var list<int>|null */
+    protected ?array $coordinatedClassroomIds = null;
 
     /**
      * Espelha o default do banco para instâncias recém-criadas (ex.: após o cadastro).
@@ -212,7 +216,9 @@ class User extends Authenticatable implements OAuthenticatable
      */
     public function canManageClassroom(Classroom|int $classroom): bool
     {
-        return $this->isAdmin() || $this->isTeacherOf($classroom);
+        $id = $classroom instanceof Classroom ? $classroom->id : $classroom;
+
+        return $this->isAdmin() || $this->isTeacherOf($classroom) || in_array($id, $this->coordinatedClassroomIds(), true);
     }
 
     /**
@@ -220,7 +226,23 @@ class User extends Authenticatable implements OAuthenticatable
      */
     public function canAccessAdmin(): bool
     {
-        return $this->isAdmin() || in_array(ClassroomRole::Teacher, $this->classroomRoles(), true);
+        return $this->isAdmin()
+            || in_array(ClassroomRole::Teacher, $this->classroomRoles(), true)
+            || $this->coordinatedClassroomIds() !== [];
+    }
+
+    /**
+     * Turmas dos programas que a pessoa coordena.
+     *
+     * @return list<int>
+     */
+    public function coordinatedClassroomIds(): array
+    {
+        return $this->coordinatedClassroomIds ??= array_values(Classroom::query()
+            ->whereIn('program_id', DB::table('program_user')->where('user_id', $this->id)->select('program_id'))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all());
     }
 
     /**
@@ -287,10 +309,13 @@ class User extends Authenticatable implements OAuthenticatable
             return null;
         }
 
-        return array_keys(array_filter(
-            $this->classroomRoles(),
-            fn (ClassroomRole $role) => $role === ClassroomRole::Teacher,
-        ));
+        return array_values(array_unique([
+            ...array_keys(array_filter(
+                $this->classroomRoles(),
+                fn (ClassroomRole $role) => $role === ClassroomRole::Teacher,
+            )),
+            ...$this->coordinatedClassroomIds(),
+        ]));
     }
 
     /**
@@ -311,6 +336,7 @@ class User extends Authenticatable implements OAuthenticatable
     public function flushClassroomRoles(): static
     {
         $this->classroomRoles = null;
+        $this->coordinatedClassroomIds = null;
 
         return $this;
     }
