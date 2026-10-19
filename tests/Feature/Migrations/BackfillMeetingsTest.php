@@ -24,7 +24,9 @@ class BackfillMeetingsTest extends TestCase
         $this->artisan('migrate:rollback', ['--path' => self::MIGRATION])->assertSuccessful();
         $this->assertTrue(Schema::hasColumn('lessons', 'teacher_notes'));
 
-        $classroom = DB::table('classrooms')->insertGetId(['name' => 'Adultos', 'slug' => 'adultos', 'created_at' => now(), 'updated_at' => now()]);
+        // Desde 2026-10-20 toda classe pertence a uma igreja.
+        $church = DB::table('churches')->insertGetId(['name' => 'Igreja', 'slug' => 'igreja', 'timezone' => 'Europe/Madrid', 'created_at' => now(), 'updated_at' => now()]);
+        $classroom = DB::table('classrooms')->insertGetId(['church_id' => $church, 'name' => 'Adultos', 'slug' => 'adultos', 'created_at' => now(), 'updated_at' => now()]);
         $lesson = fn (array $data) => DB::table('lessons')->insertGetId([
             'classroom_id' => $classroom,
             'title' => $data['slug'],

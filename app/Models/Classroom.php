@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Uma classe da EBD (ex.: Jovens, Adultos). "Class" é palavra reservada no PHP.
  *
  * @property int $id
+ * @property int $church_id
  * @property string $name
  * @property string $slug
  * @property string|null $description
@@ -37,6 +39,14 @@ class Classroom extends Model
             'is_active' => 'boolean',
             'position' => 'integer',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Church, $this>
+     */
+    public function church(): BelongsTo
+    {
+        return $this->belongsTo(Church::class);
     }
 
     /**
