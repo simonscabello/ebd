@@ -476,9 +476,11 @@ function groupBySeries(
     currentId: number | null,
 ): LessonGroup[] {
     const groups = new Map<string, LessonGroup>();
+    const keyOf = (lesson: LessonOption) =>
+        String(lesson.series_id ?? 'avulsas');
 
     for (const lesson of lessons) {
-        const key = String(lesson.series_id ?? 'avulsas');
+        const key = keyOf(lesson);
         const group = groups.get(key) ?? {
             key,
             title: lesson.series_title ?? 'Lições avulsas',
@@ -488,9 +490,9 @@ function groupBySeries(
         groups.set(key, group);
     }
 
-    const currentKey = String(
-        lessons.find((lesson) => lesson.id === currentId)?.series_id ?? '',
-    );
+    // A lição escolhida pode ser avulsa: aí o grupo das avulsas sobe também.
+    const current = lessons.find((lesson) => lesson.id === currentId);
+    const currentKey = current ? keyOf(current) : null;
 
     return [...groups.values()].sort((a, b) => {
         const rank = (g: LessonGroup) =>

@@ -18,7 +18,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Painel da gestão: o que fazer agora em cada classe, domingos pendentes e as
+ * Painel da gestão: o que fazer agora em cada classe, encontros pendentes e as
  * próximas lições a preparar.
  */
 class DashboardController extends Controller
@@ -39,22 +39,34 @@ class DashboardController extends Controller
             ->withCount('students')
             ->get();
 
-        // Próximas lições (com domingo de hoje em diante) e lições ainda sem data.
-        $upcoming = Lesson::query()
+        // Próximas lições (com encontro de hoje em diante), cada uma no primeiro
+        // encontro dela.
+        $scheduled = Lesson::query()
             ->tap($scope)
-            ->where(fn (Builder $q) => $q
-                ->whereHas('meetings', fn ($m) => $m->active()->whereDate('held_on', '>=', $today))
-                ->orWhereDoesntHave('meetings', fn ($m) => $m->active()))
+            ->whereHas('meetings', fn ($m) => $m->active()->whereDate('held_on', '>=', $today))
             ->with(['classroom', 'series'])
             ->withCount(['materials'])
             ->withMin(['meetings as next_meeting_on' => fn ($m) => $m->active()->whereDate('held_on', '>=', $today)], 'held_on')
-            // Em ordem crescente o PostgreSQL já coloca as sem data (NULL) por último.
             ->orderBy('next_meeting_on')
-            // As sem data na ordem da revista, não na ordem em que foram criadas.
+            ->limit(8)
+            ->get();
+
+        // Lições (rascunho ou publicadas) que ainda não estão em nenhum
+        // encontro, na ordem da revista. Lista e limite próprios: com muitas
+        // lições marcadas, estas continuam aparecendo.
+        $unscheduled = Lesson::query()
+            ->tap($scope)
+            ->whereDoesntHave('meetings', fn ($m) => $m->active())
+            ->with(['classroom', 'series'])
+            ->withCount(['materials'])
             ->orderBy('series_id')
             ->orderByRaw('number IS NULL, number')
             ->limit(8)
             ->get();
+
+        // Igreja sem nenhuma lição: o painel oferece cadastrar a primeira.
+        $hasLessons = $scheduled->isNotEmpty() || $unscheduled->isNotEmpty()
+            || Lesson::query()->tap($scope)->exists();
 
         // Domingos que já passaram e continuam "planejados": fazer a chamada ou confirmar.
         $pending = ClassMeeting::query()
@@ -95,12 +107,15 @@ class DashboardController extends Controller
                 'title' => $m->title,
                 'classroom' => ['name' => $m->classroom->name, 'slug' => $m->classroom->slug],
             ]),
-            'upcoming' => $upcoming->map(fn (Lesson $lesson) => [
+            'scheduled' => $scheduled->map(fn (Lesson $lesson) => [
                 ...LessonResource::make($lesson)->resolve($request),
-                'next_meeting_on' => $lesson->getAttribute('next_meeting_on') !== null
-                    ? substr((string) $lesson->getAttribute('next_meeting_on'), 0, 10)
-                    : null,
+                'next_meeting_on' => substr((string) $lesson->getAttribute('next_meeting_on'), 0, 10),
             ]),
+            'unscheduled' => $unscheduled->map(fn (Lesson $lesson) => [
+                ...LessonResource::make($lesson)->resolve($request),
+                'next_meeting_on' => null,
+            ]),
+            'hasLessons' => $hasLessons,
         ]);
     }
 }

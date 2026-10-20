@@ -25,3 +25,20 @@ export function meetingWords(
         program: classroom?.program_short_name ?? 'EBD',
     };
 }
+
+/**
+ * Palavras para uma tela com várias classes (o painel): "domingo" só quando
+ * todas se reúnem no domingo; se alguma tem outro dia, "encontro".
+ */
+export function meetingWordsForAll(
+    classrooms: Pick<Classroom, 'meeting_weekday' | 'program_short_name'>[],
+) {
+    const sunday = classrooms.every(
+        (classroom) => (classroom.meeting_weekday ?? 7) === 7,
+    );
+
+    return meetingWords({
+        meeting_weekday: sunday ? 7 : 1,
+        program_short_name: classrooms[0]?.program_short_name ?? null,
+    });
+}
