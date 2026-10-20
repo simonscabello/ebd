@@ -64,6 +64,24 @@ return Application::configure(basePath: dirname(__DIR__))
                 return back();
             }
 
+            // Limite de tentativas num formulário (cadastro, criar igreja, link
+            // pessoal): volta para a página e explica quanto esperar. Só em envios:
+            // num GET, voltar poderia cair de novo no mesmo limite, em laço.
+            if ($status === 429 && $request->inertia() && ! $request->isMethodSafe()) {
+                $wait = (int) $response->headers->get('Retry-After', '60');
+
+                Inertia::flash('toast', [
+                    'type' => 'warning',
+                    'message' => 'Muitas tentativas seguidas. '.match (true) {
+                        $wait <= 60 => 'Espere um minuto e tente de novo.',
+                        $wait <= 3600 => 'Espere '.(int) ceil($wait / 60).' minutos e tente de novo.',
+                        default => 'Tente de novo mais tarde.',
+                    },
+                ]);
+
+                return back();
+            }
+
             if (config('app.debug') || ! in_array($status, [403, 404, 500, 503], true)) {
                 return $response;
             }
