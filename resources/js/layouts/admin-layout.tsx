@@ -142,7 +142,7 @@ function ChurchMenu() {
 
     if (!church.can_edit) {
         return (
-            <span className="max-w-[14rem] truncate text-xs text-muted-foreground">
+            <span className="max-w-full truncate text-xs text-muted-foreground sm:max-w-[14rem]">
                 {church.name}
             </span>
         );
@@ -151,7 +151,7 @@ function ChurchMenu() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
-                className="flex max-w-[11rem] items-center gap-0.5 rounded text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-[14rem]"
+                className="flex max-w-full items-center gap-0.5 rounded text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-[14rem]"
                 aria-label={`Igreja: ${church.name}`}
             >
                 <span className="truncate">{church.name}</span>

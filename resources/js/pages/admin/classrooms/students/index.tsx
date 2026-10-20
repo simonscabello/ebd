@@ -9,6 +9,8 @@ import { AddStudentDialog } from '@/components/admin/students/add-student-dialog
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Input } from '@/components/ui/input';
 import { dayMonth } from '@/lib/dates';
+import { periodPhrase } from '@/lib/period';
+import type { StatsPeriod } from '@/lib/period';
 import { cn } from '@/lib/utils';
 import { edit } from '@/routes/admin/classrooms';
 import { show } from '@/routes/admin/classrooms/students';
@@ -34,7 +36,7 @@ type StudentRow = {
 type Props = {
     classroom: Classroom;
     today: string;
-    period: { label: string; series_id: number | null };
+    period: StatsPeriod;
     students: StudentRow[];
     teachers: { id: number; name: string }[];
     canAssignTeachers: boolean;
@@ -66,7 +68,7 @@ export default function ClassroomStudents({
                 <ClassroomHeader classroom={classroom} active="alunos" />
                 <PageHeader
                     title="Alunos"
-                    description={`${students.length} ${students.length === 1 ? 'aluno' : 'alunos'} · frequência ${period.series_id ? `na série ${period.label}` : `nos ${period.label.toLowerCase()}`}`}
+                    description={`${students.length} ${students.length === 1 ? 'aluno' : 'alunos'} · frequência ${periodPhrase(period)}`}
                     actions={
                         <>
                             <AddByEmailDialog classroom={classroom} />

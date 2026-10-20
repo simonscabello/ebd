@@ -233,11 +233,14 @@ function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
                     )}
                 </p>
             </div>
-            <MeetingStatusBadge
-                status={row.status}
-                label={row.status_label}
-                className="hidden sm:inline-flex"
-            />
+            {/* Planejado/Realizado já estão ditos pela seção; o selo só aparece quando informa. */}
+            {cancelled && (
+                <MeetingStatusBadge
+                    status={row.status}
+                    label={row.status_label}
+                    className="hidden sm:inline-flex"
+                />
+            )}
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
         </Link>
     );

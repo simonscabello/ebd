@@ -340,7 +340,7 @@ function NextLesson({
                     title="Leituras"
                     detail={
                         week?.progress
-                            ? `${week.progress.days_done} de ${week.progress.days_total} lidas`
+                            ? `${week.progress.days_done} de ${week.progress.days_total} dias lidos`
                             : readings.length
                               ? `${plural(readings.length, 'leitura', 'leituras')} na semana`
                               : 'Texto base'

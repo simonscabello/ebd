@@ -271,7 +271,7 @@ export default function MeetingPage({
                                             )
                                         }
                                     >
-                                        <ChevronsRight /> A lição continua no
+                                        <ChevronsRight /> Repetir a lição no
                                         próximo
                                     </Button>
                                 )}
@@ -406,11 +406,15 @@ function LessonPicker({
                 className="sm:flex-1"
             >
                 <option value="">Lição a definir</option>
-                {lessons.map((lesson) => (
-                    <option key={lesson.id} value={lesson.id}>
-                        {lesson.label}
-                        {lesson.status === 'draft' ? ' (rascunho)' : ''}
-                    </option>
+                {groupBySeries(lessons, meeting.lesson_id).map((group) => (
+                    <optgroup key={group.key} label={group.title}>
+                        {group.lessons.map((lesson) => (
+                            <option key={lesson.id} value={lesson.id}>
+                                {lesson.label}
+                                {lesson.status === 'draft' ? ' (rascunho)' : ''}
+                            </option>
+                        ))}
+                    </optgroup>
                 ))}
             </NativeSelect>
             {form.isDirty && (
@@ -458,4 +462,40 @@ function NotesForm({ meeting }: { meeting: Meeting }) {
             </p>
         </div>
     );
+}
+
+type LessonGroup = { key: string; title: string; lessons: LessonOption[] };
+
+/**
+ * Lições por série: a série da lição escolhida primeiro, as outras em ordem
+ * alfabética e as avulsas no fim. Sem grupos, "Lição 1" de séries diferentes
+ * ficavam lado a lado.
+ */
+function groupBySeries(
+    lessons: LessonOption[],
+    currentId: number | null,
+): LessonGroup[] {
+    const groups = new Map<string, LessonGroup>();
+
+    for (const lesson of lessons) {
+        const key = String(lesson.series_id ?? 'avulsas');
+        const group = groups.get(key) ?? {
+            key,
+            title: lesson.series_title ?? 'Lições avulsas',
+            lessons: [],
+        };
+        group.lessons.push(lesson);
+        groups.set(key, group);
+    }
+
+    const currentKey = String(
+        lessons.find((lesson) => lesson.id === currentId)?.series_id ?? '',
+    );
+
+    return [...groups.values()].sort((a, b) => {
+        const rank = (g: LessonGroup) =>
+            g.key === currentKey ? 0 : g.key === 'avulsas' ? 2 : 1;
+
+        return rank(a) - rank(b) || a.title.localeCompare(b.title, 'pt-BR');
+    });
 }

@@ -116,7 +116,7 @@ class ClassroomOverviewQuery
             'stats' => [
                 'students' => $book->students->count(),
                 'frequency' => $book->totals($period),
-                'period' => ['label' => $period->label, 'series_id' => $period->seriesId, 'from' => $period->from, 'to' => $period->to],
+                'period' => ['label' => $period->label, 'series_id' => $period->seriesId, 'from' => $period->from, 'to' => $period->to, 'previous' => $period->isPreviousTo($lesson?->series)],
             ],
             'thresholds' => [
                 'missed_meetings' => (int) config('ebd.insights.missed_meetings'),

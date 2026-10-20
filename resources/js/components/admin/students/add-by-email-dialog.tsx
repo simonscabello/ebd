@@ -27,7 +27,7 @@ export function AddByEmailDialog({ classroom }: { classroom: Classroom }) {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline">
-                    <AtSign /> Já tem conta
+                    <AtSign /> Adicionar por e-mail
                 </Button>
             </DialogTrigger>
             <DialogContent>

@@ -150,6 +150,7 @@ export type LessonOption = {
     label: string;
     status: LessonStatus;
     series_id: number | null;
+    series_title?: string | null;
 };
 
 /** Presentes, esperados (alunos que contavam) e visitantes de um domingo. */

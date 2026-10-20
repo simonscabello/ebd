@@ -45,8 +45,11 @@ export function WeekSummary({
             <WeekBar days={days} />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <span>
+                    {/* Dias, não leituras: o dia da aula não entra na conta. */}
                     {progress.days_done} de {progress.days_total}{' '}
-                    {progress.days_total === 1 ? 'leitura' : 'leituras'}
+                    {progress.days_total === 1
+                        ? 'dia de leitura'
+                        : 'dias de leitura'}
                 </span>
                 <span className="inline-flex items-center gap-1">
                     <Flame

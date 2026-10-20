@@ -26,6 +26,8 @@ import { Button } from '@/components/ui/button';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { dateTile, dayMonth, longDate, relativeDay } from '@/lib/dates';
 import { meetingWords } from '@/lib/meeting-words';
+import { periodPhrase } from '@/lib/period';
+import type { StatsPeriod } from '@/lib/period';
 import { plural } from '@/lib/utils';
 import { birthdayMessage, missYouMessage } from '@/lib/whatsapp';
 import { edit, report, show as classroomPage } from '@/routes/admin/classrooms';
@@ -115,7 +117,7 @@ type Overview = {
             visitors: number;
             rate: number | null;
         };
-        period: { label: string; series_id: number | null };
+        period: StatsPeriod;
     };
     thresholds: {
         missed_meetings: number;
@@ -176,7 +178,7 @@ export default function ClassroomOverview({
                 <ClassroomHeader classroom={classroom} active="resumo" />
                 <PageHeader
                     title={classroom.name}
-                    description={`${plural(stats.students, 'aluno', 'alunos')}${stats.period.series_id ? ` · ${stats.period.label}` : ''}`}
+                    description={plural(stats.students, 'aluno', 'alunos')}
                     actions={
                         canEdit && (
                             <Button asChild variant="outline">
@@ -284,7 +286,7 @@ export default function ClassroomOverview({
                 <Section
                     title="Números da classe"
                     className="mt-10"
-                    description={`Frequência ${stats.period.series_id ? `na série ${stats.period.label}` : `nos ${stats.period.label.toLowerCase()}`}. Cada aluno conta a partir de quando entrou na classe; visitantes ficam fora da conta.`}
+                    description={`Frequência ${periodPhrase(stats.period)}. Cada aluno conta a partir de quando entrou na classe; visitantes ficam fora da conta.`}
                 >
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                         <StatTile

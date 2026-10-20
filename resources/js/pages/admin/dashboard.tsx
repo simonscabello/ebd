@@ -4,6 +4,7 @@ import {
     CalendarCheck,
     CalendarDays,
     ChevronRight,
+    FileClock,
     Layers,
     Plus,
     Presentation,
@@ -23,6 +24,7 @@ import { show as meetingPage } from '@/routes/admin/classrooms/meetings';
 import {
     create as createLesson,
     edit as editLesson,
+    index as lessonsIndex,
 } from '@/routes/admin/lessons';
 import { create as createSeries } from '@/routes/admin/series';
 import { sunday } from '@/routes/lessons';
@@ -68,6 +70,10 @@ export default function AdminDashboard({
     upcoming,
 }: Props) {
     const { auth } = usePage().props;
+    // Aulas com domingo marcado vêm primeiro; rascunhos sem data ficam à parte
+    // para não disputar a atenção com o que vem aí.
+    const scheduled = upcoming.filter((lesson) => lesson.next_meeting_on);
+    const unscheduled = upcoming.filter((lesson) => !lesson.next_meeting_on);
 
     return (
         <>
@@ -195,69 +201,109 @@ export default function AdminDashboard({
                     )}
 
                     <Section title="Próximas lições" icon={<CalendarDays />}>
-                        {upcoming.length === 0 ? (
+                        {scheduled.length === 0 ? (
                             <EmptyState
                                 icon={<CalendarDays />}
-                                title="Nenhuma lição planejada"
+                                title="Nenhuma lição com domingo marcado"
                             >
-                                Crie a próxima lição para que os alunos possam
-                                se preparar.
+                                Escolha a lição de cada domingo na agenda da
+                                classe para que os alunos possam se preparar.
                             </EmptyState>
                         ) : (
                             <ul className="divide-y rounded-2xl border bg-card">
-                                {upcoming.map((lesson) => {
-                                    const tile = lesson.next_meeting_on
-                                        ? dateTile(lesson.next_meeting_on)
-                                        : null;
-
-                                    return (
-                                        <li key={lesson.id}>
-                                            <Link
-                                                href={editLesson(lesson.id)}
-                                                className="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50"
-                                            >
-                                                <div className="w-12 shrink-0 text-center">
-                                                    <p className="text-xs text-muted-foreground uppercase">
-                                                        {tile?.weekday ?? 'sem'}
-                                                    </p>
-                                                    <p className="font-serif text-2xl font-semibold">
-                                                        {tile?.day ?? '—'}
-                                                    </p>
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="line-clamp-2 font-medium">
-                                                        {lesson.display_title}
-                                                    </p>
-                                                    <p className="truncate text-sm text-muted-foreground">
-                                                        {[
-                                                            lesson.next_meeting_on
-                                                                ? dayMonth(
-                                                                      lesson.next_meeting_on,
-                                                                  )
-                                                                : 'sem domingo',
-                                                            lesson.classroom
-                                                                ?.name,
-                                                            lesson.series
-                                                                ?.title,
-                                                        ]
-                                                            .filter(Boolean)
-                                                            .join(' · ')}
-                                                    </p>
-                                                </div>
-                                                <StatusBadge
-                                                    status={lesson.status}
-                                                    label={lesson.status_label}
-                                                />
-                                            </Link>
-                                        </li>
-                                    );
-                                })}
+                                {scheduled.map((lesson) => (
+                                    <li key={lesson.id}>
+                                        <UpcomingRow lesson={lesson} />
+                                    </li>
+                                ))}
                             </ul>
                         )}
                     </Section>
+
+                    {unscheduled.length > 0 && (
+                        <Section
+                            title="Sem domingo marcado"
+                            icon={<FileClock />}
+                            description={
+                                <>
+                                    Ainda não estão em nenhum domingo.{' '}
+                                    <Link
+                                        href={lessonsIndex({
+                                            query: { status: 'draft' },
+                                        })}
+                                        className="font-medium text-primary underline underline-offset-4"
+                                    >
+                                        Ver todos os rascunhos
+                                    </Link>
+                                </>
+                            }
+                        >
+                            <ul className="divide-y rounded-2xl border bg-card">
+                                {unscheduled.map((lesson) => (
+                                    <li key={lesson.id}>
+                                        <UpcomingRow lesson={lesson} />
+                                    </li>
+                                ))}
+                            </ul>
+                        </Section>
+                    )}
                 </div>
             </Page>
         </>
+    );
+}
+
+function UpcomingRow({
+    lesson,
+}: {
+    lesson: Lesson & { next_meeting_on: string | null };
+}) {
+    const tile = lesson.next_meeting_on
+        ? dateTile(lesson.next_meeting_on)
+        : null;
+
+    return (
+        <Link
+            href={editLesson(lesson.id)}
+            className="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50"
+        >
+            {tile && (
+                <div className="w-12 shrink-0 text-center">
+                    <p className="text-xs text-muted-foreground uppercase">
+                        {tile.weekday}
+                    </p>
+                    <p className="font-serif text-2xl font-semibold">
+                        {tile.day}
+                    </p>
+                </div>
+            )}
+            <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 font-medium">
+                    {lesson.display_title}
+                </p>
+                <p className="truncate text-sm text-muted-foreground">
+                    {[
+                        lesson.next_meeting_on
+                            ? dayMonth(lesson.next_meeting_on)
+                            : null,
+                        lesson.classroom?.name,
+                        lesson.series?.title,
+                    ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                </p>
+                <StatusBadge
+                    status={lesson.status}
+                    label={lesson.status_label}
+                    className="mt-1.5 sm:hidden"
+                />
+            </div>
+            <StatusBadge
+                status={lesson.status}
+                label={lesson.status_label}
+                className="hidden sm:inline-flex"
+            />
+        </Link>
     );
 }
 

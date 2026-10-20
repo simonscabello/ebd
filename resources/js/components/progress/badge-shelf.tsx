@@ -1,5 +1,22 @@
+import {
+    Award,
+    BookOpenCheck,
+    CalendarCheck,
+    Flame,
+    Sparkles,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+
+/** Ícone de traço de cada selo, no lugar do emoji (que muda de aparelho para aparelho). */
+const badgeIcons: Record<string, LucideIcon> = {
+    first_full_week: BookOpenCheck,
+    streak_7: Flame,
+    streak_30: Sparkles,
+    faithful_reader: Award,
+    perfect_attendance: CalendarCheck,
+};
 
 export type EarnedBadge = {
     badge: string;
@@ -88,6 +105,8 @@ function BadgeCard({
     earned: boolean;
     children: ReactNode;
 }) {
+    const Icon = badgeIcons[badge.badge] ?? Award;
+
     return (
         <div
             className={cn(
@@ -96,10 +115,15 @@ function BadgeCard({
             )}
         >
             <span
-                className={cn('text-3xl', !earned && 'opacity-45 grayscale')}
+                className={cn(
+                    'flex size-11 shrink-0 items-center justify-center rounded-xl',
+                    earned
+                        ? 'bg-accent text-primary'
+                        : 'bg-muted text-muted-foreground',
+                )}
                 aria-hidden
             >
-                {badge.emoji}
+                <Icon className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
                 <p
