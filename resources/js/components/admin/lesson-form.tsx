@@ -10,6 +10,11 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
+import {
+    onOrAfterWeekday,
+    onOrBeforeWeekday,
+    todayOnDevice,
+} from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { store, update } from '@/routes/admin/lessons';
 import type { Classroom, Option, Series } from '@/types';
@@ -39,6 +44,20 @@ type Props = {
     authors?: { id: number; name: string }[];
     slugLocked?: boolean;
 };
+
+/**
+ * A data da aula levada para o dia da outra classe ao trocar de classe: o
+ * dia dela na mesma semana (os seis dias antes da data até ela) ou, se já
+ * passou, o seguinte. A sugestão do próximo encontro continua sendo o
+ * próximo encontro; uma data já no dia certo fica como está.
+ */
+function meetingDayFor(date: string, weekday: number): string {
+    const sameWeek = onOrBeforeWeekday(date, weekday);
+
+    return sameWeek >= todayOnDevice()
+        ? sameWeek
+        : onOrAfterWeekday(date, weekday);
+}
 
 /**
  * Formulário dos dados da lição (criação e edição).
@@ -110,12 +129,24 @@ export function LessonForm({
                         id="classroom_id"
                         value={data.classroom_id ?? ''}
                         onChange={(event) => {
+                            const classroomId = event.target.value
+                                ? Number(event.target.value)
+                                : null;
+                            const weekday = classrooms.find(
+                                (item) => item.id === classroomId,
+                            )?.meeting_weekday;
+
                             setData((current) => ({
                                 ...current,
-                                classroom_id: event.target.value
-                                    ? Number(event.target.value)
-                                    : null,
+                                classroom_id: classroomId,
                                 series_id: null,
+                                meeting_on:
+                                    current.meeting_on && weekday
+                                        ? meetingDayFor(
+                                              current.meeting_on,
+                                              weekday,
+                                          )
+                                        : current.meeting_on,
                             }));
                         }}
                         required

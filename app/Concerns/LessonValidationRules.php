@@ -7,6 +7,7 @@ use App\Enums\LessonBlockKind;
 use App\Enums\LessonVisibility;
 use App\Enums\MaterialType;
 use App\Enums\Weekday;
+use App\Models\Classroom;
 use Illuminate\Validation\Rule;
 
 /**
@@ -89,18 +90,19 @@ trait LessonValidationRules
     }
 
     /**
-     * Nomes dos campos nas mensagens de erro.
+     * Nomes dos campos nas mensagens de erro. A data da aula é o "domingo da
+     * aula" para quem se reúne no domingo e o "dia da aula" nas outras turmas.
      *
      * @return array<string, string>
      */
-    protected function lessonAttributes(): array
+    protected function lessonAttributes(?Classroom $classroom = null): array
     {
         return [
             'series_id' => 'série',
             'title' => 'título',
             'number' => 'número da lição',
             'summary' => 'resumo',
-            'meeting_on' => 'domingo da aula',
+            'meeting_on' => $classroom === null || $classroom->meeting_weekday === Weekday::Sunday ? 'domingo da aula' : 'dia da aula',
             'key_verse' => 'versículo-chave',
             'goal' => 'alvo da lição',
             'bible_reference' => 'texto bíblico',

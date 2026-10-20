@@ -7,8 +7,10 @@ use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\Program;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -26,7 +28,16 @@ class ProgramController extends Controller
         Gate::authorize('viewAny', Program::class);
 
         $church = $this->church($request);
-        $church->defaultProgram();
+
+        // A igreja sem programa ganha o padrão (EBD) ao abrir a tela. Duas
+        // aberturas ao mesmo tempo podem tentar criar o mesmo: a segunda
+        // esbarra na chave única (church_id, slug) e só lê o que a outra criou.
+        // A transação vira um savepoint, para a falha não estragar a conexão.
+        try {
+            DB::transaction(fn () => $church->defaultProgram());
+        } catch (UniqueConstraintViolationException) {
+            // Já criado pela outra abertura.
+        }
 
         $programs = $church->programs()
             ->with([

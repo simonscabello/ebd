@@ -12,6 +12,7 @@ use App\Support\ChurchCalendar;
 use App\Support\Enrollment;
 use App\Support\ReadingWeeks;
 use App\Support\StudyStreak;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -101,9 +102,11 @@ class AwardBadges
     }
 
     /**
-     * Maior número de dias de leitura (fora o dia do encontro da turma) numa
-     * mesma semana de leitura de uma lição: numa lição que continua, cada
-     * semana conta sozinha (ver ReadingWeeks).
+     * Maior número de dias de leitura (fora o dia do encontro) numa mesma
+     * semana de leitura de uma lição: numa lição que continua, cada semana
+     * conta sozinha (ver ReadingWeeks). O dia do encontro é o da data do
+     * encontro daquela semana, não o dia atual da turma: depois de uma troca
+     * de dia, as lições antigas continuam contando como contavam.
      */
     private function bestWeekDays(User $user): int
     {
@@ -111,14 +114,23 @@ class AwardBadges
             ->join('lessons', 'lessons.id', '=', 'reading_checkins.lesson_id')
             ->join('classrooms', 'classrooms.id', '=', 'lessons.classroom_id')
             ->where('reading_checkins.user_id', $user->id)
-            ->whereColumn('reading_checkins.weekday', '<>', 'classrooms.meeting_weekday')
-            ->get(['reading_checkins.lesson_id', 'reading_checkins.weekday', 'reading_checkins.read_on']);
+            ->get(['reading_checkins.lesson_id', 'reading_checkins.weekday', 'reading_checkins.read_on', 'classrooms.meeting_weekday']);
 
         $dates = ReadingWeeks::meetingDates(array_values(array_unique($rows->map(fn (object $row) => (int) $row->lesson_id)->all())));
         $weeks = [];
 
         foreach ($rows as $row) {
-            $week = ReadingWeeks::index($dates[(int) $row->lesson_id] ?? [], substr((string) $row->read_on, 0, 10));
+            $lessonDates = $dates[(int) $row->lesson_id] ?? [];
+            $week = ReadingWeeks::index($lessonDates, substr((string) $row->read_on, 0, 10));
+            // Sem encontro (lição sem data), vale o dia da turma.
+            $meetingWeekday = isset($lessonDates[$week])
+                ? CarbonImmutable::parse($lessonDates[$week])->dayOfWeekIso
+                : (int) $row->meeting_weekday;
+
+            if ((int) $row->weekday === $meetingWeekday) {
+                continue;
+            }
+
             $weeks["{$row->lesson_id}:{$week}"][(int) $row->weekday] = true;
         }
 

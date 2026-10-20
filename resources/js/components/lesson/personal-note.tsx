@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { AutosaveStatus } from '@/components/autosave-status';
 import { Textarea } from '@/components/ui/textarea';
 import { useAutosave } from '@/hooks/use-autosave';
+import { meetingWords } from '@/lib/meeting-words';
 import { update } from '@/routes/lessons/note';
+import type { Classroom } from '@/types/ebd';
 
 /**
  * Anotação pessoal na lição, salva automaticamente. Só a própria pessoa vê.
@@ -12,10 +14,13 @@ import { update } from '@/routes/lessons/note';
 export function PersonalNote({
     lessonSlug,
     initial,
+    classroom,
 }: {
     lessonSlug: string;
     initial: string | null;
+    classroom?: Pick<Classroom, 'meeting_weekday' | 'program_short_name'>;
 }) {
+    const words = meetingWords(classroom);
     const [body, setBody] = useState(initial ?? '');
     const { status, retry } = useAutosave(
         body,
@@ -40,7 +45,7 @@ export function PersonalNote({
                 onChange={(event) => setBody(event.target.value)}
                 rows={5}
                 maxLength={20000}
-                placeholder="O que Deus falou com você nesta lição? Dúvidas para levar no domingo…"
+                placeholder={`O que Deus falou com você nesta lição? Dúvidas para levar ${words.one === 'domingo' ? 'no domingo' : 'ao encontro'}…`}
                 aria-label="Minha anotação"
                 aria-describedby="personal-note-status"
                 className="font-serif text-base"

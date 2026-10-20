@@ -70,7 +70,7 @@ class CopySeriesToOfficialLibrary extends Command
                 $copy->forceFill(['library_origin_series_id' => $series->id])->save();
 
                 foreach ($snapshot['lessons'] as $lesson) {
-                    $copier->copy($lesson, $copy, $library, $owner, null);
+                    $copier->copy($lesson, $copy, $library, $owner, null, $series->classroom->meeting_weekday);
                 }
 
                 return $copy;

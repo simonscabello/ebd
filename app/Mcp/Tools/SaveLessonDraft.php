@@ -72,7 +72,7 @@ class SaveLessonDraft extends EbdTool
         }
 
         $data = $request->validate($this->rules($existing), [], [
-            ...$this->lessonAttributes(),
+            ...$this->lessonAttributes($classroom),
             ...$this->lessonPartAttributes('readings.*.'),
             ...$this->lessonPartAttributes('blocks.*.'),
             ...$this->lessonPartAttributes('materials.*.'),

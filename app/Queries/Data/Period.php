@@ -2,6 +2,7 @@
 
 namespace App\Queries\Data;
 
+use App\Enums\Weekday;
 use App\Models\ClassMeeting;
 use App\Models\Series;
 use App\Support\ChurchCalendar;
@@ -19,9 +20,10 @@ final readonly class Period
         public ?int $seriesId = null,
     ) {}
 
-    public static function allTime(): self
+    /** "Todos os domingos" ou, nas turmas de outro dia, "Todos os encontros". */
+    public static function allTime(Weekday $meetingDay = Weekday::Sunday): self
     {
-        return new self(null, ChurchCalendar::todayString(), 'Todos os domingos');
+        return new self(null, ChurchCalendar::todayString(), "Todos os {$meetingDay->meetingNounPlural()}");
     }
 
     public static function lastMonths(int $months): self

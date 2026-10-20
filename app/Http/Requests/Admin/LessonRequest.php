@@ -66,7 +66,7 @@ class LessonRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            ...$this->lessonAttributes(),
+            ...$this->lessonAttributes($this->classroom()),
             'classroom_id' => 'classe',
             'author_ids.*' => 'autor',
         ];

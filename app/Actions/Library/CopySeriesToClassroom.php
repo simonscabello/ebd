@@ -3,6 +3,7 @@
 namespace App\Actions\Library;
 
 use App\Actions\Series\CreateSeries;
+use App\Enums\Weekday;
 use App\Models\AuditLog;
 use App\Models\Classroom;
 use App\Models\Series;
@@ -40,8 +41,12 @@ class CopySeriesToClassroom
                     'source_version' => $version->version,
                 ])->save();
 
+                // O plano de leitura foi feito para o dia da turma de origem (a
+                // biblioteca oficial, que fica no domingo).
+                $fromMeeting = $version->series?->classroom->meeting_weekday ?? Weekday::Sunday;
+
                 foreach ($version->snapshot['lessons'] as $lesson) {
-                    $this->copier->copy($lesson, $series, $target, $by, $lesson['source_lesson_id']);
+                    $this->copier->copy($lesson, $series, $target, $by, $lesson['source_lesson_id'], $fromMeeting);
                 }
 
                 AuditLog::query()->create([
