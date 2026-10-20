@@ -261,7 +261,7 @@ class Lesson extends Model
             $query->where($query->qualifyColumn('visibility'), LessonVisibility::Public);
 
             if ($user !== null) {
-                $query->orWhereIn($query->qualifyColumn('classroom_id'), [...$user->memberClassroomIds(), ...$user->manageableClassroomIds() ?? []]);
+                $query->orWhereIn($query->qualifyColumn('classroom_id'), [...$user->memberClassroomIds(), ...$user->manageableClassroomIds()]);
             }
         });
     }

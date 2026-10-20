@@ -33,7 +33,7 @@ class ProgramCoordinatorTest extends TestCase
 
         $this->actingAs($coordinator)->get('/admin/classes/grupo')->assertForbidden();
         $this->assertTrue($coordinator->canAccessAdmin());
-        $this->assertEqualsCanonicalizing([$jovens->id, $adultos->id], $coordinator->manageableClassroomIds() ?? []);
+        $this->assertEqualsCanonicalizing([$jovens->id, $adultos->id], $coordinator->manageableClassroomIds());
         $this->assertFalse($coordinator->canManageClassroom($grupo));
     }
 

@@ -28,6 +28,15 @@ class HomeTest extends TestCase
         $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 23)->setTime(10, 0));
     }
 
+    /**
+     * Conta da igreja sem turma ativa (só numa turma desativada): vê as turmas
+     * e lições públicas da igreja. Conta sem igreja nenhuma não vê nada.
+     */
+    private function churchReader(): User
+    {
+        return User::factory()->studentOf(Classroom::factory()->inactive()->create())->create();
+    }
+
     public function test_student_sees_the_lesson_of_the_next_meeting_of_their_classroom(): void
     {
         $classroom = Classroom::factory()->create(['name' => 'Jovens', 'slug' => 'jovens']);
@@ -57,9 +66,9 @@ class HomeTest extends TestCase
                 ->where('recentLessons.0.title', 'Aula passada'));
     }
 
-    public function test_account_without_church_sees_public_lessons_and_can_switch_classroom(): void
+    public function test_account_of_the_church_without_classroom_sees_public_lessons_and_can_switch_classroom(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->churchReader());
         $jovens = Classroom::factory()->create(['slug' => 'jovens', 'position' => 1]);
         $adultos = Classroom::factory()->create(['slug' => 'adultos', 'position' => 2]);
         Lesson::factory()->for($jovens)->published()->on('2026-09-27')->create(['title' => 'Jovens']);
@@ -77,7 +86,7 @@ class HomeTest extends TestCase
 
     public function test_sunday_without_ebd_is_skipped_and_announced(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->churchReader());
         $classroom = Classroom::factory()->create();
         ClassMeeting::factory()->for($classroom)->on('2026-09-27')->cancelled()->create(['title' => 'Culto de Missões']);
         Lesson::factory()->for($classroom)->published()->on('2026-10-04')->create(['title' => 'É Necessário']);
@@ -91,7 +100,7 @@ class HomeTest extends TestCase
 
     public function test_lesson_spanning_two_sundays_shows_second_meeting(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->churchReader());
         $classroom = Classroom::factory()->create();
         $lesson = Lesson::factory()->for($classroom)->published()->on('2026-09-20')->create(['title' => 'Temor Inquestionável']);
         ClassMeeting::factory()->forLesson($lesson)->on('2026-09-27')->create();
@@ -105,7 +114,7 @@ class HomeTest extends TestCase
 
     public function test_draft_on_next_meeting_is_announced_as_in_preparation(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->churchReader());
         $classroom = Classroom::factory()->create();
         Lesson::factory()->for($classroom)->on('2026-09-27')->create(['title' => 'Rascunho']);
 
@@ -117,7 +126,7 @@ class HomeTest extends TestCase
 
     public function test_without_future_meetings_falls_back_to_the_last_held_lesson(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->churchReader());
         $classroom = Classroom::factory()->create();
         Lesson::factory()->for($classroom)->completed()->on('2026-09-13')->create(['title' => 'Antiga']);
         Lesson::factory()->for($classroom)->completed()->on('2026-09-20')->create(['title' => 'Última']);

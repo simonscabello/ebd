@@ -128,10 +128,8 @@ class SeriesController extends Controller
 
     private function manageableClassrooms(User $user): mixed
     {
-        $ids = $user->manageableClassroomIds();
-
         return ClassroomResource::collection(
-            Classroom::query()->when($ids !== null, fn ($q) => $q->whereIn('id', $ids))->ordered()->get()
+            Classroom::query()->whereIn('id', $user->manageableClassroomIds())->ordered()->get()
         );
     }
 }
