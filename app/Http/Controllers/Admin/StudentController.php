@@ -49,7 +49,8 @@ class StudentController extends Controller
         $today = ChurchCalendar::todayString();
         $week = $current->for($classroom, $request->user());
         $book = $books->for($classroom);
-        $period = Period::current($week->isFallback ? null : $week->lesson?->series);
+        $series = $week->isFallback ? null : $week->lesson?->series;
+        $period = Period::current($series);
         $attention = collect($overview->attention($classroom, $book, $overview->currentStudy($week, $book)))->keyBy('id');
 
         $users = User::query()
@@ -61,7 +62,7 @@ class StudentController extends Controller
         return Inertia::render('admin/classrooms/students/index', [
             'classroom' => ClassroomResource::make($classroom),
             'today' => $today,
-            'period' => ['label' => $period->label, 'series_id' => $period->seriesId],
+            'period' => ['label' => $period->label, 'series_id' => $period->seriesId, 'previous' => $period->isPreviousTo($series)],
             'students' => $book->students->map(function (object $row) use ($book, $period, $attention, $users, $today) {
                 /** @var User $user */
                 $user = $users->get($row->id);

@@ -71,6 +71,11 @@ export default function LibraryIndex({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [query]);
 
+    // Com uma classe só, o filtro de classe nunca muda o resultado: some.
+    // Série e ano ficam, porque também separam lições avulsas e sem data.
+    const showClassroom = classrooms.length > 1 || !!filters.classe;
+    const filterCount = showClassroom ? 3 : 2;
+
     const hasFilters = !!(
         filters.q ||
         filters.classe ||
@@ -114,29 +119,42 @@ export default function LibraryIndex({
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        <NativeSelect
-                            aria-label="Classe"
-                            value={filters.classe ?? ''}
-                            onChange={(event) =>
-                                visit({
-                                    classe: event.target.value
-                                        ? Number(event.target.value)
-                                        : null,
-                                    serie: null,
-                                })
-                            }
-                        >
-                            <option value="">Classe: todas</option>
-                            {classrooms.map((classroom) => (
-                                <option key={classroom.id} value={classroom.id}>
-                                    {classroom.name}
-                                </option>
-                            ))}
-                        </NativeSelect>
+                    <div
+                        className={cn(
+                            'grid grid-cols-2 gap-2',
+                            filterCount === 3 && 'sm:grid-cols-3',
+                        )}
+                    >
+                        {showClassroom && (
+                            <NativeSelect
+                                aria-label="Classe"
+                                value={filters.classe ?? ''}
+                                onChange={(event) =>
+                                    visit({
+                                        classe: event.target.value
+                                            ? Number(event.target.value)
+                                            : null,
+                                        serie: null,
+                                    })
+                                }
+                            >
+                                <option value="">Classe: todas</option>
+                                {classrooms.map((classroom) => (
+                                    <option
+                                        key={classroom.id}
+                                        value={classroom.id}
+                                    >
+                                        {classroom.name}
+                                    </option>
+                                ))}
+                            </NativeSelect>
+                        )}
                         <NativeSelect
                             aria-label="Série"
-                            className="order-first col-span-2 sm:order-none sm:col-span-1"
+                            className={cn(
+                                filterCount === 3 &&
+                                    'order-first col-span-2 sm:order-none sm:col-span-1',
+                            )}
                             value={filters.serie ?? ''}
                             onChange={(event) =>
                                 visit({

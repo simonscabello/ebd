@@ -214,8 +214,18 @@ function LessonRow({ lesson }: { lesson: Lesson }) {
                         .filter(Boolean)
                         .join(' · ')}
                 </p>
+                {/* No celular o selo vai para baixo: à direita ele espremia o título. */}
+                <StatusBadge
+                    status={lesson.status}
+                    label={lesson.status_label}
+                    className="mt-1.5 sm:hidden"
+                />
             </div>
-            <StatusBadge status={lesson.status} label={lesson.status_label} />
+            <StatusBadge
+                status={lesson.status}
+                label={lesson.status_label}
+                className="hidden sm:inline-flex"
+            />
         </Link>
     );
 }

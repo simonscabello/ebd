@@ -64,6 +64,14 @@ final readonly class Period
     }
 
     /**
+     * Os números ainda são da série anterior: a da lição da semana não começou.
+     */
+    public function isPreviousTo(?Series $series): bool
+    {
+        return $series !== null && $this->seriesId !== null && $this->seriesId !== $series->id;
+    }
+
+    /**
      * A série que já começou. Na semana antes do primeiro domingo de uma série
      * nova, os números continuam na anterior (a do último domingo com lição de
      * outra série); sem anterior, null.

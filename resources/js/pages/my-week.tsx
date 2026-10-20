@@ -175,8 +175,8 @@ function ReadingList({
                 {week.progress && (
                     <p className="text-center text-sm text-muted-foreground">
                         {week.progress.days_done} de {week.progress.days_total}{' '}
-                        leituras da semana. Pode adiantar ou pôr em dia quando
-                        quiser.
+                        dias de leitura antes da aula. Pode adiantar ou pôr em
+                        dia quando quiser.
                     </p>
                 )}
             </section>

@@ -231,7 +231,7 @@ function ForTeachers() {
                 <strong>Planejar série</strong> cria um domingo por semana e
                 distribui as lições pela numeração da revista. Não houve aula?
                 Use <strong>Sem EBD</strong>. A lição não terminou? Use{' '}
-                <strong>A lição continua no próximo</strong>.
+                <strong>Repetir a lição no próximo</strong>.
             </Topic>
             <Topic icon={<CalendarCheck />} title="Chamada">
                 A chamada abre no dia do domingo. Toque no nome de quem está
@@ -248,8 +248,8 @@ function ForTeachers() {
                 Em <strong>Alunos → Adicionar aluno</strong>, cadastre com o
                 nome (o WhatsApp é opcional) e envie o{' '}
                 <strong>link de acesso</strong> pelo WhatsApp. Se a pessoa já
-                tem conta, use <strong>Já tem conta</strong>. Na ficha do aluno
-                você gera um novo link quando ele perde o acesso.
+                tem conta, use <strong>Adicionar por e-mail</strong>. Na ficha
+                do aluno você gera um novo link quando ele perde o acesso.
             </Topic>
             <Topic icon={<BookOpen />} title="Relatório">
                 Frequência por série, por aluno e por gênero, e quem estudou em

@@ -50,6 +50,9 @@ class DashboardController extends Controller
             ->withMin(['meetings as next_meeting_on' => fn ($m) => $m->active()->whereDate('held_on', '>=', $today)], 'held_on')
             // Em ordem crescente o PostgreSQL já coloca as sem data (NULL) por último.
             ->orderBy('next_meeting_on')
+            // As sem data na ordem da revista, não na ordem em que foram criadas.
+            ->orderBy('series_id')
+            ->orderByRaw('number IS NULL, number')
             ->limit(8)
             ->get();
 

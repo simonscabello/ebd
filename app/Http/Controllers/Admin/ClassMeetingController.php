@@ -212,7 +212,7 @@ class ClassMeetingController extends Controller
     }
 
     /**
-     * @return Collection<int, array{id: int, label: string, status: 'draft'|'published', series_id: int|null}>
+     * @return Collection<int, array{id: int, label: string, status: 'draft'|'published', series_id: int|null, series_title: string|null}>
      */
     private function lessonOptions(Classroom $classroom): Collection
     {
@@ -220,12 +220,14 @@ class ClassMeetingController extends Controller
             ->whereBelongsTo($classroom)
             ->orderByRaw('number IS NULL, number')
             ->orderBy('title')
+            ->with('series:id,title')
             ->get(['id', 'number', 'title', 'status', 'series_id'])
             ->map(fn (Lesson $l) => [
                 'id' => $l->id,
                 'label' => $l->displayTitle(),
                 'status' => $l->status->value,
                 'series_id' => $l->series_id,
+                'series_title' => $l->series?->title,
             ]);
     }
 }
