@@ -100,7 +100,7 @@ trait LessonValidationRules
             'title' => 'título',
             'number' => 'número da lição',
             'summary' => 'resumo',
-            'meeting_on' => 'dia da aula',
+            'meeting_on' => 'domingo da aula',
             'key_verse' => 'versículo-chave',
             'goal' => 'alvo da lição',
             'bible_reference' => 'texto bíblico',
