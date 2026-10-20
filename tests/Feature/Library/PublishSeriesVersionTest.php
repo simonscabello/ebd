@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Library;
 
+use App\Actions\Library\PublishSeriesVersion;
 use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\Lesson;
@@ -12,7 +13,9 @@ use App\Models\Series;
 use App\Models\SeriesVersion;
 use App\Models\User;
 use App\Support\OfficialLibrary;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -138,5 +141,21 @@ class PublishSeriesVersionTest extends TestCase
                 ->where('official.next_version', 2)
                 ->where('official.versions.0.version', 1)
                 ->where('official.versions.0.notes', 'Primeira.'));
+    }
+
+    public function test_the_snapshot_is_taken_after_locking_the_series(): void
+    {
+        $queries = [];
+        DB::listen(function (QueryExecuted $query) use (&$queries) {
+            $queries[] = $query->sql;
+        });
+
+        app(PublishSeriesVersion::class)->handle($this->owner, $this->series, null);
+
+        $lock = collect($queries)->search(fn (string $sql) => str_contains($sql, 'for update'));
+        $lessons = collect($queries)->search(fn (string $sql) => str_contains($sql, 'from "lessons"'));
+        $this->assertIsInt($lock);
+        $this->assertIsInt($lessons);
+        $this->assertLessThan($lessons, $lock);
     }
 }
