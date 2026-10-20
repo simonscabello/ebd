@@ -19,6 +19,12 @@ return [
     'registration_enabled' => (bool) env('EBD_REGISTRATION_ENABLED', true),
 
     /*
+    | Quantas igrejas ou grupos uma conta pode administrar antes de "Criar
+    | minha igreja" recusar outra (a biblioteca oficial não conta).
+    */
+    'max_churches_per_account' => (int) env('EBD_MAX_CHURCHES_PER_ACCOUNT', 3),
+
+    /*
     | Contas (já cadastradas) promovidas a administrador por
     | `php artisan ebd:promote-admins`, executado no pre-deploy. Separe por vírgula.
     */

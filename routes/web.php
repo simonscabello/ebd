@@ -21,6 +21,8 @@ use App\Http\Controllers\StudyQuestionController;
 use App\Models\Classroom;
 use App\Models\Series;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
+use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -88,10 +90,20 @@ Route::post('entrar', [AccessLinkController::class, 'store'])
     ->middleware('throttle:access-link')
     ->name('access-link.store');
 
+// O cadastro público cria uma igreja: a mesma rota do Fortify, agora com limite.
+// Registrada depois da do Fortify, substitui a dela.
+if (Features::enabled(Features::registration())) {
+    Route::post('register', [RegisteredUserController::class, 'store'])
+        ->middleware(['guest:'.config('fortify.guard'), 'throttle:church-signup'])
+        ->name('register.store');
+}
+
 // Cadastro que o aluno completa no primeiro acesso (ver EnsureProfileIsComplete).
 Route::middleware('auth')->group(function () {
     Route::get('criar-igreja', [CreateChurchController::class, 'create'])->name('churches.create');
-    Route::post('criar-igreja', [CreateChurchController::class, 'store'])->name('churches.store');
+    Route::post('criar-igreja', [CreateChurchController::class, 'store'])
+        ->middleware('throttle:church-signup')
+        ->name('churches.store');
     Route::get('completar-cadastro', [CompleteProfileController::class, 'show'])->name('onboarding.show');
     Route::post('completar-cadastro', [CompleteProfileController::class, 'store'])->name('onboarding.store');
 });
