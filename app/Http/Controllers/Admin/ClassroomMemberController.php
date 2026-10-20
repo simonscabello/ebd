@@ -95,6 +95,14 @@ class ClassroomMemberController extends Controller
             return back();
         }
 
+        // Nos 2 minutos do "Desfazer" a pessoa pode ter entrado em outra igreja:
+        // a mesma regra de quando foi vinculada.
+        if (! $user->isFreeFor($classroom->church_id)) {
+            $this->toast("Não foi possível devolver {$user->name} à classe.", 'error');
+
+            return back();
+        }
+
         $classroom->members()->attach($user->id, [
             'role' => $role->value,
             'created_at' => Carbon::createFromTimestamp((int) $request->query('since')),
