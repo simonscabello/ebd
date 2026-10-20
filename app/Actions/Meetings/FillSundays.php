@@ -26,6 +26,11 @@ class FillSundays
      */
     public function handle(Classroom $classroom): int
     {
+        // A biblioteca oficial guarda estudos, não se reúne.
+        if ($classroom->church->is_official) {
+            return 0;
+        }
+
         $weekday = $classroom->meeting_weekday;
         $thisWeek = ChurchCalendar::onOrBefore(ChurchCalendar::today(), $weekday);
         $until = $thisWeek->addWeeks(self::WEEKS_AHEAD)->toDateString();
