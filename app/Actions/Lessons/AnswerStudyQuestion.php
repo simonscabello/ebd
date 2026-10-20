@@ -86,12 +86,21 @@ class AnswerStudyQuestion
         return ChurchFeatures::helperAvailable($lesson);
     }
 
-    /** Perguntas que a pessoa ainda pode fazer hoje (fuso da igreja), no limite da igreja da lição. */
+    /**
+     * Perguntas que a pessoa ainda pode fazer hoje (fuso da igreja), no limite
+     * da igreja da lição. Só contam as perguntas feitas em lições dessa
+     * igreja: quem participa de duas igrejas tem o limite de cada uma.
+     */
     public static function remainingToday(User $user, Lesson $lesson): int
     {
+        $church = ChurchFeatures::churchOf($lesson);
+
         $asked = StudyQuestion::query()
             ->where('user_id', $user->id)
-            ->where('created_at', '>=', ChurchCalendar::using(ChurchFeatures::churchOf($lesson), fn () => ChurchCalendar::today()->utc()))
+            ->whereIn('lesson_id', Lesson::query()
+                ->select('lessons.id')
+                ->whereHas('classroom', fn ($query) => $query->where('church_id', $church->id)))
+            ->where('created_at', '>=', ChurchCalendar::using($church, fn () => ChurchCalendar::today()->utc()))
             ->count();
 
         return max(0, ChurchFeatures::helperDailyLimit($lesson) - $asked);

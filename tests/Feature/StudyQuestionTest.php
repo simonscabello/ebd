@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Lessons\AnswerStudyQuestion;
 use App\Enums\ContentAudience;
+use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\LessonBlock;
@@ -122,6 +124,25 @@ class StudyQuestionTest extends TestCase
         $this->actingAs($this->student)
             ->postJson('/licoes/e-necessario/duvidas', ['question' => 'Mais uma?'])
             ->assertOk();
+    }
+
+    public function test_daily_limit_only_counts_questions_from_the_church_of_the_lesson(): void
+    {
+        $this->fakeOpenAi();
+
+        // A mesma pessoa já gastou o limite numa lição de outra igreja.
+        $elsewhere = Lesson::factory()->for(Classroom::factory()->for(Church::factory()->state(['helper_daily_limit' => 2])))->published()->create();
+        StudyQuestion::query()->create(['user_id' => $this->student->id, 'lesson_id' => $elsewhere->id, 'question' => 'a', 'answer' => 'b']);
+        StudyQuestion::query()->create(['user_id' => $this->student->id, 'lesson_id' => $elsewhere->id, 'question' => 'a', 'answer' => 'b']);
+
+        $this->assertSame(0, AnswerStudyQuestion::remainingToday($this->student, $elsewhere));
+        $this->assertSame(2, AnswerStudyQuestion::remainingToday($this->student, $this->lesson));
+
+        $this->actingAs($this->student)
+            ->postJson('/licoes/e-necessario/duvidas', ['question' => 'Mais uma?'])
+            ->assertOk();
+
+        $this->assertSame(1, AnswerStudyQuestion::remainingToday($this->student, $this->lesson));
     }
 
     public function test_openai_failure_shows_a_friendly_message_and_does_not_count(): void
