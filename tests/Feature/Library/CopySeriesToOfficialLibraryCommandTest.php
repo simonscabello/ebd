@@ -64,4 +64,29 @@ class CopySeriesToOfficialLibraryCommandTest extends TestCase
 
         $this->assertSame(1, Series::query()->count());
     }
+
+    public function test_it_records_the_origin_and_refuses_a_second_copy_unless_asked(): void
+    {
+        $classroom = Classroom::factory()->create();
+        User::factory()->admin()->create();
+        $series = Series::factory()->for($classroom)->create(['title' => 'Fora de Contexto']);
+        $question = 'Copiar "Fora de Contexto" (0 lições) para a biblioteca oficial?';
+
+        $this->artisan('didache:copiar-para-biblioteca', ['series' => $series->id])
+            ->expectsConfirmation($question, 'yes')
+            ->assertSuccessful();
+
+        $copy = Series::query()->where('library_origin_series_id', $series->id)->sole();
+        $this->assertSame(OfficialLibrary::classroom()->id, $copy->classroom_id);
+
+        $this->artisan('didache:copiar-para-biblioteca', ['series' => $series->id])
+            ->expectsOutputToContain("já foi copiada para a biblioteca (id {$copy->id})")
+            ->assertFailed();
+        $this->assertSame(1, Series::query()->where('library_origin_series_id', $series->id)->count());
+
+        $this->artisan('didache:copiar-para-biblioteca', ['series' => $series->id, '--de-novo' => true])
+            ->expectsConfirmation($question, 'yes')
+            ->assertSuccessful();
+        $this->assertSame(2, Series::query()->where('library_origin_series_id', $series->id)->count());
+    }
 }
