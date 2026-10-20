@@ -18,7 +18,7 @@ class ChurchFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),
-            'timezone' => 'America/Sao_Paulo',
+            'timezone' => (string) config('ebd.timezone'),
         ];
     }
 

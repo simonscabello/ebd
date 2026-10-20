@@ -3,7 +3,7 @@
 use App\Actions\Meetings\FillSundays;
 use App\Models\AuditLog;
 use App\Models\Classroom;
-use Illuminate\Console\Scheduling\Event;
+use App\Support\ChurchCalendar;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -14,8 +14,10 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 /*
-| Lembretes push, no fuso da igreja (config/ebd.php). Em produção um serviço
+| Lembretes push, na hora local de cada igreja: rodam a cada 15 minutos e só
+| avisam as igrejas em que agora é a hora certa (--due, ver Church::atLocalHour). Em produção um serviço
 | separado roda `php artisan schedule:work`; ver README > Deploy no Railway.
+| As limpezas seguem no fuso da configuração (config/ebd.php).
 */
 $timezone = (string) config('ebd.timezone');
 
@@ -24,13 +26,14 @@ $timezone = (string) config('ebd.timezone');
 // aparelhos e os avisos do push (LOG_CHANNEL=stderr). Daqui, `schedule:work`
 // repassa tudo para o stdout do container, que é o que o Railway mostra.
 foreach ([
-    'ebd:remind-readings morning' => fn (Event $event) => $event->dailyAt('09:00'),
-    'ebd:remind-readings evening' => fn (Event $event) => $event->dailyAt('20:00'),
-    // Véspera de cada turma: roda todo dia e só avisa quem tem encontro amanhã.
-    'ebd:remind-lesson' => fn (Event $event) => $event->dailyAt('08:00'),
-] as $command => $when) {
-    $when(Schedule::call(fn () => Artisan::call($command, [], new ConsoleOutput))
-        ->name($command))
+    'ebd:remind-readings morning' => ['ebd:remind-readings', ['slot' => 'morning', '--due' => true]],
+    'ebd:remind-readings evening' => ['ebd:remind-readings', ['slot' => 'evening', '--due' => true]],
+    // Véspera de cada turma (8h): só avisa quem tem encontro amanhã.
+    'ebd:remind-lesson' => ['ebd:remind-lesson', ['--due' => true]],
+] as $name => [$command, $arguments]) {
+    Schedule::call(fn () => Artisan::call($command, $arguments, new ConsoleOutput))
+        ->name($name)
+        ->everyFifteenMinutes()
         ->timezone($timezone)
         ->onOneServer()
         ->withoutOverlapping();
@@ -43,6 +46,6 @@ Schedule::command('passport:purge')->dailyAt('03:40')->timezone($timezone)->onOn
 // Todo domingo existe na agenda de cada classe ativa, algumas semanas à frente.
 Schedule::call(function () {
     foreach (Classroom::query()->active()->get() as $classroom) {
-        app(FillSundays::class)->handle($classroom);
+        ChurchCalendar::using($classroom->church, fn () => app(FillSundays::class)->handle($classroom));
     }
 })->name('ebd:fill-sundays')->dailyAt('03:50')->timezone($timezone)->onOneServer();

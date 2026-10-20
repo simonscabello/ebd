@@ -47,6 +47,13 @@ class HandleInertiaRequests extends Middleware
             'name' => config('brand.name'),
             'church' => [
                 'name' => Church::displayName($user),
+                // Quem administra a igreja atual edita os dados dela; com duas
+                // ou mais, escolhe entre elas no cabeçalho da gestão.
+                'can_edit' => $user !== null && $user->churchChoices()->isNotEmpty(),
+                'current_id' => $user?->currentChurch()?->id,
+                'choices' => $user !== null && $user->churchChoices()->count() > 1
+                    ? $user->churchChoices()->map(fn (Church $church) => ['id' => $church->id, 'name' => $church->name])->values()->all()
+                    : [],
             ],
             'auth' => [
                 'user' => $user ? [

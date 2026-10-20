@@ -26,10 +26,10 @@ class SeriesController extends Controller
     {
         Gate::authorize('viewAny', Series::class);
 
-        $manageable = $request->user()->manageableClassroomIds();
+        $manageable = $request->user()->listedClassroomIds();
 
         $series = Series::query()
-            ->when($manageable !== null, fn ($q) => $q->whereIn('classroom_id', $manageable))
+            ->whereIn('classroom_id', $manageable)
             ->with('classroom')
             ->withCount('lessons')
             // Última versão do estudo oficial de origem (aviso de versão nova).

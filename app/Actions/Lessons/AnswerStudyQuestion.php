@@ -80,7 +80,7 @@ class AnswerStudyQuestion
     {
         $asked = StudyQuestion::query()
             ->where('user_id', $user->id)
-            ->where('created_at', '>=', ChurchCalendar::today()->utc())
+            ->where('created_at', '>=', ChurchCalendar::using(ChurchFeatures::churchOf($lesson), fn () => ChurchCalendar::today()->utc()))
             ->count();
 
         return max(0, ChurchFeatures::helperDailyLimit($lesson) - $asked);

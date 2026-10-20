@@ -253,15 +253,16 @@ class NotificationsTest extends TestCase
             ->assertSessionHas(SessionKey::FLASH_DATA, fn (array $flash) => str_contains($flash['toast']['message'], 'Ninguém da classe ativou'));
     }
 
-    public function test_reminders_are_scheduled_in_the_church_timezone(): void
+    public function test_reminders_are_scheduled_every_fifteen_minutes(): void
     {
         // O agendamento é montado quando o console é carregado (antes do setUp
         // trocar a config), com o fuso do phpunit.xml.
         $events = collect(app(Schedule::class)->events())
             ->mapWithKeys(fn ($event) => [$event->description => [$event->expression, $event->timezone]]);
 
-        $this->assertSame(['0 9 * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings morning']);
-        $this->assertSame(['0 20 * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings evening']);
-        $this->assertSame(['0 8 * * *', 'America/Sao_Paulo'], $events['ebd:remind-lesson']);
+        // A cada 15 minutos: cada igreja recebe na hora local dela (ver ChurchTimezoneTest).
+        $this->assertSame(['*/15 * * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings morning']);
+        $this->assertSame(['*/15 * * * *', 'America/Sao_Paulo'], $events['ebd:remind-readings evening']);
+        $this->assertSame(['*/15 * * * *', 'America/Sao_Paulo'], $events['ebd:remind-lesson']);
     }
 }

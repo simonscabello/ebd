@@ -2,6 +2,7 @@
 
 namespace App\Actions\Notifications;
 
+use App\Models\Church;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Support\ChurchCalendar;
@@ -10,22 +11,36 @@ use App\Support\Push\PushSender;
 use Carbon\CarbonImmutable;
 
 /**
- * Véspera do encontro (8h do dia anterior; roda todo dia): se a turma tem
+ * Véspera do encontro (8h do dia anterior no fuso da igreja; roda todo dia): se a turma tem
  * encontro amanhã, lembra a lição. Sem encontro (ou "sem EBD"), silêncio.
  */
 final class SendLessonReminder
 {
+    /** Hora local do lembrete, no fuso de cada igreja. */
+    public const HOUR = 8;
+
     public function __construct(private readonly PushSender $sender) {}
 
     /**
+     * @param  iterable<Church>|null  $churches  só estas igrejas (padrão: todas)
      * @return int aparelhos avisados
      */
-    public function handle(?CarbonImmutable $today = null): int
+    public function handle(?CarbonImmutable $today = null, ?iterable $churches = null): int
     {
-        $tomorrow = ($today ?? ChurchCalendar::today())->addDay();
         $sent = 0;
 
-        foreach (Classroom::query()->active()->get() as $classroom) {
+        foreach ($churches ?? Church::query()->orderBy('id')->get() as $church) {
+            $sent += ChurchCalendar::using($church, fn () => $this->remindChurch($church, ($today ?? ChurchCalendar::today())->addDay()));
+        }
+
+        return $sent;
+    }
+
+    private function remindChurch(Church $church, CarbonImmutable $tomorrow): int
+    {
+        $sent = 0;
+
+        foreach (Classroom::query()->whereBelongsTo($church)->active()->get() as $classroom) {
             $meeting = ClassMeeting::query()
                 ->whereBelongsTo($classroom)
                 ->active()
