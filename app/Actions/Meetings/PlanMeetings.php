@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\DB;
  * "Planejar trimestre": cria um encontro por domingo no intervalo e, se uma
  * série for informada, distribui nos encontros sem lição as lições da série
  * que ainda não têm data (na ordem do número da revista).
+ *
+ * Como no FillSundays, uma semana que já tem encontro (mesmo em outro dia,
+ * de antes de a turma trocar de dia) não ganha outro. A biblioteca oficial
+ * não tem agenda.
  */
 class PlanMeetings
 {
@@ -28,23 +32,32 @@ class PlanMeetings
      */
     public function handle(Classroom $classroom, CarbonInterface $from, CarbonInterface $to, ?Series $series): array
     {
+        $classroom->ensureHoldsMeetings('from');
+
         return DB::transaction(function () use ($classroom, $from, $to, $series) {
+            $first = ChurchCalendar::onOrAfter($from, $classroom->meeting_weekday);
+
             $existing = ClassMeeting::query()
                 ->whereBelongsTo($classroom)
-                ->whereBetween('held_on', [$from->toDateString(), $to->toDateString()])
+                ->whereBetween('held_on', [$first->subDays(6)->toDateString(), $to->toDateString()])
                 ->pluck('held_on')
                 ->map(fn ($d) => $d->toDateString())
                 ->all();
 
             $created = 0;
-            $sunday = ChurchCalendar::onOrAfter($from, $classroom->meeting_weekday);
+            $sunday = $first;
 
             while ($sunday->toDateString() <= $to->toDateString()) {
-                if (! in_array($sunday->toDateString(), $existing, true)) {
+                // A semana termina no dia do encontro: os seis dias antes dele e ele.
+                $weekStart = $sunday->subDays(6)->toDateString();
+                $weekHasMeeting = array_filter($existing, fn (string $d) => $d >= $weekStart && $d <= $sunday->toDateString()) !== [];
+
+                if (! $weekHasMeeting) {
                     ClassMeeting::query()->create([
                         'classroom_id' => $classroom->id,
                         'held_on' => $sunday->toDateString(),
                     ]);
+                    $existing[] = $sunday->toDateString();
                     $created++;
                 }
 

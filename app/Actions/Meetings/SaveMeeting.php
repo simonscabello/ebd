@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Cria ou edita um encontro. A lição precisa ser da mesma classe.
+ * Cria ou edita um encontro. A lição precisa ser da mesma classe, e a classe
+ * precisa se reunir (a biblioteca oficial não tem agenda).
  */
 class SaveMeeting
 {
@@ -25,6 +26,8 @@ class SaveMeeting
      */
     public function handle(Classroom $classroom, array $data, ?ClassMeeting $meeting = null): ClassMeeting
     {
+        $classroom->ensureHoldsMeetings();
+
         if (array_key_exists('lesson_id', $data) && $data['lesson_id'] !== null) {
             $belongs = Lesson::query()->whereKey($data['lesson_id'])->where('classroom_id', $classroom->id)->exists();
 

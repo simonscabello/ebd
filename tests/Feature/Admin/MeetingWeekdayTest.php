@@ -132,4 +132,30 @@ class MeetingWeekdayTest extends TestCase
 
         $this->assertSame(['2026-10-07', '2026-10-14', '2026-10-21', '2026-10-28'], $this->dates());
     }
+
+    public function test_plan_skips_a_week_that_already_has_a_meeting_on_the_old_day(): void
+    {
+        // A turma era de domingo e passou para quarta: o domingo 11/10 ficou.
+        ClassMeeting::factory()->for($this->classroom)->on('2026-10-11')->create();
+
+        $this->actingAs($this->teacher)
+            ->post('/admin/classes/quarta/domingos/planejar', ['from' => '2026-10-01', 'to' => '2026-10-28'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(['2026-10-07', '2026-10-11', '2026-10-21', '2026-10-28'], $this->dates());
+    }
+
+    public function test_lesson_on_a_taken_meeting_names_the_meeting_not_sunday(): void
+    {
+        Lesson::factory()->for($this->classroom)->on('2026-10-07')->create();
+
+        $this->actingAs($this->teacher)
+            ->post('/admin/licoes', [
+                'classroom_id' => $this->classroom->id,
+                'title' => 'Outra',
+                'visibility' => 'public',
+                'meeting_on' => '2026-10-07',
+            ])
+            ->assertSessionHasErrors(['meeting_on' => 'Já existe uma lição neste encontro. Ajuste pela agenda da classe.']);
+    }
 }
