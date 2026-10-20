@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Concerns;
 
 use App\Enums\Badge;
+use App\Enums\Weekday;
 use Inertia\Inertia;
 
 trait CelebratesBadges
@@ -12,7 +13,7 @@ trait CelebratesBadges
      *
      * @param  list<Badge>  $badges
      */
-    protected function celebrate(array $badges): void
+    protected function celebrate(array $badges, Weekday $meetingDay = Weekday::Sunday): void
     {
         if ($badges === []) {
             return;
@@ -20,7 +21,7 @@ trait CelebratesBadges
 
         Inertia::flash('badges', array_map(fn (Badge $b) => [
             'badge' => $b->value,
-            'label' => $b->label(),
+            'label' => $b->label($meetingDay),
             'emoji' => $b->emoji(),
         ], $badges));
     }

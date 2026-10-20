@@ -20,7 +20,7 @@ class AttendanceBookQuery
 {
     public function for(Classroom $classroom, ?Period $period = null): AttendanceBook
     {
-        $period ??= Period::allTime();
+        $period ??= Period::allTime($classroom->meeting_weekday);
         $today = ChurchCalendar::todayString();
 
         $students = DB::table('classroom_user')

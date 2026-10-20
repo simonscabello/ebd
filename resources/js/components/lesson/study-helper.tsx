@@ -5,6 +5,7 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { meetingWords } from '@/lib/meeting-words';
 import { plural, xsrfToken } from '@/lib/utils';
 import { store } from '@/routes/lessons/questions';
 import type { Lesson } from '@/types';
@@ -44,6 +45,7 @@ export function StudyHelperSheet({
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
+    const words = meetingWords(lesson.classroom);
     const [question, setQuestion] = useState('');
     const [exchanges, setExchanges] = useState<Exchange[]>([]);
     const [pending, setPending] = useState<string | null>(null);
@@ -171,7 +173,8 @@ export function StudyHelperSheet({
 
                 <p className="text-xs text-muted-foreground">
                     A IA pode errar e não substitui o professor nem a aula.
-                    Confira na Bíblia e leve a dúvida para domingo.
+                    Confira na Bíblia e leve a dúvida para{' '}
+                    {words.one === 'domingo' ? 'domingo' : 'o encontro'}.
                 </p>
                 <p className="text-xs text-muted-foreground">
                     Sua pergunta vai para a OpenAI, que gera a resposta. O

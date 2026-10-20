@@ -32,7 +32,7 @@ class ReadingCheckinController extends Controller
 
         $badges = $record->handle($user, $lesson, Weekday::from((int) $data['weekday']), $reading);
 
-        $this->celebrate($badges);
+        $this->celebrate($badges, $lesson->classroom->meeting_weekday);
 
         return back();
     }

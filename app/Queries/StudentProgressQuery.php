@@ -87,16 +87,16 @@ class StudentProgressQuery
                 ->get()
                 ->map(fn (UserBadge $b) => [
                     'badge' => $b->badge->value,
-                    'label' => $b->badge->label(),
-                    'description' => $b->badge->description(),
+                    'label' => $b->badge->label($classroom->meeting_weekday),
+                    'description' => $b->badge->description($classroom->meeting_weekday),
                     'emoji' => $b->badge->emoji(),
                     'series' => $b->series?->title,
                     'awarded_at' => ChurchCalendar::formatShort($b->awarded_at),
                 ]),
             'available_badges' => array_map(fn (Badge $b) => [
                 'badge' => $b->value,
-                'label' => $b->label(),
-                'description' => $b->description(),
+                'label' => $b->label($classroom->meeting_weekday),
+                'description' => $b->description($classroom->meeting_weekday),
                 'emoji' => $b->emoji(),
                 'progress' => $progress[$b->value] ?? null,
             ], Badge::cases()),

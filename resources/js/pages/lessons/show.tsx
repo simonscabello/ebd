@@ -561,6 +561,7 @@ export default function LessonShow({
                             <PersonalNote
                                 lessonSlug={lesson.slug}
                                 initial={study.note}
+                                classroom={lesson.classroom}
                             />
                         </Section>
                     )}
