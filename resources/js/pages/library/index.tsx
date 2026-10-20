@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { BookOpen, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EmptyState, Page, PageHeader } from '@/components/page';
@@ -33,6 +33,7 @@ export default function LibraryIndex({
     series,
     years,
 }: Props) {
+    const { auth } = usePage().props;
     const [query, setQuery] = useState(filters.q);
     const [searching, setSearching] = useState(false);
     const firstRender = useRef(true);
@@ -214,12 +215,23 @@ export default function LibraryIndex({
                     )}
                 >
                     {results.data.length === 0 ? (
-                        <EmptyState
-                            icon={<BookOpen />}
-                            title="Nenhuma aula encontrada"
-                        >
-                            Tente outras palavras ou remova algum filtro.
-                        </EmptyState>
+                        !auth.user && !hasFilters ? (
+                            // Visitante só vê os estudos de exemplo, que podem ainda não existir.
+                            <EmptyState
+                                icon={<BookOpen />}
+                                title="Nenhum estudo aberto ainda"
+                            >
+                                Entre com a sua conta para ver as aulas da sua
+                                classe.
+                            </EmptyState>
+                        ) : (
+                            <EmptyState
+                                icon={<BookOpen />}
+                                title="Nenhuma aula encontrada"
+                            >
+                                Tente outras palavras ou remova algum filtro.
+                            </EmptyState>
+                        )
                     ) : (
                         <ul className="space-y-3">
                             {results.data.map((lesson) => (
