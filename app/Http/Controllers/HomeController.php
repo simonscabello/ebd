@@ -24,7 +24,6 @@ use Inertia\Response;
  * dá para marcar ali mesmo), o progresso da semana, a sequência e o conteúdo
  * do dia. A lista completa das leituras fica em "Leituras da semana".
  * Visitante (sem login) vê o site público (SiteController::home).
- * Visitante (sem login) vê o site público (SiteController::home).
  */
 class HomeController extends Controller
 {
@@ -33,9 +32,10 @@ class HomeController extends Controller
         /** @var User|null $user */
         $user = $request->user();
 
-        // Quem não entrou vê o site de apresentação.
+        // Quem não entrou vê o site de apresentação; aberto pelo app instalado
+        // (start_url do manifest), vai direto para o login.
         if ($user === null) {
-            return $site->home();
+            return $request->query('origem') === 'app' ? redirect()->route('login') : $site->home();
         }
 
         // Quem acabou de criar a igreja (ainda sem nenhuma turma) começa pela

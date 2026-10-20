@@ -41,6 +41,15 @@ class SiteTest extends TestCase
                 ->where('examples.0.title', 'Exemplo oficial'));
     }
 
+    public function test_the_installed_app_without_a_session_goes_to_login(): void
+    {
+        // start_url do manifest: o app instalado não abre no site de apresentação.
+        $this->get('/?origem=app')->assertRedirect(route('login'));
+
+        $user = User::factory()->studentOf(Classroom::factory()->create())->create();
+        $this->actingAs($user)->get('/?origem=app')->assertOk();
+    }
+
     public function test_examples_are_empty_without_official_studies(): void
     {
         Lesson::factory()->for(Classroom::factory()->create())->published()->create();
