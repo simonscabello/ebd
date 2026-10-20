@@ -65,11 +65,17 @@ class StudentAccessController extends Controller
         return back();
     }
 
-    public function revoke(Classroom $classroom, User $user, RevokeStudentAccess $revoke): RedirectResponse
+    public function revoke(Request $request, Classroom $classroom, User $user, RevokeStudentAccess $revoke): RedirectResponse
     {
         Gate::authorize('manageMembers', $classroom);
         abort_unless($user->isMemberOf($classroom) && ! $user->isTeacherOf($classroom), 404);
         abort_if($user->isAdmin() || $user->canAccessAdmin(), 403, 'Professores e administradores não usam link de acesso.');
+
+        // Como na emissão: bloquear derruba o link e os aparelhos da pessoa em
+        // todas as turmas, então só quem acompanha todas elas.
+        if (! $request->user()->managesAllClassroomsOf($user)) {
+            throw ValidationException::withMessages(['user' => 'O acesso desta pessoa só pode ser bloqueado por quem acompanha todas as turmas dela.']);
+        }
 
         $revoke->handle($user);
 

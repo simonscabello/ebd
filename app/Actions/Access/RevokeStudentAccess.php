@@ -25,4 +25,20 @@ class RevokeStudentAccess
             }
         });
     }
+
+    /**
+     * Para quem passa a gerenciar (professor, coordenador): os links deixam de
+     * valer e, se a pessoa já teve link, as sessões abertas por ele caem também.
+     * Quem nunca teve link (ou é quem está nomeando) não é deslogado à toa.
+     */
+    public function revokeForManager(User $user, ?User $actor = null): void
+    {
+        if ($user->isNot($actor) && $user->accessLinks()->exists()) {
+            $this->handle($user);
+
+            return;
+        }
+
+        $user->accessLinks()->active()->update(['revoked_at' => now()]);
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Access\RevokeStudentAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Program;
 use App\Models\User;
@@ -16,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  */
 class ProgramCoordinatorController extends Controller
 {
-    public function store(Request $request, Program $program): RedirectResponse
+    public function store(Request $request, Program $program, RevokeStudentAccess $revokeAccess): RedirectResponse
     {
         Gate::authorize('appointCoordinators', $program);
 
@@ -33,7 +34,8 @@ class ProgramCoordinatorController extends Controller
 
         // Como ao virar professor: quem gerencia entra com e-mail e senha, e um
         // link pessoal antigo não pode voltar a valer se a coordenação acabar.
-        $user->accessLinks()->active()->update(['revoked_at' => now()]);
+        // As sessões abertas pelo link também caem.
+        $revokeAccess->revokeForManager($user, $request->user());
         $this->toast("{$user->name} agora coordena {$program->name}.");
 
         return back();
