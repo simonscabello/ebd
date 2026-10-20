@@ -30,6 +30,8 @@ final class Presenter
             // A turma da biblioteca oficial aparece com o nome da área.
             'name' => $classroom->church->is_official ? "Biblioteca oficial ({$classroom->name})" : $classroom->name,
             'meeting_weekday' => $classroom->meeting_weekday->label(),
+            // A biblioteca oficial recebe rascunhos de lição, mas não tem agenda.
+            'holds_meetings' => $classroom->holdsMeetings(),
             'program' => $classroom->program?->name,
             'is_active' => $classroom->is_active,
         ];

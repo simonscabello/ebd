@@ -16,10 +16,14 @@ use Throwable;
  * Leva um estudo de uma turma para a biblioteca oficial, por cópia: a
  * original continua onde está. Todas as lições chegam em rascunho, para o
  * dono revisar antes de publicar a versão 1.
+ *
+ * A cópia guarda a série de origem: rodar de novo para a mesma série é
+ * recusado, a não ser com --de-novo (aí sai outra cópia).
  */
 class CopySeriesToOfficialLibrary extends Command
 {
-    protected $signature = 'didache:copiar-para-biblioteca {series : id da série}';
+    protected $signature = 'didache:copiar-para-biblioteca {series : id da série}
+        {--de-novo : copia mesmo que a série já tenha sido copiada antes}';
 
     protected $description = 'Copia uma série de uma turma para a biblioteca oficial (lições em rascunho)';
 
@@ -29,6 +33,14 @@ class CopySeriesToOfficialLibrary extends Command
 
         if ($series->classroom->church->is_official) {
             $this->error('Esta série já está na biblioteca oficial.');
+
+            return self::FAILURE;
+        }
+
+        $previous = Series::query()->where('library_origin_series_id', $series->id)->orderBy('id')->pluck('id');
+
+        if ($previous->isNotEmpty() && ! $this->option('de-novo')) {
+            $this->error("Esta série já foi copiada para a biblioteca (id {$previous->implode(', ')}). Use --de-novo para copiar outra vez.");
 
             return self::FAILURE;
         }
@@ -53,8 +65,9 @@ class CopySeriesToOfficialLibrary extends Command
         $library = OfficialLibrary::classroom();
 
         try {
-            $copy = DB::transaction(function () use ($createSeries, $copier, $snapshot, $library, $owner) {
+            $copy = DB::transaction(function () use ($createSeries, $copier, $snapshot, $library, $owner, $series) {
                 $copy = $createSeries->handle($library, ['title' => $snapshot['title'], 'description' => $snapshot['description']]);
+                $copy->forceFill(['library_origin_series_id' => $series->id])->save();
 
                 foreach ($snapshot['lessons'] as $lesson) {
                     $copier->copy($lesson, $copy, $library, $owner, null);

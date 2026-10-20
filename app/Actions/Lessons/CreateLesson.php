@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Cria uma lição (sempre como rascunho) em uma classe e, opcionalmente, já a
- * coloca no encontro (domingo) informado.
+ * coloca no encontro do dia informado (o dia de encontro da classe).
  */
 class CreateLesson
 {
@@ -60,6 +60,8 @@ class CreateLesson
      */
     private function scheduleOn(Classroom $classroom, Lesson $lesson, string $date): void
     {
+        $classroom->ensureHoldsMeetings('meeting_on');
+
         if (CarbonImmutable::parse($date)->dayOfWeekIso !== $classroom->meeting_weekday->value) {
             throw ValidationException::withMessages(['meeting_on' => $classroom->meeting_weekday->meetingDayMessage()]);
         }
@@ -68,7 +70,7 @@ class CreateLesson
 
         if ($meeting !== null && $meeting->lesson_id !== null) {
             throw ValidationException::withMessages([
-                'meeting_on' => 'Já existe uma lição neste domingo. Ajuste pela agenda da classe.',
+                'meeting_on' => "Já existe uma lição neste {$classroom->meeting_weekday->meetingNoun()}. Ajuste pela agenda da classe.",
             ]);
         }
 

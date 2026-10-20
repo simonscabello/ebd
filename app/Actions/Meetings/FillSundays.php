@@ -27,7 +27,7 @@ class FillSundays
     public function handle(Classroom $classroom): int
     {
         // A biblioteca oficial guarda estudos, não se reúne.
-        if ($classroom->church->is_official) {
+        if (! $classroom->holdsMeetings()) {
             return 0;
         }
 

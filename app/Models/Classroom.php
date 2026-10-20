@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Uma classe da EBD (ex.: Jovens, Adultos). "Class" é palavra reservada no PHP.
@@ -134,6 +135,30 @@ class Classroom extends Model
     protected function ordered(Builder $query): void
     {
         $query->orderBy('position')->orderBy('name');
+    }
+
+    /**
+     * A turma da biblioteca oficial guarda estudos, não se reúne: não tem
+     * agenda de encontros.
+     */
+    public function holdsMeetings(): bool
+    {
+        return ! $this->church->is_official;
+    }
+
+    /**
+     * Recusa, com mensagem para a tela, criar ou mexer em encontro de uma
+     * turma que não se reúne (a biblioteca oficial).
+     *
+     * @throws ValidationException
+     */
+    public function ensureHoldsMeetings(string $field = 'held_on'): void
+    {
+        if (! $this->holdsMeetings()) {
+            throw ValidationException::withMessages([
+                $field => 'A biblioteca oficial guarda estudos e não tem agenda de encontros. Copie a série para uma classe e planeje lá.',
+            ]);
+        }
     }
 
     public function getRouteKeyName(): string

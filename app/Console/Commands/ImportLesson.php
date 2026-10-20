@@ -148,7 +148,7 @@ class ImportLesson extends Command
         ], $existing);
 
         if ($existing !== null && filled($data['meeting_on'] ?? null)) {
-            $this->components->warn('O domingo da aula não muda na substituição. Ajuste pela agenda da classe.');
+            $this->components->warn('O dia da aula não muda na substituição. Ajuste pela agenda da classe.');
         }
 
         $this->components->info("Pronto: {$lesson->displayTitle()} (rascunho). Revise e publique em ".route('admin.lessons.edit', $lesson));

@@ -28,6 +28,8 @@ class ContinueLessonNextMeeting
 
     public function handle(ClassMeeting $meeting): ?int
     {
+        $meeting->classroom->ensureHoldsMeetings('meeting');
+
         if ($meeting->lesson_id === null || $meeting->isCancelled()) {
             throw ValidationException::withMessages([
                 'meeting' => 'Só é possível continuar um encontro que tem lição.',

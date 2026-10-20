@@ -27,15 +27,17 @@ class PublishSeriesVersion
     {
         abort_unless(OfficialLibrary::isOfficial($series->classroom), 404);
 
-        $snapshot = SeriesSnapshot::of($series);
-
-        if ($snapshot['lessons'] === []) {
-            throw ValidationException::withMessages(['version' => 'Publique ao menos uma lição antes.']);
-        }
-
-        return DB::transaction(function () use ($by, $series, $notes, $snapshot) {
-            // Trava a série: duas publicações ao mesmo tempo não pegam o mesmo número.
+        return DB::transaction(function () use ($by, $series, $notes) {
+            // Trava a série: duas publicações ao mesmo tempo não pegam o mesmo
+            // número, e o retrato é tirado já com a trava.
             Series::query()->whereKey($series->id)->lockForUpdate()->first();
+
+            $snapshot = SeriesSnapshot::of($series);
+
+            if ($snapshot['lessons'] === []) {
+                throw ValidationException::withMessages(['version' => 'Publique ao menos uma lição antes.']);
+            }
+
             $version = (int) SeriesVersion::query()->where('series_id', $series->id)->max('version') + 1;
 
             $copied = [];

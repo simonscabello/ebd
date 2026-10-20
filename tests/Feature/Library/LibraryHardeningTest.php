@@ -11,7 +11,9 @@ use App\Models\Lesson;
 use App\Models\Series;
 use App\Models\User;
 use App\Support\OfficialLibrary;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -97,5 +99,36 @@ class LibraryHardeningTest extends TestCase
         $this->actingAs($owner)->post(route('admin.classrooms.store'), ['name' => 'Adultos', 'meeting_weekday' => 7])->assertSessionHasNoErrors();
 
         $this->assertSame($church->id, Classroom::query()->where('name', 'Adultos')->value('church_id'));
+    }
+
+    public function test_two_first_accesses_at_once_do_not_break_on_the_unique_index(): void
+    {
+        Classroom::factory()->create();
+        User::factory()->admin()->create();
+
+        // Simula a corrida: outro acesso cria a biblioteca logo depois de
+        // este ler que ela não existe (e antes de ele gravar).
+        $raced = false;
+        DB::listen(function (QueryExecuted $query) use (&$raced) {
+            if (! $raced && str_contains($query->sql, 'from "churches" where "is_official"')) {
+                $raced = true;
+                DB::table('churches')->insert([
+                    'name' => 'Biblioteca (outro acesso)',
+                    'slug' => 'biblioteca-outro-acesso',
+                    'timezone' => 'America/Sao_Paulo',
+                    'is_official' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        $classroom = OfficialLibrary::classroom();
+
+        $this->assertTrue($raced);
+        $this->assertSame(1, Church::query()->where('is_official', true)->count());
+        $this->assertSame('biblioteca-outro-acesso', $classroom->church->slug);
+        $this->assertSame($classroom->id, OfficialLibrary::classroom()->id);
+        $this->assertSame(1, Classroom::query()->where('church_id', $classroom->church_id)->count());
     }
 }
