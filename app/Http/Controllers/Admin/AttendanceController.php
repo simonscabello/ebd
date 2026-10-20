@@ -46,7 +46,7 @@ class AttendanceController extends Controller
             : "Aula encerrada. Até {$weekday->lowerLabel()}!");
 
         if ($leftover !== null && ($lesson = Lesson::query()->find($leftover)) !== null) {
-            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Ajuste em Domingos.", 'warning');
+            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Ajuste em {$weekday->meetingNamePlural()}.", 'warning');
         }
 
         return back();

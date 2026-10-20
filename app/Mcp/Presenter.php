@@ -29,6 +29,7 @@ final class Presenter
             'slug' => $classroom->slug,
             'name' => $classroom->name,
             'meeting_weekday' => $classroom->meeting_weekday->label(),
+            'program' => $classroom->program?->name,
             'is_active' => $classroom->is_active,
         ];
     }

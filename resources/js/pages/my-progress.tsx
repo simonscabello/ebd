@@ -9,6 +9,7 @@ import { BadgeShelf } from '@/components/progress/badge-shelf';
 import type { Streak } from '@/components/progress/streak-flame';
 import { StreakFlame } from '@/components/progress/streak-flame';
 import { show } from '@/routes/lessons';
+import { meetingWords } from '@/lib/meeting-words';
 import { plural } from '@/lib/utils';
 import type { Classroom } from '@/types';
 
@@ -67,6 +68,7 @@ export default function MyProgress({ classroom, progress }: Props) {
                             <LessonProgressList
                                 lessons={progress.lessons}
                                 linkLessons
+                                classroom={classroom}
                             />
                         </Section>
                     </div>
@@ -79,10 +81,14 @@ export default function MyProgress({ classroom, progress }: Props) {
 export function LessonProgressList({
     lessons,
     linkLessons = false,
+    classroom,
 }: {
     lessons: LessonProgress[];
     linkLessons?: boolean;
+    classroom?: Classroom | null;
 }) {
+    const words = meetingWords(classroom);
+
     if (lessons.length === 0) {
         return (
             <p className="text-sm text-muted-foreground">
@@ -128,7 +134,7 @@ export function LessonProgressList({
                         {lesson.meetings > 0 && (
                             <Meter
                                 icon={<CalendarCheck className="size-3.5" />}
-                                label={`Presença: ${lesson.present} de ${plural(lesson.meetings, 'domingo', 'domingos')}`}
+                                label={`Presença: ${lesson.present} de ${plural(lesson.meetings, words.one, words.many)}`}
                                 value={lesson.present / lesson.meetings}
                             />
                         )}

@@ -1,7 +1,8 @@
 import { Check, X } from 'lucide-react';
 import { shortDate } from '@/lib/dates';
+import { meetingWords } from '@/lib/meeting-words';
 import { cn } from '@/lib/utils';
-import type { SundaySummary } from '@/types';
+import type { Classroom, SundaySummary } from '@/types';
 
 export type MatrixSunday = SundaySummary & {
     id: number;
@@ -27,16 +28,20 @@ export type MatrixStudent = {
 export function AttendanceMatrix({
     sundays,
     students,
+    classroom,
 }: {
     sundays: MatrixSunday[];
     students: MatrixStudent[];
+    /** Dia da classe (padrão: domingo). */
+    classroom?: Pick<Classroom, 'meeting_weekday' | 'program_short_name'>;
 }) {
+    const words = meetingWords(classroom);
     return (
         <div className="overflow-x-auto rounded-2xl border bg-card print:overflow-visible print:rounded-none print:border-0">
             <table className="w-full border-collapse text-sm print:text-xs">
                 <caption className="sr-only">
-                    Chamada por aluno e por domingo: presente, faltou ou ainda
-                    não fazia parte da classe.
+                    Chamada por aluno e por {words.one}: presente, faltou ou
+                    ainda não fazia parte da classe.
                 </caption>
                 <thead>
                     <tr className="border-b text-xs text-muted-foreground">

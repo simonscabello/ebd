@@ -127,7 +127,7 @@ class ClassMeetingController extends Controller
     {
         $save->handle($meeting->classroom, $request->validated(), $meeting);
 
-        $this->toast('Domingo atualizado.');
+        $this->toast("{$meeting->classroom->meeting_weekday->meetingName()} atualizado.");
 
         return back();
     }
@@ -145,7 +145,8 @@ class ClassMeetingController extends Controller
             isset($data['series_id']) ? Series::query()->findOrFail((int) $data['series_id']) : null,
         );
 
-        $this->toast("{$result['created']} domingo(s) adicionados; {$result['assigned']} lição(ões) distribuídas.");
+        $noun = $classroom->meeting_weekday->meetingNoun();
+        $this->toast("{$result['created']} {$noun}(s) adicionados; {$result['assigned']} lição(ões) distribuídas.");
 
         return back();
     }

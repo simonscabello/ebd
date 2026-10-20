@@ -10,6 +10,7 @@ import { RevistaHeader } from '@/components/lesson/revista-header';
 import { RichText } from '@/components/lesson/rich-text';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
+import { meetingWords } from '@/lib/meeting-words';
 import { cn } from '@/lib/utils';
 import { index as meetingsIndex } from '@/routes/admin/classrooms/meetings';
 import { show } from '@/routes/lessons';
@@ -91,6 +92,7 @@ export default function SundayMode({
         meetings[meetings.length - 1];
 
     const meetingName = lesson.classroom?.meeting_name ?? 'Domingo';
+    const words = meetingWords(lesson.classroom);
 
     return (
         <div className="min-h-svh bg-background">
@@ -146,19 +148,20 @@ export default function SundayMode({
                         <CalendarClock className="mt-0.5 size-5 shrink-0 text-primary" />
                         {conduct ? (
                             <span>
-                                A chamada abre no dia do domingo (
+                                A chamada abre no dia do {words.one} (
                                 {conduct.meeting.date_short}).{' '}
                                 <Link
                                     href={conduct.meeting_url}
                                     className="font-medium text-primary hover:underline"
                                 >
-                                    Ver o domingo
+                                    Ver o {words.one}
                                 </Link>
                             </span>
                         ) : (
                             <span>
-                                Esta lição ainda não está em nenhum domingo.
-                                Para fazer a chamada, escolha o domingo dela em{' '}
+                                Esta lição ainda não está em nenhum {words.one}.
+                                Para fazer a chamada, escolha o {words.one} dela
+                                em{' '}
                                 {lesson.classroom ? (
                                     <Link
                                         href={meetingsIndex(
@@ -166,10 +169,10 @@ export default function SundayMode({
                                         )}
                                         className="font-medium text-primary hover:underline"
                                     >
-                                        Domingos
+                                        {words.Many}
                                     </Link>
                                 ) : (
-                                    'Domingos'
+                                    words.Many
                                 )}
                                 .
                             </span>
@@ -296,6 +299,7 @@ export default function SundayMode({
                             <FinishMeetingDialog
                                 meetingId={conduct.meeting.id}
                                 initialNotes={conduct.meeting.notes ?? null}
+                                classroom={lesson.classroom}
                             >
                                 <Button size="lg" className="flex-1">
                                     <Flag /> Encerrar aula
@@ -318,6 +322,7 @@ export default function SundayMode({
                                 initialPresent={conduct.present}
                                 initialVisitors={conduct.meeting.visitors_count}
                                 onChange={setPresentCount}
+                                classroom={lesson.classroom}
                             />
                         </div>
                     </BottomSheet>

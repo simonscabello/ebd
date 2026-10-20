@@ -26,6 +26,7 @@ import { useConfirm } from '@/components/confirm-dialog';
 import { Breadcrumbs, Page, Section } from '@/components/page';
 import { SectionNav } from '@/components/section-nav';
 import { Button } from '@/components/ui/button';
+import { meetingWords } from '@/lib/meeting-words';
 import { dashboard } from '@/routes/admin';
 import {
     destroy,
@@ -111,6 +112,7 @@ export default function EditLesson({
     audio,
 }: Props) {
     const confirm = useConfirm();
+    const words = meetingWords(lesson.classroom);
 
     const transition = async (target: LessonStatus) => {
         const config = transitionButtons[target];
@@ -208,7 +210,7 @@ export default function EditLesson({
                             : []),
                         {
                             id: 'domingos',
-                            label: `Domingos (${lesson.meetings.length})`,
+                            label: `${words.Many} (${lesson.meetings.length})`,
                         },
                         {
                             id: 'blocos',
@@ -270,9 +272,9 @@ export default function EditLesson({
 
                     <Section
                         id="domingos"
-                        title="Domingos desta lição"
+                        title={`${words.Many} desta lição`}
                         icon={<CalendarCheck />}
-                        description="Uma lição pode ocupar mais de um domingo. As datas ficam em Domingos, na página da classe."
+                        description={`Uma lição pode ocupar mais de um ${words.one}. As datas ficam em ${words.Many}, na página da classe.`}
                     >
                         {lesson.meetings.length > 0 ? (
                             <ul className="divide-y rounded-2xl border bg-card">
@@ -285,7 +287,7 @@ export default function EditLesson({
                                             <span className="first-letter:uppercase">
                                                 {meeting.date_label}
                                                 {lesson.meetings.length > 1 &&
-                                                    ` · domingo ${index + 1} de ${lesson.meetings.length}`}
+                                                    ` · ${words.one} ${index + 1} de ${lesson.meetings.length}`}
                                             </span>
                                             <MeetingStatusBadge
                                                 status={meeting.status}
@@ -297,12 +299,12 @@ export default function EditLesson({
                             </ul>
                         ) : (
                             <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                Esta lição ainda não está em nenhum domingo.
+                                Esta lição ainda não está em nenhum {words.one}.
                             </p>
                         )}
                         <Button asChild variant="outline" className="mt-3">
                             <Link href={lesson.meetings_url}>
-                                <CalendarDays /> Abrir Domingos
+                                <CalendarDays /> Abrir {words.Many}
                             </Link>
                         </Button>
                     </Section>

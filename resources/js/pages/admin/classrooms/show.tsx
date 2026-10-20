@@ -25,6 +25,7 @@ import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { dateTile, dayMonth, longDate, relativeDay } from '@/lib/dates';
+import { meetingWords } from '@/lib/meeting-words';
 import { plural } from '@/lib/utils';
 import { birthdayMessage, missYouMessage } from '@/lib/whatsapp';
 import { edit, report, show as classroomPage } from '@/routes/admin/classrooms';
@@ -165,6 +166,7 @@ export default function ClassroomOverview({
 }: Props) {
     const { week, last_sunday: last, stats } = overview;
     const here = classroomPage.url(classroom.slug);
+    const words = meetingWords(classroom);
 
     return (
         <>
@@ -197,15 +199,15 @@ export default function ClassroomOverview({
                         ) : (
                             <EmptyState
                                 icon={<CalendarClock />}
-                                title="Nenhum domingo planejado"
+                                title={`Nenhum ${words.one} planejado`}
                             >
                                 <p>
-                                    Planeje os próximos domingos para a classe
-                                    saber o que estudar.
+                                    Planeje os próximos {words.many} para a
+                                    classe saber o que estudar.
                                 </p>
                                 <Button asChild className="mt-4">
                                     <Link href={meetingsIndex(classroom.slug)}>
-                                        Abrir Domingos
+                                        Abrir {words.Many}
                                     </Link>
                                 </Button>
                             </EmptyState>
@@ -226,7 +228,7 @@ export default function ClassroomOverview({
                             <section className="rounded-2xl border border-warning/50 bg-warning-soft p-4">
                                 <h2 className="flex items-center gap-2 font-semibold text-warning-foreground">
                                     <AlertTriangle className="size-5" />{' '}
-                                    Domingos para confirmar
+                                    {words.Many} para confirmar
                                 </h2>
                                 <p className="mt-1 text-sm text-warning-foreground/80">
                                     Já passaram e continuam “planejados”. Faça a
@@ -273,7 +275,7 @@ export default function ClassroomOverview({
                             <Birthdays
                                 items={overview.birthdays}
                                 today={overview.today}
-                                program={classroom.program_short_name ?? 'EBD'}
+                                program={words.program}
                             />
                         )}
                     </div>
@@ -295,7 +297,7 @@ export default function ClassroomOverview({
                             }
                             hint={
                                 stats.frequency.sundays > 0
-                                    ? `${stats.frequency.present} de ${stats.frequency.expected} presenças em ${plural(stats.frequency.sundays, 'domingo', 'domingos')}`
+                                    ? `${stats.frequency.present} de ${stats.frequency.expected} presenças em ${plural(stats.frequency.sundays, words.one, words.many)}`
                                     : 'Nenhuma chamada no período'
                             }
                         />
@@ -350,6 +352,7 @@ function WeekCard({
     here: string;
 }) {
     const { meeting, lesson, summary } = week;
+    const words = meetingWords(classroom);
     const url = meetingPage({ classroom: classroom.slug, meeting: meeting.id });
 
     return (
@@ -357,7 +360,7 @@ function WeekCard({
             <p className="text-sm font-medium text-primary">
                 {meeting.is_today
                     ? 'Hoje'
-                    : `Próximo domingo · ${dayMonth(meeting.held_on)}`}
+                    : `Próximo ${words.one} · ${dayMonth(meeting.held_on)}`}
             </p>
             <h2 className="mt-1 font-serif text-2xl font-semibold text-balance">
                 {lesson?.display_title ?? meeting.title ?? 'Lição a definir'}
@@ -365,8 +368,8 @@ function WeekCard({
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 {week.meeting_total > 1 && (
                     <span>
-                        domingo {week.meeting_index} de {week.meeting_total} da
-                        lição
+                        {words.one} {week.meeting_index} de {week.meeting_total}{' '}
+                        da lição
                     </span>
                 )}
                 {lesson?.status === 'draft' && (
@@ -379,8 +382,7 @@ function WeekCard({
                     key={item.held_on}
                     className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm"
                 >
-                    {longDate(item.held_on)}: sem{' '}
-                    {classroom.program_short_name ?? 'EBD'}
+                    {longDate(item.held_on)}: sem {words.program}
                     {item.title ? ` (${item.title})` : ''}.
                 </p>
             ))}
@@ -410,6 +412,7 @@ function WeekCard({
                     <FinishMeetingDialog
                         meetingId={meeting.id}
                         initialNotes={meeting.notes}
+                        classroom={classroom}
                     >
                         <Button variant="outline">
                             <Flag /> Encerrar aula
@@ -424,7 +427,7 @@ function WeekCard({
                             </>
                         ) : (
                             <>
-                                <CalendarCheck /> Ver o domingo
+                                <CalendarCheck /> Ver o {words.one}
                             </>
                         )}
                     </Link>
@@ -466,6 +469,7 @@ function UpcomingLessons({
     classroom: Classroom;
     upcoming: Upcoming;
 }) {
+    const words = meetingWords(classroom);
     const goTo = (page: number) =>
         router.reload({
             only: ['upcoming'],
@@ -484,9 +488,9 @@ function UpcomingLessons({
                         <p className="text-sm font-medium text-primary">
                             {item.is_today
                                 ? 'Hoje'
-                                : `Domingo, ${dayMonth(item.held_on)}`}
+                                : `${classroom.meeting_weekday_label ?? words.One}, ${dayMonth(item.held_on)}`}
                             {item.meetings_count > 1 &&
-                                ` · ${item.meetings_count} domingos`}
+                                ` · ${item.meetings_count} ${words.many}`}
                         </p>
                         <p className="mt-0.5 flex flex-wrap items-center gap-2">
                             <Link
@@ -560,7 +564,7 @@ function UpcomingLessons({
             )}
             <Button asChild variant="outline" className="mt-3">
                 <Link href={meetingsIndex(classroom.slug)}>
-                    Planejar domingos <ChevronRight />
+                    Planejar {words.many} <ChevronRight />
                 </Link>
             </Button>
         </Section>
@@ -574,12 +578,14 @@ function LastSunday({
     classroom: Classroom;
     last: NonNullable<Overview['last_sunday']>;
 }) {
+    const words = meetingWords(classroom);
+
     return (
         <section className="rounded-2xl border bg-card p-5">
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                     <p className="text-sm font-medium text-muted-foreground">
-                        Último domingo · {dayMonth(last.held_on)}
+                        Último {words.one} · {dayMonth(last.held_on)}
                     </p>
                     <p className="mt-0.5 font-medium">
                         {last.lesson ?? last.title ?? 'Sem lição'}
@@ -670,7 +676,7 @@ function Attention({
                                 text={missYouMessage(
                                     student.name,
                                     classroom.name,
-                                    classroom.program_short_name ?? 'EBD',
+                                    meetingWords(classroom).program,
                                 )}
                                 variant="outline"
                             />

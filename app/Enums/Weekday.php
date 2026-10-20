@@ -81,6 +81,20 @@ enum Weekday: int
         return $this === self::Sunday ? 'Domingos' : 'Encontros';
     }
 
+    /** "domingo" / "encontro", no meio da frase. */
+    public function meetingNoun(): string
+    {
+        return mb_strtolower($this->meetingName());
+    }
+
+    /** "no domingo", "na quarta-feira". */
+    public function onDayPhrase(): string
+    {
+        return in_array($this, [self::Saturday, self::Sunday], true)
+            ? "no {$this->lowerLabel()}"
+            : "na {$this->lowerLabel()}";
+    }
+
     /** "no próximo domingo", "na próxima quarta-feira". */
     public function nextMeetingPhrase(): string
     {

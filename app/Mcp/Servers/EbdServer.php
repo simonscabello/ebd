@@ -41,14 +41,15 @@ class EbdServer extends Server
     public int $defaultPaginationLength = 50;
 
     protected string $instructions = <<<'MARKDOWN'
-        Servidor da Escola Bíblica Dominical (EBD). Você age em nome da pessoa logada
-        (professor ou administrador) e só enxerga as classes que ela gerencia.
+        Servidor do Didaché, o app das classes de ensino da igreja (Escola Bíblica Dominical,
+        discipulado e outros programas). Você age em nome da pessoa logada (professor,
+        coordenador ou administrador) e só enxerga as classes que ela gerencia.
 
         Como trabalhar:
         - Comece com list_classrooms para saber as classes (use o slug nas outras ferramentas).
         - Nomes de alunos podem ser ambíguos: se uma ferramenta devolver candidatos, pergunte à
           pessoa qual é o certo e use o id.
-        - Datas sempre em AAAA-MM-DD, no fuso da igreja. Cada classe se reúne num dia da semana (veja list_classrooms); datas fora desse dia são recusadas.
+        - Datas sempre em AAAA-MM-DD, no fuso da igreja. Cada classe se reúne num dia da semana e pertence a um programa (veja list_classrooms); encontros em datas fora desse dia são recusados.
         - Lições criadas ou editadas por aqui ficam como rascunho. Publicar (o que avisa a
           classe inteira por notificação) é sempre feito pela pessoa no app; ofereça o link.
         - Antes de alterar dados que a pessoa não pediu explicitamente, confirme com ela.
