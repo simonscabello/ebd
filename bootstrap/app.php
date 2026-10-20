@@ -26,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Laravel reconhecer HTTPS, host e IP real do visitante.
         $middleware->trustProxies(at: '*');
 
-        // Domínio próprio: endereços antigos levam para ele (todas as rotas, MCP inclusive).
+        // Domínio próprio: endereços antigos levam para ele (menos MCP, OAuth e push; veja o middleware).
         $middleware->prepend(RedirectToCanonicalHost::class);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
