@@ -27,7 +27,8 @@ final class Presenter
         return [
             'id' => $classroom->id,
             'slug' => $classroom->slug,
-            'name' => $classroom->name,
+            // A turma da biblioteca oficial aparece com o nome da área.
+            'name' => $classroom->church->is_official ? "Biblioteca oficial ({$classroom->name})" : $classroom->name,
             'meeting_weekday' => $classroom->meeting_weekday->label(),
             'program' => $classroom->program?->name,
             'is_active' => $classroom->is_active,

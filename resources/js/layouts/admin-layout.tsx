@@ -56,9 +56,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         { title: 'Classes', href: classroomsIndex.url(), icon: Users },
         { title: 'Lições', href: lessonsIndex.url(), icon: Library },
         { title: 'Séries', href: seriesIndex.url(), icon: Layers },
-        // Dono do sistema: as igrejas que usam o app.
+        // Dono do sistema: as igrejas que usam o app e a biblioteca oficial.
         ...(auth.user?.is_owner
-            ? [{ title: 'Igrejas', href: churchesIndex.url(), icon: Building2 }]
+            ? [
+                  {
+                      title: 'Dono',
+                      href: churchesIndex.url(),
+                      icon: Building2,
+                      match: '/dono',
+                  },
+              ]
             : []),
     ];
 

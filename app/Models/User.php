@@ -376,17 +376,14 @@ class User extends Authenticatable implements OAuthenticatable
     public function listedClassroomIds(): array
     {
         $ids = $this->manageableClassroomIds() ?? [];
+        // A biblioteca oficial não é turma: tem área própria (/dono/biblioteca).
+        $ordinary = Classroom::query()->whereIn('id', $ids)->whereNotIn('church_id', Church::query()->where('is_official', true)->select('id'));
 
-        if ($this->churchChoices()->count() < 2) {
-            return $ids;
+        if ($this->churchChoices()->count() >= 2) {
+            $ordinary->where('church_id', $this->currentChurch()?->id);
         }
 
-        $current = $this->currentChurch()?->id;
-
-        return array_values(Classroom::query()
-            ->whereIn('id', $ids)
-            ->where(fn ($query) => $query->where('church_id', $current)
-                ->orWhereIn('church_id', Church::query()->where('is_official', true)->select('id')))
+        return array_values($ordinary
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all());

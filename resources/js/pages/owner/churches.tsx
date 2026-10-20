@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Building2 } from 'lucide-react';
+import { OwnerTabs } from '@/components/owner/owner-tabs';
 import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -40,6 +41,7 @@ export default function OwnerChurches({
                     title="Igrejas"
                     description="Quem usa o app, só com números. A IA, o áudio e o texto bíblico só funcionam onde você ligar."
                 />
+                <OwnerTabs />
 
                 {churches.length === 0 ? (
                     <EmptyState

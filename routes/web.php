@@ -129,7 +129,9 @@ Route::middleware(['auth', 'can:own-platform'])
     ->prefix('dono')
     ->name('owner.')
     ->group(function () {
+        Route::redirect('/', '/dono/igrejas');
         Route::get('igrejas', [Owner\ChurchController::class, 'index'])->name('churches.index');
+        Route::get('biblioteca', [Owner\LibraryController::class, 'index'])->name('library.index');
         Route::put('igrejas/{church}', [Owner\ChurchController::class, 'update'])->name('churches.update');
     });
 
