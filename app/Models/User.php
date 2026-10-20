@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,6 +33,7 @@ use Laravel\Passport\HasApiTokens;
  * @property string|null $password
  * @property bool $is_admin
  * @property Carbon|null $email_verified_at
+ * @property int|null $current_church_id
  */
 #[Fillable(['name', 'email', 'phone', 'birth_date', 'gender', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -53,6 +55,9 @@ class User extends Authenticatable implements OAuthenticatable
 
     /** @var list<int>|null */
     protected ?array $administeredChurchIds = null;
+
+    /** @var EloquentCollection<int, Church>|null */
+    protected ?EloquentCollection $churchChoices = null;
 
     /** @var list<int>|null */
     protected ?array $administeredClassroomIds = null;
@@ -330,16 +335,61 @@ class User extends Authenticatable implements OAuthenticatable
     }
 
     /**
-     * A igreja de quem está usando: a que administra ou, senão, a da primeira
-     * turma. Sem nenhuma, null.
+     * Igrejas entre as quais a pessoa escolhe a atual: as que administra,
+     * menos a biblioteca oficial (que o dono administra, mas não é a igreja dele).
+     *
+     * @return EloquentCollection<int, Church>
+     */
+    public function churchChoices(): EloquentCollection
+    {
+        return $this->churchChoices ??= $this->administeredChurchIds() === []
+            ? new EloquentCollection
+            : Church::query()->whereIn('id', $this->administeredChurchIds())->where('is_official', false)->orderBy('id')->get();
+    }
+
+    /**
+     * A igreja de quem está usando: a escolhida entre as que administra (se
+     * ainda administra), senão a primeira delas ou a da primeira turma. Sem
+     * nenhuma, null.
      */
     public function currentChurch(): ?Church
     {
-        // A biblioteca oficial (que o dono administra) não é a igreja dele.
-        $id = Church::query()->whereIn('id', $this->administeredChurchIds())->where('is_official', false)->orderBy('id')->value('id')
-            ?? Classroom::query()->whereIn('id', $this->memberClassroomIds())->orderBy('id')->value('church_id');
+        $choices = $this->churchChoices();
+
+        if ($choices->isNotEmpty()) {
+            return $choices->firstWhere('id', $this->current_church_id) ?? $choices->first();
+        }
+
+        $id = Classroom::query()->whereIn('id', $this->memberClassroomIds())->orderBy('id')->value('church_id');
 
         return $id === null ? null : Church::query()->whereKey($id)->first();
+    }
+
+    /**
+     * As turmas que a pessoa gerencia, nas listas da gestão (painel, classes,
+     * lições, séries): quem administra mais de uma igreja vê só a atual (e a
+     * biblioteca oficial, se for o dono). Não é permissão: as policies
+     * continuam valendo para todas.
+     *
+     * @return list<int>
+     */
+    public function listedClassroomIds(): array
+    {
+        $ids = $this->manageableClassroomIds() ?? [];
+
+        if ($this->churchChoices()->count() < 2) {
+            return $ids;
+        }
+
+        $current = $this->currentChurch()?->id;
+
+        return array_values(Classroom::query()
+            ->whereIn('id', $ids)
+            ->where(fn ($query) => $query->where('church_id', $current)
+                ->orWhereIn('church_id', Church::query()->where('is_official', true)->select('id')))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all());
     }
 
     /**
@@ -448,6 +498,7 @@ class User extends Authenticatable implements OAuthenticatable
         $this->coordinatedClassroomIds = null;
         $this->administeredChurchIds = null;
         $this->administeredClassroomIds = null;
+        $this->churchChoices = null;
 
         return $this;
     }

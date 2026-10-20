@@ -24,10 +24,10 @@ class ClassroomController extends Controller
         Gate::authorize('viewAny', Classroom::class);
 
         $user = $request->user();
-        $manageable = $user->manageableClassroomIds();
+        $manageable = $user->listedClassroomIds();
 
         $classrooms = Classroom::query()
-            ->when($manageable !== null, fn ($query) => $query->whereIn('id', $manageable))
+            ->whereIn('id', $manageable)
             ->ordered()
             ->withCount(['students', 'lessons', 'series'])
             ->get();

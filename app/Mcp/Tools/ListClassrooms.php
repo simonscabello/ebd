@@ -33,13 +33,19 @@ class ListClassrooms extends EbdTool
             ->with(['series' => fn ($q) => $q->orderByDesc('starts_on')])
             ->get();
 
+        // "Hoje" de cada classe é o da igreja dela: busca desde a véspera e filtra por classe.
+        $todayOf = $classrooms->mapWithKeys(fn (Classroom $classroom) => [
+            $classroom->id => ChurchCalendar::using($classroom->church, fn () => ChurchCalendar::todayString()),
+        ]);
+
         $nextMeetings = ClassMeeting::query()
             ->whereIn('classroom_id', $classrooms->modelKeys())
             ->where('status', '!=', MeetingStatus::Cancelled)
-            ->fromDate($today)
+            ->fromDate($today->subDay())
             ->chronological()
             ->with('lesson')
             ->get()
+            ->filter(fn (ClassMeeting $meeting) => $meeting->held_on->toDateString() >= $todayOf[$meeting->classroom_id])
             ->unique('classroom_id')
             ->keyBy('classroom_id');
 

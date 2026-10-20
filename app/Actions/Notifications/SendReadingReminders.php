@@ -4,6 +4,7 @@ namespace App\Actions\Notifications;
 
 use App\Enums\LessonStatus;
 use App\Enums\ReminderSlot;
+use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\ReadingCheckin;
@@ -17,7 +18,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Lembrete da leitura do dia, por classe (9h e 20h no fuso da igreja).
+ * Lembrete da leitura do dia, por classe (9h e 20h no fuso de cada igreja).
  *
  * Segue a mesma regra do Início: a leitura de hoje é a do plano da
  * lição da semana; sem plano, de segunda a sábado é reler o texto base. À
@@ -33,14 +34,28 @@ final class SendReadingReminders
     ) {}
 
     /**
+     * @param  iterable<Church>|null  $churches  só estas igrejas (padrão: todas)
      * @return int aparelhos avisados
      */
-    public function handle(ReminderSlot $slot, ?CarbonImmutable $today = null): int
+    public function handle(ReminderSlot $slot, ?CarbonImmutable $today = null, ?iterable $churches = null): int
     {
-        $today ??= ChurchCalendar::today();
         $sent = 0;
 
-        foreach (Classroom::query()->active()->get() as $classroom) {
+        foreach ($churches ?? Church::query()->orderBy('id')->get() as $church) {
+            $sent += ChurchCalendar::using($church, fn () => $this->remindChurch($church, $slot, $today ?? ChurchCalendar::today()));
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Turmas de uma igreja, já no fuso dela.
+     */
+    private function remindChurch(Church $church, ReminderSlot $slot, CarbonImmutable $today): int
+    {
+        $sent = 0;
+
+        foreach (Classroom::query()->whereBelongsTo($church)->active()->get() as $classroom) {
             $recipients = self::subscribedMembers($classroom);
 
             if ($recipients->isEmpty()) {

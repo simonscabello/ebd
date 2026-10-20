@@ -7,6 +7,7 @@ use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
 use App\Models\User;
+use App\Support\ChurchCalendar;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -51,6 +52,9 @@ trait ResolvesEbdModels
             ]);
         }
 
+        // Datas da ferramenta no fuso da igreja da classe (o middleware restaura).
+        ChurchCalendar::setTimezone($classroom->church);
+
         return $classroom;
     }
 
@@ -68,6 +72,8 @@ trait ResolvesEbdModels
                 $field => "Lição {$id} não encontrada nas classes que você gerencia. Use list_lessons para achar o id.",
             ]);
         }
+
+        ChurchCalendar::setTimezone($lesson->classroom->church);
 
         return $lesson;
     }
@@ -120,6 +126,8 @@ trait ResolvesEbdModels
                 $field => "Encontro \"{$reference}\" não encontrado. Use list_meetings para ver a agenda.",
             ]);
         }
+
+        ChurchCalendar::setTimezone($meeting->classroom->church);
 
         return $meeting;
     }

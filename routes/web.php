@@ -122,6 +122,9 @@ Route::middleware(['auth', 'can:access-admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', Admin\DashboardController::class)->name('dashboard');
+        Route::put('igreja-atual', [Admin\CurrentChurchController::class, 'update'])->name('current-church.update');
+        Route::get('igreja', [Admin\ChurchSettingsController::class, 'edit'])->name('church.edit');
+        Route::put('igreja', [Admin\ChurchSettingsController::class, 'update'])->name('church.update');
         Route::get('biblia/previa', Admin\BiblePreviewController::class)->name('bible.preview');
         Route::post('markdown/previa', Admin\MarkdownPreviewController::class)->name('markdown.preview');
 
