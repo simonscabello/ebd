@@ -2,15 +2,14 @@
 
 namespace App\Actions\Lessons;
 
-use App\Enums\AiUsageKind;
-use App\Models\AiUsage;
 use App\Models\Lesson;
 use App\Support\Audio\ListeningScript;
 use App\Support\Audio\Mp3;
 use App\Support\Audio\OpenAiSpeech;
 use App\Support\Audio\SpeechFailed;
 use App\Support\Audio\StudyNarration;
-use App\Support\ChurchFeatures;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
@@ -39,6 +38,9 @@ class GenerateLessonAudio
         // Hash do texto que de fato foi narrado: se o estudo mudar durante a
         // geração, o áudio já nasce desatualizado.
         $hash = $lesson->audioSourceHash();
+        // O pedido que esta geração atende (ver RequestLessonAudio). A cota já
+        // foi contada lá, então aqui não se registra uso nenhum.
+        $requestedAt = $lesson->audio_requested_at;
 
         try {
             $chunks = $this->chunks($lesson);
@@ -63,17 +65,18 @@ class GenerateLessonAudio
         } catch (Throwable $e) {
             report($e);
 
-            $lesson->forceFill([
+            $this->ownRequest($lesson, $requestedAt)->update([
                 'audio_status' => Lesson::AUDIO_FAILED,
                 'audio_error' => $e instanceof SpeechFailed ? $e->getMessage() : 'Não foi possível gerar o áudio. O erro ficou registrado.',
-            ])->save();
+            ]);
 
             return;
         }
 
+        $lesson->refresh();
         $previous = $lesson->hasAudio() ? [$lesson->audio_disk, $lesson->audio_path] : null;
 
-        $lesson->forceFill([
+        $saved = $this->ownRequest($lesson, $requestedAt)->update([
             'audio_disk' => $disk,
             'audio_path' => $path,
             'audio_duration' => Mp3::duration($audio),
@@ -81,13 +84,34 @@ class GenerateLessonAudio
             'audio_generated_at' => now(),
             'audio_status' => null,
             'audio_error' => null,
-        ])->save();
+        ]);
 
-        AiUsage::record(ChurchFeatures::churchOf($lesson), AiUsageKind::Audio, $lesson);
+        // A lição foi pedida de novo enquanto esta geração demorava (passou do
+        // prazo): a mais nova é que vale, e este arquivo fica sem uso.
+        if ($saved === 0) {
+            Storage::disk($disk)->delete($path);
+
+            return;
+        }
 
         if ($previous !== null) {
             Storage::disk((string) $previous[0])->delete((string) $previous[1]);
         }
+    }
+
+    /**
+     * A lição, se o pedido de geração ainda for o desta execução. Uma geração
+     * que passou do prazo pode ser pedida de novo; a antiga, se continuar viva,
+     * não grava por cima da nova.
+     *
+     * @return Builder<Lesson>
+     */
+    private function ownRequest(Lesson $lesson, ?CarbonInterface $requestedAt): Builder
+    {
+        return Lesson::query()
+            ->whereKey($lesson->id)
+            ->where('audio_status', Lesson::AUDIO_GENERATING)
+            ->where('audio_requested_at', $requestedAt);
     }
 
     /**

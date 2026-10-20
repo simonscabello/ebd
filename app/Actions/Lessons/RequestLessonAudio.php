@@ -2,6 +2,8 @@
 
 namespace App\Actions\Lessons;
 
+use App\Enums\AiUsageKind;
+use App\Models\AiUsage;
 use App\Models\Lesson;
 use App\Support\Audio\OpenAiSpeech;
 use App\Support\ChurchFeatures;
@@ -82,20 +84,30 @@ class RequestLessonAudio
     }
 
     /**
-     * Marca a lição como "gerando" se ainda cabe no limite do mês. Devolve 0
-     * quando outra geração da mesma lição já está em andamento.
+     * Marca a lição como "gerando" se ainda cabe no limite do mês e já conta
+     * a tentativa na cota da igreja (mesmo que a geração falhe depois, o
+     * gasto com a OpenAI já aconteceu). Devolve 0 quando outra geração da
+     * mesma lição já está em andamento. Roda sob o lock da igreja.
      *
      * @throws ValidationException
      */
     private function claim(Lesson $lesson): int
     {
-        if (ChurchFeatures::audioRemainingThisMonth($lesson) === 0) {
-            $limit = ChurchFeatures::churchOf($lesson)->audio_monthly_limit;
-
-            throw ValidationException::withMessages(['audio' => "Limite de áudios do mês atingido ({$limit} por mês)."]);
+        // Clique repetido durante a geração: não gasta outra vaga nem esbarra no limite.
+        if ($lesson->fresh()?->isGeneratingAudio()) {
+            return 0;
         }
 
-        return Lesson::query()
+        $church = ChurchFeatures::churchOf($lesson);
+
+        if (ChurchFeatures::audioRemainingThisMonth($lesson) === 0) {
+            throw ValidationException::withMessages(['audio' => "Limite de áudios do mês atingido ({$church->audio_monthly_limit} por mês)."]);
+        }
+
+        // Uma geração que passou do prazo pode ser pedida de novo (o processo
+        // pode ter morrido). Se a antiga ainda estiver viva, ela não grava por
+        // cima: GenerateLessonAudio só salva se o pedido ainda for o dela.
+        $claimed = Lesson::query()
             ->whereKey($lesson->id)
             ->where(fn ($query) => $query
                 ->whereNull('audio_status')
@@ -106,5 +118,11 @@ class RequestLessonAudio
                 'audio_error' => null,
                 'audio_requested_at' => now(),
             ]);
+
+        if ($claimed > 0) {
+            AiUsage::record($church, AiUsageKind::Audio, $lesson);
+        }
+
+        return $claimed;
     }
 }
