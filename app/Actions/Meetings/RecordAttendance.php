@@ -8,6 +8,7 @@ use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
 use App\Models\User;
 use App\Support\ChurchCalendar;
+use App\Support\ProgramNames;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -30,7 +31,7 @@ class RecordAttendance
     public function handle(ClassMeeting $meeting, array $presentIds, ?int $visitors, User $by): void
     {
         if ($meeting->isCancelled()) {
-            throw ValidationException::withMessages(['meeting' => 'Não teve EBD neste dia.']);
+            throw ValidationException::withMessages(['meeting' => 'Não teve '.app(ProgramNames::class)->shortFor($meeting->classroom_id).' neste dia.']);
         }
 
         if ($meeting->held_on->toDateString() > ChurchCalendar::todayString()) {

@@ -6,7 +6,10 @@ use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
+use Inertia\Support\SessionKey;
 use Tests\TestCase;
 
 /**
@@ -95,5 +98,137 @@ class CreateChurchTest extends TestCase
         $this->actingAs($admin)->post('/admin/classes', ['name' => 'Jovens', 'is_active' => true])->assertRedirect();
 
         $this->assertNotSame($existing->church_id, Classroom::query()->where('id', '!=', $existing->id)->value('church_id'));
+    }
+
+    public function test_signup_is_limited_per_ip_per_minute(): void
+    {
+        // Envios com erro contam também: o limite é por tentativa.
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('register.store'), $this->payload(['church_name' => '']))->assertSessionHasErrors('church_name');
+        }
+
+        $this->post(route('register.store'), $this->payload())->assertTooManyRequests();
+        $this->assertSame(0, Church::query()->where('name', 'Igreja Batista Esperança')->count());
+
+        // Outro IP não é afetado.
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.2'])
+            ->post(route('register.store'), $this->payload())
+            ->assertRedirect(route('home', absolute: false));
+    }
+
+    public function test_signup_is_limited_per_ip_per_day(): void
+    {
+        for ($i = 0; $i < 20; $i++) {
+            if ($i > 0 && $i % 5 === 0) {
+                $this->travel(61)->seconds();
+            }
+
+            $this->post(route('register.store'), $this->payload(['church_name' => '']))->assertSessionHasErrors('church_name');
+        }
+
+        $this->travel(61)->seconds();
+        $this->post(route('register.store'), $this->payload())->assertTooManyRequests();
+
+        $this->travel(1)->days();
+        $this->post(route('register.store'), $this->payload())->assertRedirect(route('home', absolute: false));
+    }
+
+    public function test_the_form_gets_a_friendly_message_when_limited(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('register.store'), $this->payload(['church_name' => '']));
+        }
+
+        $this->from(route('register'))
+            ->post(route('register.store'), $this->payload(), ['X-Inertia' => 'true'])
+            ->assertRedirect(route('register'))
+            ->assertSessionHas(SessionKey::FLASH_DATA, fn (array $flash) => $flash['toast']['message'] === 'Muitas tentativas seguidas. Espere um minuto e tente de novo.');
+    }
+
+    public function test_a_limited_page_visit_does_not_redirect_back(): void
+    {
+        // Num GET, voltar à página anterior poderia cair no mesmo limite, em laço.
+        Route::middleware(['web', 'throttle:1,1'])->get('/_teste/limite', fn () => 'ok');
+
+        $this->get('/_teste/limite')->assertOk();
+        $this->from('/biblioteca')->get('/_teste/limite', ['X-Inertia' => 'true'])->assertTooManyRequests();
+    }
+
+    public function test_creating_another_church_is_limited_per_ip(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->actingAs($user)->post('/criar-igreja', ['church_name' => ''])->assertSessionHasErrors('church_name');
+        }
+
+        $this->actingAs($user)->post('/criar-igreja', ['church_name' => 'Grupo da Quarta'])->assertTooManyRequests();
+        $this->assertSame(0, Church::query()->where('name', 'Grupo da Quarta')->count());
+    }
+
+    public function test_one_account_administers_at_most_three_churches(): void
+    {
+        $user = User::factory()->create();
+        $user->administeredChurches()->attach(Church::factory()->count(2)->create());
+        // A biblioteca oficial não entra na conta.
+        $user->administeredChurches()->attach(Church::factory()->create(['is_official' => true]));
+
+        $this->actingAs($user)->post('/criar-igreja', ['church_name' => 'Terceira'])->assertRedirect('/admin');
+
+        $this->actingAs($user)->post('/criar-igreja', ['church_name' => 'Quarta'])
+            ->assertSessionHasErrors(['church_name' => 'Cada conta pode administrar até 3 igrejas ou grupos. Para criar outra, peça a alguém da liderança que crie com a conta dele.']);
+        $this->assertSame(0, Church::query()->where('name', 'Quarta')->count());
+
+        // O dono do sistema não tem teto.
+        $owner = User::factory()->admin()->create();
+        $owner->administeredChurches()->attach(Church::factory()->count(3)->create());
+        $this->actingAs($owner)->post('/criar-igreja', ['church_name' => 'Quarta'])->assertRedirect('/admin');
+    }
+
+    public function test_a_slug_taken_at_the_same_time_gets_the_next_suffix(): void
+    {
+        $this->raceForSlug(times: 1);
+
+        $this->post(route('register.store'), $this->payload())->assertRedirect(route('home', absolute: false));
+
+        $this->assertSame('igreja-batista-esperanca-2', Church::query()->where('name', 'Igreja Batista Esperança')->sole()->slug);
+        $this->assertAuthenticated();
+    }
+
+    public function test_a_slug_that_keeps_colliding_falls_back_to_a_random_suffix(): void
+    {
+        $this->raceForSlug(times: 2);
+
+        $this->post(route('register.store'), $this->payload())->assertRedirect(route('home', absolute: false));
+
+        $this->assertMatchesRegularExpression('/^igreja-batista-esperanca-[a-z0-9]{6}$/', Church::query()->where('name', 'Igreja Batista Esperança')->sole()->slug);
+    }
+
+    /**
+     * Simula outro cadastro com o mesmo nome: entre a checagem e o INSERT, uma
+     * segunda conexão grava e confirma o slug escolhido, como faria uma
+     * requisição paralela. As linhas dela são apagadas no fim do teste.
+     */
+    private function raceForSlug(int $times): void
+    {
+        config(['database.connections.race' => config('database.connections.'.config('database.default'))]);
+        $race = DB::connection('race');
+
+        Church::creating(function (Church $church) use (&$times, $race) {
+            if ($times-- > 0) {
+                $race->table('churches')->insert([
+                    'name' => 'Concorrente',
+                    'slug' => $church->slug,
+                    'timezone' => 'America/Sao_Paulo',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        $this->beforeApplicationDestroyed(function () use ($race) {
+            $race->table('churches')->where('name', 'Concorrente')->delete();
+            $race->disconnect();
+        });
     }
 }

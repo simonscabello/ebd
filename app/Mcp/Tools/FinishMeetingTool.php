@@ -50,7 +50,7 @@ class FinishMeetingTool extends EbdTool
 
         return $this->json([
             'meeting' => Presenter::meeting($meeting->refresh()->load('lesson')),
-            'warning' => $lesson ? "\"{$lesson->displayTitle()}\" ficou sem data. Adicione um domingo na agenda (save_meeting)." : null,
+            'warning' => $lesson ? "\"{$lesson->displayTitle()}\" ficou sem data. Adicione um encontro na agenda (save_meeting)." : null,
         ]);
     }
 }

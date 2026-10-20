@@ -20,7 +20,7 @@ class GetClassroomOverview extends EbdTool
 
     protected string $title = 'Resumo da classe';
 
-    protected string $description = 'O mesmo Resumo da tela da classe: lição da semana, frequência no período (série atual ou últimos 3 meses), últimos domingos com chamada, domingos pendentes de confirmação, estudo em casa da lição atual, alunos que precisam de atenção (faltas seguidas, dias sem leitura) e aniversariantes do mês.';
+    protected string $description = 'O mesmo Resumo da tela da classe: lição da semana, frequência no período (série atual ou últimos 3 meses), últimos encontros com chamada, encontros pendentes de confirmação, estudo em casa da lição atual, alunos que precisam de atenção (faltas seguidas, dias sem leitura) e aniversariantes do mês.';
 
     public function schema(JsonSchema $schema): array
     {

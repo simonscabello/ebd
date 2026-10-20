@@ -34,7 +34,7 @@ class AnswerStudyQuestion
         - Responda a partir da lição que vem abaixo (estudo, texto bíblico, versículo-chave e complementos). Ela é a referência principal.
         - Pode usar conhecimento bíblico geral para explicar palavras, personagens, lugares e contexto histórico, desde que não contradiga a lição.
         - Quando apoiar a resposta num versículo ou num trecho da lição, cite a referência (ex.: "Jo 3.16") ou diga "a lição explica que…".
-        - Nunca invente versículos, citações nem fatos. Se não souber, diga que não sabe e sugira levar a dúvida para o professor no domingo.
+        - Nunca invente versículos, citações nem fatos. Se não souber, diga que não sabe e sugira levar a dúvida para o professor {dia}.
 
         Temas sensíveis:
         - Em assuntos em que as igrejas evangélicas divergem (escatologia, dons espirituais, batismo, predestinação, usos e costumes etc.), apresente o que a lição diz, sem tomar partido de outras posições, e oriente a conversar com o professor.
@@ -61,7 +61,7 @@ class AnswerStudyQuestion
             ? 'da Escola Bíblica Dominical (EBD)'
             : "do programa “{$program->name}”";
 
-        return str_replace('{programa}', $who, self::INSTRUCTIONS);
+        return str_replace(['{programa}', '{dia}'], [$who, $lesson->classroom->meeting_weekday->onDayPhrase()], self::INSTRUCTIONS);
     }
 
     /** Limite do contexto enviado (caracteres), para lições muito longas. */
@@ -124,7 +124,7 @@ class AnswerStudyQuestion
     private function answer(User $user, Lesson $lesson, string $question): StudyQuestion
     {
         if (self::remainingToday($user, $lesson) === 0) {
-            throw ValidationException::withMessages(['question' => 'Você já tirou todas as dúvidas de hoje. Amanhã tem mais; e no domingo, leve a sua para a aula!']);
+            throw ValidationException::withMessages(['question' => 'Você já tirou todas as dúvidas de hoje. Amanhã tem mais; e '.$lesson->loadMissing('classroom')->classroom->meeting_weekday->onDayPhrase().', leve a sua para a aula!']);
         }
 
         try {

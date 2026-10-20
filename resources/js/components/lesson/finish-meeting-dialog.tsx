@@ -12,7 +12,9 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { meetingWords } from '@/lib/meeting-words';
 import { finish } from '@/routes/admin/meetings';
+import type { Classroom } from '@/types';
 
 /**
  * "Encerrar aula": a lição terminou ou continua no próximo domingo?
@@ -21,12 +23,16 @@ export function FinishMeetingDialog({
     meetingId,
     initialNotes,
     children,
+    classroom,
 }: {
     meetingId: number;
     initialNotes: string | null;
     /** Botão que abre o diálogo (padrão: "Encerrar aula" largo). */
     children?: ReactNode;
+    /** Dia da classe (padrão: domingo). */
+    classroom?: Pick<Classroom, 'meeting_weekday' | 'program_short_name'>;
 }) {
+    const words = meetingWords(classroom);
     const [open, setOpen] = useState(false);
     const [notes, setNotes] = useState(initialNotes ?? '');
     const [processing, setProcessing] = useState(false);
@@ -58,7 +64,7 @@ export function FinishMeetingDialog({
                     <DialogTitle>Encerrar aula</DialogTitle>
                     <DialogDescription>
                         A conversa rendeu? Se a lição não terminou, ela continua
-                        no próximo domingo e as seguintes são empurradas.
+                        no próximo {words.one} e as seguintes são empurradas.
                     </DialogDescription>
                 </DialogHeader>
                 <label htmlFor="finish-notes" className="text-sm font-medium">

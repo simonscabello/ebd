@@ -11,13 +11,15 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassMeeting;
 use App\Models\Lesson;
 use App\Support\ChurchCalendar;
+use App\Support\ProgramNames;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Ações do domingo: sem EBD (e desfazer), continua no próximo, teve aula.
+ * Ações do encontro: sem EBD (e desfazer), continua no próximo, teve aula.
+ * Os avisos seguem o dia e o programa da classe ("domingo"/"EBD" na EBD).
  */
 class MeetingStatusController extends Controller
 {
@@ -31,8 +33,9 @@ class MeetingStatusController extends Controller
 
         $leftover = $cancel->handle($meeting, $data['reason'] ?? null, (bool) ($data['shift'] ?? true));
 
-        $this->toast('Domingo marcado como "sem EBD".');
-        $this->warnLeftover($leftover);
+        $program = app(ProgramNames::class)->shortFor($meeting->classroom_id);
+        $this->toast("{$meeting->classroom->meeting_weekday->meetingName()} marcado como \"sem {$program}\".");
+        $this->warnLeftover($meeting, $leftover);
 
         return back();
     }
@@ -43,8 +46,8 @@ class MeetingStatusController extends Controller
 
         $leftover = $continue->handle($meeting);
 
-        $this->toast('A lição continua no próximo domingo.');
-        $this->warnLeftover($leftover);
+        $this->toast("A lição continua {$meeting->classroom->meeting_weekday->nextMeetingPhrase()}.");
+        $this->warnLeftover($meeting, $leftover);
 
         return back();
     }
@@ -53,15 +56,17 @@ class MeetingStatusController extends Controller
     {
         Gate::authorize('update', $meeting);
 
+        $weekday = $meeting->classroom->meeting_weekday;
+
         if ($meeting->held_on->toDateString() > ChurchCalendar::today()->toDateString()) {
-            $this->toast('Este domingo ainda não aconteceu.', 'error');
+            $this->toast("Este {$weekday->meetingNoun()} ainda não aconteceu.", 'error');
 
             return back();
         }
 
         $meeting->update(['status' => MeetingStatus::Held]);
 
-        $this->toast('Domingo marcado como realizado.');
+        $this->toast("{$weekday->meetingName()} marcado como realizado.");
 
         return back();
     }
@@ -87,12 +92,12 @@ class MeetingStatusController extends Controller
         $meeting->update(['status' => MeetingStatus::Planned, 'title' => null]);
         $sync->handle($meeting->classroom_id);
 
-        $this->toast('O domingo voltou para a agenda. Escolha a lição do dia.');
+        $this->toast("O {$weekday->meetingNoun()} voltou para a agenda. Escolha a lição do dia.");
 
         return back();
     }
 
-    private function warnLeftover(?int $lessonId): void
+    private function warnLeftover(ClassMeeting $meeting, ?int $lessonId): void
     {
         if ($lessonId === null) {
             return;
@@ -101,7 +106,8 @@ class MeetingStatusController extends Controller
         $lesson = Lesson::query()->find($lessonId);
 
         if ($lesson !== null) {
-            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Escolha um domingo para ela em Domingos.", 'warning');
+            $weekday = $meeting->classroom->meeting_weekday;
+            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Escolha um {$weekday->meetingNoun()} para ela em {$weekday->meetingNamePlural()}.", 'warning');
         }
     }
 }

@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight, FolderTree, Plus } from 'lucide-react';
 import { EmptyState, Page, PageHeader } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { plural } from '@/lib/utils';
 import { create, edit, show } from '@/routes/admin/classrooms';
+import { index as programsIndex } from '@/routes/admin/programs';
 import type { Classroom } from '@/types';
 
 type Row = Classroom & {
@@ -22,6 +23,10 @@ export default function ClassroomsIndex({
     classrooms: Row[];
     canCreate: boolean;
 }) {
+    // Com mais de um programa, cada cartão diz de qual é.
+    const manyPrograms =
+        new Set(classrooms.map((classroom) => classroom.program_name)).size > 1;
+
     return (
         <>
             <Head title="Classes" />
@@ -30,11 +35,18 @@ export default function ClassroomsIndex({
                     title="Classes"
                     actions={
                         canCreate && (
-                            <Button asChild>
-                                <Link href={create()}>
-                                    <Plus /> Nova classe
-                                </Link>
-                            </Button>
+                            <>
+                                <Button asChild variant="outline">
+                                    <Link href={programsIndex()}>
+                                        <FolderTree /> Programas
+                                    </Link>
+                                </Button>
+                                <Button asChild>
+                                    <Link href={create()}>
+                                        <Plus /> Nova classe
+                                    </Link>
+                                </Button>
+                            </>
                         )
                     }
                 />
@@ -57,6 +69,11 @@ export default function ClassroomsIndex({
                                         </span>
                                     )}
                                 </div>
+                                {manyPrograms && classroom.program_name && (
+                                    <p className="text-xs font-medium text-primary">
+                                        {classroom.program_name}
+                                    </p>
+                                )}
                                 {classroom.description && (
                                     <p className="mt-1 text-sm text-muted-foreground">
                                         {classroom.description}

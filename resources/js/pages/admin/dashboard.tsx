@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { dateTile, dayMonth } from '@/lib/dates';
+import { meetingWords } from '@/lib/meeting-words';
 import {
     create as createClassroom,
     show as classroomPage,
@@ -263,6 +264,7 @@ export default function AdminDashboard({
 function ClassroomCardView({ classroom }: { classroom: ClassroomCard }) {
     const { week } = classroom;
     const hub = classroomPage(classroom.slug);
+    const words = meetingWords(classroom);
 
     return (
         <section className="flex flex-col rounded-2xl border bg-card p-5">
@@ -285,7 +287,7 @@ function ClassroomCardView({ classroom }: { classroom: ClassroomCard }) {
                         <p className="font-medium text-primary">
                             {week.is_today
                                 ? 'Hoje'
-                                : `Próximo domingo · ${dayMonth(week.held_on)}`}
+                                : `Próximo ${words.one} · ${dayMonth(week.held_on)}`}
                         </p>
                         <p className="mt-0.5 line-clamp-2">
                             {week.lesson?.display_title ??
@@ -308,7 +310,7 @@ function ClassroomCardView({ classroom }: { classroom: ClassroomCard }) {
                     </>
                 ) : (
                     <p className="text-muted-foreground">
-                        Nenhum domingo planejado.
+                        Nenhum {words.one} planejado.
                     </p>
                 )}
             </div>

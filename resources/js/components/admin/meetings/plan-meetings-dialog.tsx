@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
+import { meetingWords } from '@/lib/meeting-words';
 import { plan } from '@/routes/admin/classrooms/meetings';
 import type { Classroom, Series } from '@/types';
 
@@ -30,6 +31,7 @@ export function PlanMeetingsDialog({
     series: Series[];
     nextSunday: string;
 }) {
+    const words = meetingWords(classroom);
     const [open, setOpen] = useState(false);
     const current = series[0];
     const form = useForm<{ from: string; to: string; series_id: number | '' }>({
@@ -64,10 +66,10 @@ export function PlanMeetingsDialog({
                     <DialogHeader>
                         <DialogTitle>Planejar série</DialogTitle>
                         <DialogDescription>
-                            Cria um domingo para cada semana do período e
+                            Cria um {words.one} para cada semana do período e
                             distribui as lições da série (pela numeração da
-                            revista) nos domingos livres. Nada que já está na
-                            agenda é alterado.
+                            revista) nos {words.many} livres. Nada que já está
+                            na agenda é alterado.
                         </DialogDescription>
                     </DialogHeader>
                     <Field
@@ -90,7 +92,7 @@ export function PlanMeetingsDialog({
                                 }));
                             }}
                         >
-                            <option value="">Só criar os domingos</option>
+                            <option value="">Só criar os {words.many}</option>
                             {series.map((item) => (
                                 <option key={item.id} value={item.id}>
                                     {item.title}
