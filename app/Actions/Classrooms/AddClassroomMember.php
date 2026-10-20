@@ -2,6 +2,7 @@
 
 namespace App\Actions\Classrooms;
 
+use App\Actions\Access\RevokeStudentAccess;
 use App\Enums\ClassroomRole;
 use App\Models\AuditLog;
 use App\Models\Classroom;
@@ -15,6 +16,8 @@ use Illuminate\Validation\ValidationException;
  */
 class AddClassroomMember
 {
+    public function __construct(private readonly RevokeStudentAccess $revokeAccess) {}
+
     public function handle(Classroom $classroom, string $email, ClassroomRole $role, User $actor): User
     {
         $user = User::query()->where('email', mb_strtolower(trim($email)))->first();
@@ -24,7 +27,7 @@ class AddClassroomMember
         // uma conta sem vínculo com outra igreja. A mesma mensagem para "não
         // existe" e "é de outro lugar": não revela quem tem conta.
         $allowed = $user !== null && $user->isFreeFor($classroom->church_id) && ($role === ClassroomRole::Teacher
-            || array_intersect($user->memberClassroomIds(), $actor->manageableClassroomIds() ?? []) !== []);
+            || array_intersect($user->memberClassroomIds(), $actor->manageableClassroomIds()) !== []);
 
         if (! $allowed) {
             // Tentar trazer uma conta que existe mas não está ao seu alcance
@@ -69,9 +72,10 @@ class AddClassroomMember
             $user->id => ['role' => $role->value],
         ]);
 
-        // Professor entra com e-mail e senha: links pessoais deixam de valer.
+        // Professor entra com e-mail e senha: links pessoais deixam de valer, e
+        // também as sessões abertas por eles (o link entra com "lembrar de mim").
         if ($role === ClassroomRole::Teacher) {
-            $user->accessLinks()->active()->update(['revoked_at' => now()]);
+            $this->revokeAccess->revokeForManager($user, $actor);
         }
 
         return $user;

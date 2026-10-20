@@ -20,6 +20,7 @@ use App\Http\Controllers\SiteController;
 use App\Http\Controllers\StudyQuestionController;
 use App\Models\Classroom;
 use App\Models\Series;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
@@ -201,7 +202,13 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('classes/{classroom}/duvidas', Admin\ClassroomQuestionController::class)->name('classrooms.questions');
 
         Route::get('classes/{classroom}/membros', fn (Classroom $classroom) => redirect()->route('admin.classrooms.students.index', $classroom, 301));
-        Route::get('series/{series}/relatorio', fn (Series $series) => redirect()->route('admin.classrooms.report', [$series->classroom, 'serie' => $series->id], 301));
+        // Endereço antigo do relatório da série: só redireciona quem vê o
+        // relatório (senão o slug de uma turma de outra igreja vazaria).
+        Route::get('series/{series}/relatorio', function (Series $series) {
+            abort_unless(Gate::allows('viewReport', $series), 404);
+
+            return redirect()->route('admin.classrooms.report', [$series->classroom, 'serie' => $series->id], 301);
+        });
 
         Route::resource('series', Admin\SeriesController::class)
             ->parameters(['series' => 'series'])

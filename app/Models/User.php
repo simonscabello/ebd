@@ -286,7 +286,7 @@ class User extends Authenticatable implements OAuthenticatable
     {
         $theirs = $person->memberClassroomIds();
 
-        return $theirs !== [] && array_diff($theirs, $this->manageableClassroomIds() ?? []) === [];
+        return $theirs !== [] && array_diff($theirs, $this->manageableClassroomIds()) === [];
     }
 
     /**
@@ -349,8 +349,8 @@ class User extends Authenticatable implements OAuthenticatable
 
     /**
      * A igreja de quem está usando: a escolhida entre as que administra (se
-     * ainda administra), senão a primeira delas ou a da primeira turma. Sem
-     * nenhuma, null.
+     * ainda administra), senão a primeira delas ou a da primeira turma (de
+     * que participa ou que coordena). Sem nenhuma, null.
      */
     public function currentChurch(): ?Church
     {
@@ -360,22 +360,26 @@ class User extends Authenticatable implements OAuthenticatable
             return $choices->firstWhere('id', $this->current_church_id) ?? $choices->first();
         }
 
-        $id = Classroom::query()->whereIn('id', $this->memberClassroomIds())->orderBy('id')->value('church_id');
+        $id = Classroom::query()
+            ->whereIn('id', [...$this->memberClassroomIds(), ...$this->coordinatedClassroomIds()])
+            ->orderBy('id')
+            ->value('church_id');
 
         return $id === null ? null : Church::query()->whereKey($id)->first();
     }
 
     /**
      * As turmas que a pessoa gerencia, nas listas da gestão (painel, classes,
-     * lições, séries): quem administra mais de uma igreja vê só a atual (e a
-     * biblioteca oficial, se for o dono). Não é permissão: as policies
-     * continuam valendo para todas.
+     * lições, séries): quem administra mais de uma igreja vê só a atual. A
+     * biblioteca oficial nunca entra (nem para o dono, que a vê em
+     * /dono/biblioteca). Não é permissão: as policies continuam valendo para
+     * todas.
      *
      * @return list<int>
      */
     public function listedClassroomIds(): array
     {
-        $ids = $this->manageableClassroomIds() ?? [];
+        $ids = $this->manageableClassroomIds();
         // A biblioteca oficial não é turma: tem área própria (/dono/biblioteca).
         $ordinary = Classroom::query()->whereIn('id', $ids)->whereNotIn('church_id', Church::query()->where('is_official', true)->select('id'));
 
@@ -456,12 +460,12 @@ class User extends Authenticatable implements OAuthenticatable
     }
 
     /**
-     * IDs das classes cujo conteúdo o usuário pode gerenciar.
-     * Para administradores retorna null, que significa "todas".
+     * IDs das classes cujo conteúdo o usuário pode gerenciar: as que ensina,
+     * as dos programas que coordena e as das igrejas que administra.
      *
-     * @return list<int>|null
+     * @return list<int>
      */
-    public function manageableClassroomIds(): ?array
+    public function manageableClassroomIds(): array
     {
         // Nunca "todas": cada um gerencia as turmas da própria igreja.
         return array_values(array_unique([

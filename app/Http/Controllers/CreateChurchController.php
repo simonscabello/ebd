@@ -17,8 +17,21 @@ use Inertia\Response;
  */
 class CreateChurchController extends Controller
 {
-    public function create(): Response
+    /**
+     * Conta sem senha (aluno que entra pelo link) não cria igreja: viraria
+     * administradora, o link passaria a ser recusado e ela ficaria trancada
+     * do lado de fora.
+     */
+    public const NEEDS_PASSWORD = 'Para criar uma igreja, sua conta precisa entrar com e-mail e senha. Crie a sua senha e tente de novo.';
+
+    public function create(Request $request): Response|RedirectResponse
     {
+        if ($request->user()->isManaged()) {
+            $this->toast(self::NEEDS_PASSWORD, 'info');
+
+            return redirect('/');
+        }
+
         return Inertia::render('auth/register', ['churchOnly' => true]);
     }
 
@@ -30,6 +43,11 @@ class CreateChurchController extends Controller
         ], [], ['church_name' => 'nome da igreja ou grupo', 'program_name' => 'nome do programa']);
 
         $user = $request->user();
+
+        if ($user->isManaged()) {
+            throw ValidationException::withMessages(['church_name' => self::NEEDS_PASSWORD]);
+        }
+
         $limit = (int) config('ebd.max_churches_per_account');
 
         // Um teto por conta contra a criação em massa. A biblioteca oficial não

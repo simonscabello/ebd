@@ -26,7 +26,7 @@ class MoveStudent extends EbdTool
     {
         $user = $request->user();
 
-        return $user instanceof User && count($user->manageableClassroomIds() ?? []) > 1;
+        return $user instanceof User && count($user->manageableClassroomIds()) > 1;
     }
 
     public function schema(JsonSchema $schema): array

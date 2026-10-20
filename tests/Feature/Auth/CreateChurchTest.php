@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Http\Controllers\CreateChurchController;
 use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\User;
@@ -86,6 +87,23 @@ class CreateChurchTest extends TestCase
         $church = Church::query()->where('name', 'Grupo da Quarta')->sole();
         $this->assertTrue($student->fresh()->isChurchAdminOf($church));
         $this->assertTrue($student->fresh()->isMemberOf($classroom));
+    }
+
+    public function test_an_account_without_password_does_not_create_a_church(): void
+    {
+        // Viraria administradora, o link passaria a ser recusado e ela ficaria
+        // trancada. Sem a tela "Completar cadastro" no caminho, a recusa é daqui.
+        config(['ebd.onboarding.required' => false]);
+        $classroom = Classroom::factory()->create();
+        $student = User::factory()->managed()->studentOf($classroom)->create();
+        $churches = Church::query()->count();
+
+        $this->actingAs($student)->get('/criar-igreja')->assertRedirect('/');
+        $this->actingAs($student)->post('/criar-igreja', ['church_name' => 'Grupo da Quarta'])
+            ->assertSessionHasErrors(['church_name' => CreateChurchController::NEEDS_PASSWORD]);
+
+        $this->assertSame($churches, Church::query()->count());
+        $this->assertSame([], $student->fresh()->administeredChurchIds());
     }
 
     public function test_the_new_church_sees_nothing_of_the_existing_one(): void

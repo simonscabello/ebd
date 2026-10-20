@@ -78,10 +78,17 @@ class StudentProgressQuery
         $series = Series::query()->find($lessons->first()?->series_id);
         $progress = $this->badges->progress($user, $series);
 
+        // Sequência e selos só desta igreja: quem está em duas não vê (nem
+        // mostra ao professor) séries e datas da outra.
+        $churchClassrooms = Classroom::query()->where('church_id', $classroom->church_id)->select('id');
+
         return [
-            'streak' => $this->streak->for($user),
+            'streak' => $this->streak->for($user, churchId: $classroom->church_id),
             'badges' => UserBadge::query()
                 ->where('user_id', $user->id)
+                ->where(fn ($query) => $query
+                    ->whereNull('series_id')
+                    ->orWhereIn('series_id', Series::query()->whereIn('classroom_id', $churchClassrooms)->select('id')))
                 ->with('series:id,title')
                 ->orderByDesc('awarded_at')
                 ->get()

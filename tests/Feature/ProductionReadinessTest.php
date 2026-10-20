@@ -48,7 +48,7 @@ class ProductionReadinessTest extends TestCase
         $user = User::factory()->create(['email' => 'simon@example.com']);
 
         $this->artisan('ebd:promote-admins', ['emails' => ['SIMON@example.com', 'ninguem@example.com']])
-            ->expectsOutputToContain('simon@example.com agora é administrador(a).')
+            ->expectsOutputToContain('simon@example.com agora é dono(a) do sistema.')
             ->expectsOutputToContain('Conta não encontrada para ninguem@example.com')
             ->assertSuccessful();
 
@@ -62,7 +62,7 @@ class ProductionReadinessTest extends TestCase
         config(['ebd.admin_emails' => ['coordenacao@example.com']]);
 
         $this->artisan('ebd:promote-admins')
-            ->expectsOutputToContain('já é administrador(a)')
+            ->expectsOutputToContain('já é dono(a) do sistema')
             ->assertSuccessful();
 
         $this->assertTrue($user->refresh()->isAdmin());
@@ -87,7 +87,7 @@ class ProductionReadinessTest extends TestCase
         config(['ebd.admin_emails' => []]);
 
         $this->artisan('ebd:promote-admins')
-            ->expectsOutputToContain('Nenhum e-mail de administrador configurado.')
+            ->expectsOutputToContain('Nenhum e-mail de dono do sistema configurado.')
             ->assertSuccessful();
     }
 

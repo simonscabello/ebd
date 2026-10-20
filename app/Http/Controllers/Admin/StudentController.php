@@ -10,6 +10,7 @@ use App\Enums\ClassroomRole;
 use App\Enums\Gender;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ClassroomResource;
+use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\StudentNote;
 use App\Models\User;
@@ -159,8 +160,12 @@ class StudentController extends Controller
                     'created_at' => $note->created_at->toIso8601String(),
                     'can_edit' => $actor->can('update', $note),
                 ]),
+            // Só turmas da mesma igreja (pessoas não atravessam igrejas), e
+            // nunca a biblioteca oficial, que não tem alunos.
             'moveTargets' => Classroom::query()
-                ->when($actor->manageableClassroomIds() !== null, fn ($query) => $query->whereIn('id', (array) $actor->manageableClassroomIds()))
+                ->whereIn('id', $actor->manageableClassroomIds())
+                ->where('church_id', $classroom->church_id)
+                ->whereNotIn('church_id', Church::query()->where('is_official', true)->select('id'))
                 ->whereKeyNot($classroom->id)
                 ->active()
                 ->ordered()

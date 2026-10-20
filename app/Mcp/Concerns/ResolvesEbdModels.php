@@ -27,10 +27,8 @@ trait ResolvesEbdModels
      */
     protected function manageableClassrooms(User $user): Builder
     {
-        $ids = $user->manageableClassroomIds();
-
         return Classroom::query()
-            ->when($ids !== null, fn (Builder $q) => $q->whereKey($ids))
+            ->whereKey($user->manageableClassroomIds())
             ->ordered();
     }
 
@@ -60,10 +58,8 @@ trait ResolvesEbdModels
 
     protected function resolveLesson(User $user, mixed $id, string $field = 'lesson_id'): Lesson
     {
-        $ids = $user->manageableClassroomIds();
-
         $lesson = Lesson::query()
-            ->when($ids !== null, fn (Builder $q) => $q->whereIn('classroom_id', $ids))
+            ->whereIn('classroom_id', $user->manageableClassroomIds())
             ->whereKey((int) $id)
             ->first();
 
@@ -105,10 +101,8 @@ trait ResolvesEbdModels
     protected function resolveMeeting(User $user, mixed $reference, ?Classroom $classroom = null, string $field = 'meeting'): ClassMeeting
     {
         $reference = trim((string) $reference);
-        $ids = $user->manageableClassroomIds();
-
         $query = ClassMeeting::query()
-            ->when($ids !== null, fn (Builder $q) => $q->whereIn('classroom_id', $ids))
+            ->whereIn('classroom_id', $user->manageableClassroomIds())
             ->when($classroom !== null, fn (Builder $q) => $q->whereBelongsTo($classroom));
 
         if (ctype_digit($reference)) {

@@ -24,14 +24,14 @@ class LibraryTest extends TestCase
 
     private Series $milagres;
 
-    /** Conta sem igreja: vê a primeira igreja (o visitante só vê a biblioteca oficial). */
+    /** Conta da igreja sem turma ativa: vê as lições públicas da igreja (conta sem igreja não vê nada). */
     private User $reader;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->reader = User::factory()->create();
+        $this->reader = User::factory()->studentOf(Classroom::factory()->inactive()->create(['name' => 'Antiga']))->create();
 
         $this->jovens = Classroom::factory()->create(['name' => 'Jovens']);
         $this->adultos = Classroom::factory()->create(['name' => 'Adultos']);
