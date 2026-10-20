@@ -87,6 +87,8 @@ class LessonController extends Controller
 
         $classrooms = $this->manageableClassrooms($request->user());
         $classroomIds = $classrooms->collection->pluck('id');
+        // ?classe= só pré-seleciona uma turma que a pessoa gerencia.
+        $classroomId = $classroomIds->contains($request->integer('classe')) ? $request->integer('classe') : $classroomIds->first();
 
         return Inertia::render('admin/lessons/create', [
             'classrooms' => $classrooms,
@@ -94,10 +96,10 @@ class LessonController extends Controller
                 Series::query()->whereIn('classroom_id', $classroomIds)->orderByDesc('starts_on')->orderBy('title')->get()
             ),
             'defaults' => [
-                'classroom_id' => $request->integer('classe') ?: $classroomIds->first(),
+                'classroom_id' => $classroomId,
                 'series_id' => $request->integer('serie') ?: null,
                 // Do dia da turma sugerida; trocar de turma no formulário pede outra data.
-                'meeting_on' => $this->nextMeetingOf((int) ($request->integer('classe') ?: $classroomIds->first())),
+                'meeting_on' => $this->nextMeetingOf((int) $classroomId),
             ],
             'visibilities' => $this->visibilityOptions(),
         ]);
@@ -209,10 +211,8 @@ class LessonController extends Controller
      */
     private function manageableClassrooms(User $user)
     {
-        $ids = $user->manageableClassroomIds();
-
         return ClassroomResource::collection(
-            Classroom::query()->when($ids !== null, fn ($q) => $q->whereIn('id', $ids))->ordered()->get()
+            Classroom::query()->whereIn('id', $user->manageableClassroomIds())->ordered()->get()
         );
     }
 
