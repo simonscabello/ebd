@@ -38,28 +38,23 @@ final class ChurchFeatures
     }
 
     /**
-     * Áudios que a igreja ainda pode gerar neste mês (fuso da igreja). Conta
-     * os gerados e os que estão sendo gerados agora em outras lições, para
-     * dois pedidos ao mesmo tempo não furarem o limite.
+     * Áudios que a igreja ainda pode gerar neste mês (fuso da igreja). Cada
+     * tentativa conta desde o pedido (ver RequestLessonAudio), deu certo ou
+     * não: a OpenAI cobra o roteiro e a voz mesmo quando a geração falha
+     * depois, e o pedido já reservado vale para dois pedidos ao mesmo tempo
+     * não furarem o limite.
      */
     public static function audioRemainingThisMonth(Lesson $lesson): int
     {
         $church = self::churchOf($lesson);
 
-        $generated = AiUsage::query()
+        $used = AiUsage::query()
             ->where('church_id', $church->id)
             ->where('kind', AiUsageKind::Audio)
             ->where('created_at', '>=', ChurchCalendar::using($church, fn () => ChurchCalendar::today()->startOfMonth()->utc()))
             ->count();
 
-        $running = Lesson::query()
-            ->whereKeyNot($lesson->id)
-            ->whereHas('classroom', fn ($query) => $query->where('church_id', $church->id))
-            ->where('audio_status', Lesson::AUDIO_GENERATING)
-            ->where('audio_requested_at', '>=', now()->subMinutes(Lesson::AUDIO_GENERATION_TIMEOUT_MINUTES))
-            ->count();
-
-        return max(0, $church->audio_monthly_limit - $generated - $running);
+        return max(0, $church->audio_monthly_limit - $used);
     }
 
     /** Texto da NAA só em lição de igreja com licença; sem lição, nunca. */

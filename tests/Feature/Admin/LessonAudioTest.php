@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Actions\Lessons\GenerateLessonAudio;
+use App\Enums\AiUsageKind;
+use App\Models\AiUsage;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\User;
@@ -162,6 +165,98 @@ class LessonAudioTest extends TestCase
 
         $this->actingAs($this->teacher)->get(route('admin.lessons.edit', $lesson))
             ->assertInertia(fn (Assert $page) => $page->where('audio.status', 'generating'));
+    }
+
+    public function test_repeated_clicks_while_generating_do_not_count_another_audio(): void
+    {
+        $lesson = $this->lesson();
+        $lesson->forceFill(['audio_status' => Lesson::AUDIO_GENERATING, 'audio_requested_at' => now()->subMinute()])->save();
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson))->assertSessionHasNoErrors();
+
+        $this->assertSame(0, AiUsage::query()->count());
+    }
+
+    public function test_a_failed_generation_still_counts_in_the_monthly_limit(): void
+    {
+        // A OpenAI cobra os trechos que já narrou, mesmo que a geração falhe depois.
+        Http::fake([
+            'api.openai.com/v1/audio/speech' => Http::sequence()
+                ->push($this->mp3(10), 200, ['Content-Type' => 'audio/mpeg'])
+                ->push(['error' => ['message' => 'boom']], 500),
+        ]);
+        $lesson = $this->lesson();
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
+
+        $this->assertSame(Lesson::AUDIO_FAILED, $lesson->refresh()->audio_status);
+        $this->assertSame(1, AiUsage::query()->where('lesson_id', $lesson->id)->where('kind', AiUsageKind::Audio)->count());
+    }
+
+    public function test_a_failure_saving_the_file_still_counts_in_the_monthly_limit(): void
+    {
+        $this->fakeOpenAi();
+        $lesson = $this->lesson();
+        Storage::shouldReceive('disk')->andReturn($disk = \Mockery::mock());
+        $disk->shouldReceive('put')->andReturn(false);
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
+
+        $lesson->refresh();
+        $this->assertSame(Lesson::AUDIO_FAILED, $lesson->audio_status);
+        $this->assertSame('Não foi possível salvar o arquivo de áudio. Tente de novo.', $lesson->audio_error);
+        $this->assertSame(1, AiUsage::query()->where('lesson_id', $lesson->id)->count());
+    }
+
+    public function test_a_generation_past_the_deadline_can_be_requested_again_and_counts_again(): void
+    {
+        $this->fakeOpenAi();
+        $lesson = $this->lesson();
+        $lesson->forceFill(['audio_status' => Lesson::AUDIO_GENERATING, 'audio_requested_at' => now()->subMinutes(Lesson::AUDIO_GENERATION_TIMEOUT_MINUTES + 1)])->save();
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson))->assertSessionHasNoErrors();
+
+        $this->assertTrue($lesson->refresh()->hasAudio());
+        $this->assertSame(1, AiUsage::query()->where('lesson_id', $lesson->id)->count());
+    }
+
+    public function test_an_old_generation_that_was_requested_again_does_not_overwrite_the_new_one(): void
+    {
+        $lesson = $this->lesson();
+        $lesson->forceFill(['audio_status' => Lesson::AUDIO_GENERATING, 'audio_requested_at' => now()->subMinutes(20)])->save();
+
+        // Enquanto a geração antiga narra, a lição passa do prazo e é pedida de novo.
+        $newRequest = now()->startOfSecond();
+        Http::fake(function () use ($lesson, $newRequest) {
+            Lesson::query()->whereKey($lesson->id)->update(['audio_requested_at' => $newRequest]);
+
+            return Http::response($this->mp3(10), 200, ['Content-Type' => 'audio/mpeg']);
+        });
+
+        app(GenerateLessonAudio::class)->handle($lesson);
+
+        $lesson->refresh();
+        $this->assertFalse($lesson->hasAudio());
+        $this->assertSame(Lesson::AUDIO_GENERATING, $lesson->audio_status);
+        $this->assertTrue($lesson->audio_requested_at->eq($newRequest));
+        // O arquivo da geração antiga não fica perdido no disco.
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_an_old_generation_that_fails_does_not_mark_the_new_one_as_failed(): void
+    {
+        $lesson = $this->lesson();
+        $lesson->forceFill(['audio_status' => Lesson::AUDIO_GENERATING, 'audio_requested_at' => now()->subMinutes(20)])->save();
+
+        Http::fake(function () use ($lesson) {
+            Lesson::query()->whereKey($lesson->id)->update(['audio_requested_at' => now()]);
+
+            return Http::response(['error' => ['message' => 'boom']], 500);
+        });
+
+        app(GenerateLessonAudio::class)->handle($lesson);
+
+        $this->assertSame(Lesson::AUDIO_GENERATING, $lesson->refresh()->audio_status);
     }
 
     public function test_api_errors_become_a_friendly_message(): void

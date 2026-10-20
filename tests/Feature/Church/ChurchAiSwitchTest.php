@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Church;
 
+use App\Enums\AiUsageKind;
+use App\Models\AiUsage;
 use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\Lesson;
@@ -120,6 +122,42 @@ class ChurchAiSwitchTest extends TestCase
             ->assertSessionHasErrors(['audio' => 'Limite de áudios do mês atingido (1 por mês).']);
 
         $this->assertNull($other->fresh()->audio_status);
+    }
+
+    public function test_the_monthly_audio_limit_counts_failed_attempts(): void
+    {
+        $this->church->update(['audio_enabled' => true, 'audio_monthly_limit' => 1]);
+        Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'boom']], 500)]);
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $this->lesson))->assertSessionHasNoErrors();
+        $this->assertSame(Lesson::AUDIO_FAILED, $this->lesson->fresh()->audio_status);
+
+        // "Gerar de novo" não passa do limite: a tentativa que falhou já gastou.
+        $this->actingAs($this->teacher)
+            ->post(route('admin.lessons.audio', $this->lesson))
+            ->assertSessionHasErrors(['audio' => 'Limite de áudios do mês atingido (1 por mês).']);
+        $this->assertSame(1, $this->church->aiUsages()->where('kind', 'audio')->count());
+    }
+
+    public function test_an_audio_being_generated_takes_its_place_in_the_limit(): void
+    {
+        $this->church->update(['audio_enabled' => true, 'audio_monthly_limit' => 2]);
+        Http::fake(['api.openai.com/v1/audio/speech' => Http::response(str_repeat("\xFF\xF3\xC4\xC4".str_repeat("\0", 380), 50), 200, ['Content-Type' => 'audio/mpeg'])]);
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $this->lesson));
+        // Outra lição pedida e ainda gerando: já ocupa a última vaga.
+        $other = Lesson::factory()->for($this->classroom)->published()->create(['content' => 'Outro estudo.']);
+        $other->forceFill(['audio_status' => Lesson::AUDIO_GENERATING, 'audio_requested_at' => now()])->save();
+        AiUsage::record($this->church, AiUsageKind::Audio, $other);
+
+        $third = Lesson::factory()->for($this->classroom)->published()->create(['content' => 'Mais um estudo.']);
+        $this->actingAs($this->teacher)
+            ->post(route('admin.lessons.audio', $third))
+            ->assertSessionHasErrors(['audio' => 'Limite de áudios do mês atingido (2 por mês).']);
+
+        // Clicar de novo na lição que está gerando não esbarra no limite.
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $other))->assertSessionHasNoErrors();
+        $this->assertSame(2, $this->church->aiUsages()->where('kind', 'audio')->count());
     }
 
     public function test_the_first_church_keeps_ai_and_audio_on(): void
