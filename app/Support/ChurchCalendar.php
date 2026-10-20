@@ -3,17 +3,53 @@
 namespace App\Support;
 
 use App\Enums\Weekday;
+use App\Models\Church;
 use Carbon\CarbonImmutable;
 
 /**
  * Datas "do ponto de vista da igreja". O servidor e o banco trabalham em UTC,
  * mas "hoje", "próximo domingo" e a saudação dependem do fuso da igreja.
+ *
+ * O fuso é o da igreja em contexto: numa requisição, o middleware
+ * UseChurchTimezone escolhe a igreja da classe ou lição da rota (ou a da
+ * pessoa); nos lembretes e tarefas agendadas, using() envolve cada igreja.
+ * Sem igreja em contexto (visitante, console), vale o da configuração.
  */
 class ChurchCalendar
 {
+    private static ?string $timezone = null;
+
     public static function timezone(): string
     {
-        return (string) config('ebd.timezone');
+        return self::$timezone ?? (string) config('ebd.timezone');
+    }
+
+    /**
+     * Fixa o fuso em contexto (null volta ao da configuração).
+     */
+    public static function setTimezone(Church|string|null $timezone): void
+    {
+        self::$timezone = $timezone instanceof Church ? $timezone->timezone : $timezone;
+    }
+
+    /**
+     * Roda $callback no fuso da igreja e restaura o anterior, mesmo com erro.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public static function using(Church|string|null $timezone, callable $callback): mixed
+    {
+        $previous = self::$timezone;
+        self::setTimezone($timezone);
+
+        try {
+            return $callback();
+        } finally {
+            self::$timezone = $previous;
+        }
     }
 
     public static function now(): CarbonImmutable

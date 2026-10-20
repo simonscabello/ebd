@@ -49,7 +49,7 @@ final class ChurchFeatures
         $generated = AiUsage::query()
             ->where('church_id', $church->id)
             ->where('kind', AiUsageKind::Audio)
-            ->where('created_at', '>=', ChurchCalendar::today()->startOfMonth()->utc())
+            ->where('created_at', '>=', ChurchCalendar::using($church, fn () => ChurchCalendar::today()->startOfMonth()->utc()))
             ->count();
 
         $running = Lesson::query()

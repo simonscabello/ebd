@@ -27,13 +27,13 @@ class DashboardController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $manageable = $user->manageableClassroomIds();
+        $manageable = $user->listedClassroomIds();
         $today = ChurchCalendar::todayString();
 
-        $scope = fn (Builder $query) => $query->when($manageable !== null, fn (Builder $q) => $q->whereIn('classroom_id', $manageable));
+        $scope = fn (Builder $query) => $query->whereIn('classroom_id', $manageable);
 
         $classrooms = Classroom::query()
-            ->when($manageable !== null, fn ($q) => $q->whereIn('id', $manageable))
+            ->whereIn('id', $manageable)
             ->active()
             ->ordered()
             ->withCount('students')

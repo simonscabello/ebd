@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\UseChurchTimezone;
 use App\Mcp\Servers\EbdServer;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
@@ -16,4 +17,4 @@ use Laravel\Mcp\Facades\Mcp;
 Route::middleware('throttle:30,1')->group(fn () => Mcp::oauthRoutes());
 
 Mcp::web('/mcp', EbdServer::class)
-    ->middleware(['auth:api', 'can:access-admin', 'throttle:mcp']);
+    ->middleware(['auth:api', 'can:access-admin', 'throttle:mcp', UseChurchTimezone::class]);

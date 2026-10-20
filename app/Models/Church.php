@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\ChurchFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -146,6 +148,24 @@ class Church extends Model
         }
 
         return $ids;
+    }
+
+    /**
+     * Igrejas em que o relógio delas está nos primeiros 15 minutos de $hour:
+     * os lembretes rodam a cada 15 minutos e cada igreja recebe uma vez, na
+     * hora local dela (inclusive fusos de meia hora, como a Índia).
+     *
+     * @return Collection<int, self>
+     */
+    public static function atLocalHour(int $hour): Collection
+    {
+        return self::query()->orderBy('id')->get()
+            ->filter(function (self $church) use ($hour) {
+                $now = CarbonImmutable::now($church->timezone);
+
+                return $now->hour === $hour && $now->minute < 15;
+            })
+            ->values();
     }
 
     public static function displayName(?User $user = null): string

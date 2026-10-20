@@ -1,7 +1,10 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     Building2,
+    Check,
+    ChevronDown,
+    Church as ChurchIcon,
     Layers,
     LayoutDashboard,
     Library,
@@ -17,8 +20,18 @@ import {
 } from '@/components/app-navigation';
 import { MiniAudioPlayer } from '@/components/lesson/mini-audio-player';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { home } from '@/routes';
 import { dashboard } from '@/routes/admin';
+import { edit as churchEdit } from '@/routes/admin/church';
+import { update as switchChurch } from '@/routes/admin/current-church';
 import { index as classroomsIndex } from '@/routes/admin/classrooms';
 import { index as lessonsIndex } from '@/routes/admin/lessons';
 import { index as churchesIndex } from '@/routes/owner/churches';
@@ -31,7 +44,7 @@ import { index as seriesIndex } from '@/routes/admin/series';
  * "Voltar ao app" leva de volta ao estudo (Início, Biblioteca).
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
-    const { church, auth } = usePage().props;
+    const { auth } = usePage().props;
 
     const items: NavLinkItem[] = [
         {
@@ -60,20 +73,24 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
             <header className="sticky top-0 z-30 border-t-4 border-b border-t-primary border-b-border/70 bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/80 print:hidden">
                 <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
-                    <Link
-                        href={dashboard()}
-                        className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    >
-                        <AppLogoMark />
-                        <span className="flex min-w-0 flex-col leading-tight">
-                            <span className="text-[15px] font-semibold tracking-tight">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                        <Link
+                            href={dashboard()}
+                            className="shrink-0 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            aria-label="Painel da gestão"
+                        >
+                            <AppLogoMark />
+                        </Link>
+                        <span className="flex min-w-0 flex-col items-start leading-tight">
+                            <Link
+                                href={dashboard()}
+                                className="rounded text-[15px] font-semibold tracking-tight focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            >
                                 Gestão
-                            </span>
-                            <span className="max-w-[14rem] truncate text-xs text-muted-foreground">
-                                {church.name}
-                            </span>
+                            </Link>
+                            <ChurchMenu />
                         </span>
-                    </Link>
+                    </div>
 
                     <div className="flex items-center gap-2 md:gap-1">
                         <TopNavLinks items={items} label="Gestão" />
@@ -106,5 +123,68 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <MiniAudioPlayer />
             <BottomNavBar items={items} label="Gestão" />
         </div>
+    );
+}
+
+/**
+ * Nome da igreja no cabeçalho. Para quem a administra, abre "Dados da
+ * igreja" e, com duas ou mais, a troca da igreja atual.
+ */
+function ChurchMenu() {
+    const { church } = usePage().props;
+
+    if (!church.can_edit) {
+        return (
+            <span className="max-w-[14rem] truncate text-xs text-muted-foreground">
+                {church.name}
+            </span>
+        );
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger
+                className="flex max-w-[11rem] items-center gap-0.5 rounded text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-[14rem]"
+                aria-label={`Igreja: ${church.name}`}
+            >
+                <span className="truncate">{church.name}</span>
+                <ChevronDown className="size-3 shrink-0" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+                {church.choices.length > 1 && (
+                    <>
+                        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                            Trocar de igreja
+                        </DropdownMenuLabel>
+                        {church.choices.map((choice) => (
+                            <DropdownMenuItem
+                                key={choice.id}
+                                onSelect={() =>
+                                    choice.id !== church.current_id &&
+                                    router.put(switchChurch.url(), {
+                                        church_id: choice.id,
+                                    })
+                                }
+                            >
+                                <Check
+                                    className={
+                                        choice.id === church.current_id
+                                            ? ''
+                                            : 'invisible'
+                                    }
+                                />
+                                <span className="truncate">{choice.name}</span>
+                            </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                    </>
+                )}
+                <DropdownMenuItem asChild>
+                    <Link href={churchEdit()} className="w-full">
+                        <ChurchIcon /> Dados da igreja
+                    </Link>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }

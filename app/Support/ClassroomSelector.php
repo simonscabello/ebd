@@ -41,10 +41,15 @@ class ClassroomSelector
      */
     public function selected(Collection $classrooms, mixed $slug): ?Classroom
     {
-        if (is_string($slug) && ($found = $classrooms->firstWhere('slug', $slug))) {
-            return $found;
+        $classroom = is_string($slug) ? $classrooms->firstWhere('slug', $slug) : null;
+        $classroom ??= $classrooms->first();
+
+        // A página passa a ver "hoje" no fuso da igreja da classe escolhida
+        // (o middleware UseChurchTimezone restaura no fim da requisição).
+        if ($classroom !== null) {
+            ChurchCalendar::setTimezone($classroom->church);
         }
 
-        return $classrooms->first();
+        return $classroom;
     }
 }

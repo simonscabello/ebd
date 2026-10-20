@@ -49,12 +49,12 @@ class LessonController extends Controller
             'q' => ['nullable', 'string', 'max:120'],
         ]);
 
-        $manageable = $request->user()->manageableClassroomIds();
+        $manageable = $request->user()->listedClassroomIds();
 
         $lessons = Lesson::query()
             ->select('lessons.*')
             ->leftJoin('series', 'series.id', '=', 'lessons.series_id')
-            ->when($manageable !== null, fn ($q) => $q->whereIn('lessons.classroom_id', $manageable))
+            ->whereIn('lessons.classroom_id', $manageable)
             ->when($filters['classe'] ?? null, fn ($q, $id) => $q->where('lessons.classroom_id', $id))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('lessons.status', $status))
             ->when($filters['q'] ?? null, fn ($q, $term) => $q->whereRaw('unaccent(lessons.title) ILIKE unaccent(?)', ['%'.addcslashes($term, '%_\\').'%']))
@@ -97,7 +97,7 @@ class LessonController extends Controller
                 'classroom_id' => $request->integer('classe') ?: $classroomIds->first(),
                 'series_id' => $request->integer('serie') ?: null,
                 // Do dia da turma sugerida; trocar de turma no formulário pede outra data.
-                'meeting_on' => ChurchCalendar::nextMeetingDay($this->meetingWeekdayOf((int) ($request->integer('classe') ?: $classroomIds->first())))->toDateString(),
+                'meeting_on' => $this->nextMeetingOf((int) ($request->integer('classe') ?: $classroomIds->first())),
             ],
             'visibilities' => $this->visibilityOptions(),
         ]);
@@ -227,10 +227,14 @@ class LessonController extends Controller
         );
     }
 
-    private function meetingWeekdayOf(int $classroomId): Weekday
+    /** Próximo dia de encontro da turma, no fuso da igreja dela. */
+    private function nextMeetingOf(int $classroomId): string
     {
         $classroom = Classroom::query()->whereKey($classroomId)->first();
 
-        return $classroom === null ? Weekday::Sunday : $classroom->meeting_weekday;
+        return ChurchCalendar::using(
+            $classroom?->church,
+            fn () => ChurchCalendar::nextMeetingDay($classroom === null ? Weekday::Sunday : $classroom->meeting_weekday)->toDateString(),
+        );
     }
 }
