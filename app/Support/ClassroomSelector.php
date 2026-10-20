@@ -19,7 +19,11 @@ class ClassroomSelector
      */
     public function available(?User $user, bool $onlyMine = false): Collection
     {
-        $classrooms = Classroom::query()->active()->whereIn('church_id', Church::idsVisibleTo($user))->ordered()->get();
+        // A biblioteca oficial não é turma de estudo (o dono a vê em /dono/biblioteca).
+        $classrooms = Classroom::query()->active()
+            ->whereIn('church_id', Church::idsVisibleTo($user))
+            ->whereNotIn('church_id', Church::query()->where('is_official', true)->select('id'))
+            ->ordered()->get();
 
         if ($user === null) {
             return $onlyMine ? collect() : $classrooms;

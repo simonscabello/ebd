@@ -2,6 +2,8 @@
 
 namespace App\Queries;
 
+use App\Models\Church;
+use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -34,6 +36,9 @@ class LibrarySearch
         $query = Lesson::query()
             ->select('lessons.*')
             ->visibleTo($user)
+            // Logado, a biblioteca é a da igreja: os estudos oficiais ficam fora
+            // (o visitante vê os exemplos do site, que vêm de lá).
+            ->when($user !== null, fn (Builder $q) => $q->whereNotIn('lessons.classroom_id', Classroom::query()->whereIn('church_id', Church::query()->where('is_official', true)->select('id'))->select('id')))
             ->with(['series', 'classroom'])
             ->when($filters['classroom'] ?? null, fn (Builder $q, $id) => $q->where('lessons.classroom_id', $id))
             ->when($filters['series'] ?? null, fn (Builder $q, $id) => $q->where('lessons.series_id', $id))
