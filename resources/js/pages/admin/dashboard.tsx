@@ -15,7 +15,7 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { dateTile, dayMonth } from '@/lib/dates';
-import { meetingWords } from '@/lib/meeting-words';
+import { meetingWords, meetingWordsForAll } from '@/lib/meeting-words';
 import {
     create as createClassroom,
     show as classroomPage,
@@ -54,26 +54,32 @@ type Pending = {
     classroom: { name: string; slug: string };
 };
 
+type UpcomingLesson = Lesson & { next_meeting_on: string | null };
+
 type Props = {
     classrooms: ClassroomCard[];
     pending: Pending[];
-    upcoming: (Lesson & { next_meeting_on: string | null })[];
+    // Aulas com encontro marcado vêm primeiro; as sem encontro ficam à parte
+    // para não disputar a atenção com o que vem aí.
+    scheduled: UpcomingLesson[];
+    unscheduled: UpcomingLesson[];
+    hasLessons: boolean;
 };
 
 /**
- * Painel da gestão: cada classe com o que vem neste domingo, os domingos que
- * ficaram pendentes e as próximas lições a preparar.
+ * Painel da gestão: cada classe com o que vem no próximo encontro, os
+ * encontros que ficaram pendentes e as próximas lições a preparar.
  */
 export default function AdminDashboard({
     classrooms,
     pending,
-    upcoming,
+    scheduled,
+    unscheduled,
+    hasLessons,
 }: Props) {
     const { auth } = usePage().props;
-    // Aulas com domingo marcado vêm primeiro; rascunhos sem data ficam à parte
-    // para não disputar a atenção com o que vem aí.
-    const scheduled = upcoming.filter((lesson) => lesson.next_meeting_on);
-    const unscheduled = upcoming.filter((lesson) => !lesson.next_meeting_on);
+    // Cada turma tem o seu dia: "domingo" só quando todas são de domingo.
+    const words = meetingWordsForAll(classrooms);
 
     return (
         <>
@@ -160,13 +166,13 @@ export default function AdminDashboard({
                     {pending.length > 0 && (
                         <section className="rounded-2xl border border-warning/50 bg-warning-soft p-4">
                             <h2 className="flex items-center gap-2 font-semibold text-warning-foreground">
-                                <AlertCircle className="size-5" /> Domingos para
-                                confirmar
+                                <AlertCircle className="size-5" /> {words.Many}{' '}
+                                para confirmar
                             </h2>
                             <p className="mt-1 text-sm text-warning-foreground/80">
-                                Já passaram e continuam “planejados”. Abra o
-                                domingo para fazer a chamada ou marcar se teve
-                                aula.
+                                Já passaram e continuam “planejados”. Abra o{' '}
+                                {words.one} para fazer a chamada ou marcar se
+                                teve aula.
                             </p>
                             <ul className="mt-3 space-y-2">
                                 {pending.map((meeting) => (
@@ -201,12 +207,28 @@ export default function AdminDashboard({
                     )}
 
                     <Section title="Próximas lições" icon={<CalendarDays />}>
-                        {scheduled.length === 0 ? (
+                        {!hasLessons && classrooms.length > 0 ? (
                             <EmptyState
                                 icon={<CalendarDays />}
-                                title="Nenhuma lição com domingo marcado"
+                                title="Nenhuma lição cadastrada"
                             >
-                                Escolha a lição de cada domingo na agenda da
+                                <p>
+                                    Cadastre a primeira lição e depois escolha
+                                    em que {words.one} ela vai ser dada, na
+                                    agenda da classe.
+                                </p>
+                                <Button asChild className="mt-4">
+                                    <Link href={createLesson()}>
+                                        <Plus /> Nova lição
+                                    </Link>
+                                </Button>
+                            </EmptyState>
+                        ) : scheduled.length === 0 ? (
+                            <EmptyState
+                                icon={<CalendarDays />}
+                                title={`Nenhuma lição com ${words.one} marcado`}
+                            >
+                                Escolha a lição de cada {words.one} na agenda da
                                 classe para que os alunos possam se preparar.
                             </EmptyState>
                         ) : (
@@ -222,18 +244,17 @@ export default function AdminDashboard({
 
                     {unscheduled.length > 0 && (
                         <Section
-                            title="Sem domingo marcado"
+                            title={`Sem ${words.one} marcado`}
                             icon={<FileClock />}
                             description={
                                 <>
-                                    Ainda não estão em nenhum domingo.{' '}
+                                    Rascunhos e publicadas que ainda não estão
+                                    em nenhum {words.one}.{' '}
                                     <Link
-                                        href={lessonsIndex({
-                                            query: { status: 'draft' },
-                                        })}
+                                        href={lessonsIndex()}
                                         className="font-medium text-primary underline underline-offset-4"
                                     >
-                                        Ver todos os rascunhos
+                                        Ver todas as lições
                                     </Link>
                                 </>
                             }
@@ -253,11 +274,7 @@ export default function AdminDashboard({
     );
 }
 
-function UpcomingRow({
-    lesson,
-}: {
-    lesson: Lesson & { next_meeting_on: string | null };
-}) {
+function UpcomingRow({ lesson }: { lesson: UpcomingLesson }) {
     const tile = lesson.next_meeting_on
         ? dateTile(lesson.next_meeting_on)
         : null;
