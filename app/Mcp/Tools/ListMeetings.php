@@ -20,7 +20,7 @@ class ListMeetings extends EbdTool
 
     protected string $title = 'Agenda da classe';
 
-    protected string $description = 'Mostra os domingos da classe: cada domingo, a lição que cai nele, situação (planned, held, cancelled), visitantes e, se pedido, quem esteve presente. Sem datas, mostra das últimas 6 semanas em diante. Cada domingo tem página própria na gestão (Domingos), onde a chamada pode ser corrigida.';
+    protected string $description = 'Mostra os encontros da classe (no dia da semana dela): cada encontro, a lição que cai nele, situação (planned, held, cancelled), visitantes e, se pedido, quem esteve presente. Sem datas, mostra das últimas 6 semanas em diante. Cada encontro tem página própria na gestão (Domingos, ou Encontros nas classes que não se reúnem no domingo), onde a chamada pode ser corrigida.';
 
     public function schema(JsonSchema $schema): array
     {

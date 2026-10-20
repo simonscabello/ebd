@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { dateTile, monthYear } from '@/lib/dates';
+import { meetingWords } from '@/lib/meeting-words';
 import { cn } from '@/lib/utils';
 import { index, show } from '@/routes/admin/classrooms/meetings';
 import type {
@@ -55,15 +56,17 @@ export default function ClassroomMeetings({
     hasOlder,
     series,
 }: Props) {
+    const words = meetingWords(classroom);
+
     return (
         <>
-            <Head title={`Domingos · ${classroom.name}`} />
+            <Head title={`${words.Many} · ${classroom.name}`} />
 
             <Page width="wide">
                 <ClassroomHeader classroom={classroom} active="domingos" />
                 <PageHeader
-                    title="Domingos"
-                    description={`Todo domingo já está na agenda: escolha a lição de cada um ou marque “Sem ${classroom.program_short_name ?? 'EBD'}”. Uma lição pode ocupar mais de um domingo.`}
+                    title={words.Many}
+                    description={`Todo ${words.one} já está na agenda: escolha a lição de cada um ou marque “Sem ${words.program}”. Uma lição pode ocupar mais de um ${words.one}.`}
                     actions={
                         <PlanMeetingsDialog
                             classroom={classroom}
@@ -76,17 +79,17 @@ export default function ClassroomMeetings({
                 {upcoming.length === 0 && past.length === 0 ? (
                     <EmptyState
                         icon={<CalendarPlus />}
-                        title="Nenhum domingo na agenda"
+                        title={`Nenhum ${words.one} na agenda`}
                     >
                         Use “Planejar série” para distribuir as lições da
-                        revista pelos domingos.
+                        revista pelos {words.many}.
                     </EmptyState>
                 ) : (
                     <div className="space-y-10">
                         <Section title="Próximos">
                             {upcoming.length === 0 ? (
                                 <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                    Nenhum domingo daqui para frente.
+                                    Nenhum {words.one} daqui para frente.
                                 </p>
                             ) : (
                                 <MeetingList
@@ -110,7 +113,7 @@ export default function ClassroomMeetings({
                                         preserveScroll
                                         className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
                                     >
-                                        Ver domingos mais antigos
+                                        Ver {words.many} mais antigos
                                     </Link>
                                 )}
                             </Section>
@@ -159,10 +162,11 @@ function MeetingList({
 }
 
 function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
+    const words = meetingWords(classroom);
     const tile = dateTile(row.held_on);
     const cancelled = row.status === 'cancelled';
     const title = cancelled
-        ? `Sem ${classroom.program_short_name ?? 'EBD'}${row.title ? ` · ${row.title}` : ''}`
+        ? `Sem ${words.program}${row.title ? ` · ${row.title}` : ''}`
         : (row.lesson?.display_title ?? row.title ?? 'Lição a definir');
 
     return (
@@ -214,7 +218,8 @@ function MeetingRow({ classroom, row }: { classroom: Classroom; row: Row }) {
                     )}
                     {row.position && row.position.total > 1 && (
                         <span>
-                            domingo {row.position.index} de {row.position.total}
+                            {words.one} {row.position.index} de{' '}
+                            {row.position.total}
                         </span>
                     )}
                     {row.lesson?.status === 'draft' && (

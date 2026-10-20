@@ -1,8 +1,10 @@
 import { router } from '@inertiajs/react';
 import { Check, Minus, Plus, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { meetingWords } from '@/lib/meeting-words';
 import { cn } from '@/lib/utils';
 import { update } from '@/routes/admin/meetings/attendance';
+import type { Classroom } from '@/types';
 
 export type Roster = {
     id: number;
@@ -22,6 +24,7 @@ export function AttendanceSheet({
     initialVisitors,
     onChange,
     reloadOnly = ['conduct'],
+    classroom,
 }: {
     meetingId: number;
     roster: Roster;
@@ -31,7 +34,10 @@ export function AttendanceSheet({
     onChange?: (present: number) => void;
     /** Props recarregadas depois de salvar (precisam existir na página). */
     reloadOnly?: string[];
+    /** Dia da classe (padrão: domingo). */
+    classroom?: Pick<Classroom, 'meeting_weekday' | 'program_short_name'>;
 }) {
+    const words = meetingWords(classroom);
     const [present, setPresent] = useState<number[]>(initialPresent);
     const [visitors, setVisitors] = useState(initialVisitors);
     const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>(
@@ -179,7 +185,7 @@ export function AttendanceSheet({
                                         {student.name}
                                         {student.joined_after && (
                                             <span className="block text-[0.8em] text-muted-foreground">
-                                                entrou depois deste domingo
+                                                entrou depois deste {words.one}
                                             </span>
                                         )}
                                     </span>

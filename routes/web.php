@@ -179,6 +179,9 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::delete('anotacoes/{note}', [Admin\StudentNoteController::class, 'destroy'])->name('notes.destroy');
 
         // Vínculos (adicionar por e-mail, remover da classe) e link pessoal.
+        Route::get('programas', [Admin\ProgramController::class, 'index'])->name('programs.index');
+        Route::post('programas', [Admin\ProgramController::class, 'store'])->name('programs.store');
+        Route::put('programas/{program}', [Admin\ProgramController::class, 'update'])->name('programs.update');
         Route::post('programas/{program}/coordenadores', [Admin\ProgramCoordinatorController::class, 'store'])->name('programs.coordinators.store');
         Route::delete('programas/{program}/coordenadores/{user}', [Admin\ProgramCoordinatorController::class, 'destroy'])->name('programs.coordinators.destroy');
         Route::post('classes/{classroom}/membros', [Admin\ClassroomMemberController::class, 'store'])->name('classrooms.members.store');

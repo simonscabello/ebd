@@ -12,7 +12,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { meetingWords } from '@/lib/meeting-words';
 import { cancel } from '@/routes/admin/meetings';
+import type { Classroom } from '@/types';
 
 /**
  * "Sem EBD": motivo (opcional) e, se houver lição marcada, a opção de
@@ -23,15 +25,16 @@ export function CancelMeetingDialog({
     dateLabel,
     open,
     onOpenChange,
-    program = 'EBD',
+    classroom,
 }: {
     meeting: { id: number; lesson_id: number | null };
     dateLabel: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    /** Nome curto do programa ("EBD", "Discipulado"). */
-    program?: string;
+    /** Dia e programa da classe (padrão: domingo, EBD). */
+    classroom?: Pick<Classroom, 'meeting_weekday' | 'program_short_name'>;
 }) {
+    const words = meetingWords(classroom);
     const form = useForm({ reason: '', shift: meeting.lesson_id !== null });
 
     return (
@@ -49,7 +52,9 @@ export function CancelMeetingDialog({
                     className="space-y-4"
                 >
                     <DialogHeader>
-                        <DialogTitle>Domingo sem {program}</DialogTitle>
+                        <DialogTitle>
+                            {words.One} sem {words.program}
+                        </DialogTitle>
                         <DialogDescription className="first-letter:uppercase">
                             {dateLabel}. O aviso aparece para a classe no
                             Início.
@@ -82,7 +87,7 @@ export function CancelMeetingDialog({
                             />
                             <span>
                                 Empurrar esta lição (e as seguintes) para o
-                                próximo domingo
+                                próximo {words.one}
                                 <span className="block text-muted-foreground">
                                     Desmarque se a lição simplesmente não será
                                     dada.
@@ -99,7 +104,7 @@ export function CancelMeetingDialog({
                             Voltar
                         </Button>
                         <Button type="submit" disabled={form.processing}>
-                            <CalendarOff /> Marcar sem {program}
+                            <CalendarOff /> Marcar sem {words.program}
                         </Button>
                     </DialogFooter>
                 </form>
