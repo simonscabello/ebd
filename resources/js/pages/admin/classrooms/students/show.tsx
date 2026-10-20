@@ -30,6 +30,7 @@ import type { Streak } from '@/components/progress/streak-flame';
 import { Button } from '@/components/ui/button';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { dayMonth, monthShort } from '@/lib/dates';
+import { meetingWords } from '@/lib/meeting-words';
 import { formatPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { LessonProgressList } from '@/pages/my-progress';
@@ -109,6 +110,7 @@ export default function StudentPage({
     genders,
 }: Props) {
     const confirm = useConfirm();
+    const words = meetingWords(classroom);
     const [issued, setIssued] = useState<IssuedLink | null>(null);
     const [allSundays, setAllSundays] = useState(false);
     const { frequency } = stats;
@@ -199,7 +201,7 @@ export default function StudentPage({
                             }
                             hint={
                                 frequency.expected > 0
-                                    ? `${frequency.present} de ${frequency.expected} domingos · ${stats.period.series_id ? stats.period.label : stats.period.label.toLowerCase()}`
+                                    ? `${frequency.present} de ${frequency.expected} ${words.many} · ${stats.period.series_id ? stats.period.label : stats.period.label.toLowerCase()}`
                                     : 'Sem chamada no período'
                             }
                             tone={
@@ -232,13 +234,14 @@ export default function StudentPage({
 
                     <div className="mt-10 space-y-10">
                         <Section
-                            title="Domingos"
+                            title={words.Many}
                             icon={<History />}
                             description="Desde que o aluno entrou na classe, do mais recente para trás."
                         >
                             {sundays.length === 0 ? (
                                 <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                    Nenhum domingo com chamada desde que entrou.
+                                    Nenhum {words.one} com chamada desde que
+                                    entrou.
                                 </p>
                             ) : (
                                 <>
@@ -276,7 +279,7 @@ export default function StudentPage({
                                                         <span className="min-w-0 flex-1 truncate text-sm">
                                                             {sunday.lesson ??
                                                                 sunday.title ??
-                                                                'Domingo sem lição'}
+                                                                `${words.One} sem lição`}
                                                         </span>
                                                         <span
                                                             className={cn(
@@ -303,7 +306,7 @@ export default function StudentPage({
                                             onClick={() => setAllSundays(true)}
                                         >
                                             Ver todos os {sundays.length}{' '}
-                                            domingos
+                                            {words.many}
                                         </Button>
                                     )}
                                 </>
@@ -315,7 +318,10 @@ export default function StudentPage({
                             icon={<BookOpen />}
                             description="Dias de leitura marcados em cada lição."
                         >
-                            <LessonProgressList lessons={lessons} />
+                            <LessonProgressList
+                                lessons={lessons}
+                                classroom={classroom}
+                            />
                         </Section>
 
                         <Section

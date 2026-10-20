@@ -5,6 +5,7 @@ namespace App\Actions\Meetings;
 use App\Actions\Lessons\SyncLessonSchedule;
 use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
+use App\Support\ProgramNames;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -25,7 +26,7 @@ class CancelMeeting
     {
         if ($meeting->hasAttendance()) {
             throw ValidationException::withMessages([
-                'meeting' => 'Este encontro já tem chamada registrada e não pode ser marcado como "sem EBD".',
+                'meeting' => 'Este encontro já tem chamada registrada e não pode ser marcado como "sem '.app(ProgramNames::class)->shortFor($meeting->classroom_id).'".',
             ]);
         }
 

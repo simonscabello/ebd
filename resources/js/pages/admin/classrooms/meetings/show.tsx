@@ -29,6 +29,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAutosave } from '@/hooks/use-autosave';
 import { dayMonth, longDate } from '@/lib/dates';
+import { meetingWords } from '@/lib/meeting-words';
 import { show } from '@/routes/admin/classrooms/meetings';
 import { edit as editLesson } from '@/routes/admin/lessons';
 import {
@@ -82,6 +83,7 @@ export default function MeetingPage({
     const [cancelOpen, setCancelOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const cancelled = meeting.status === 'cancelled';
+    const words = meetingWords(classroom);
     const past = !meeting.is_future;
     const title = longDate(meeting.held_on);
     const here = show.url({ classroom: classroom.slug, meeting: meeting.id });
@@ -117,8 +119,8 @@ export default function MeetingPage({
                                 {meeting.position &&
                                     meeting.position.total > 1 && (
                                         <span>
-                                            domingo {meeting.position.index} de{' '}
-                                            {meeting.position.total} da lição
+                                            {words.one} {meeting.position.index}{' '}
+                                            de {meeting.position.total} da lição
                                         </span>
                                     )}
                                 {meeting.title && !cancelled && (
@@ -196,9 +198,8 @@ export default function MeetingPage({
                             {cancelled ? (
                                 <div className="rounded-2xl border border-dashed p-4 text-sm">
                                     <p className="text-muted-foreground">
-                                        Não teve{' '}
-                                        {classroom.program_short_name ?? 'EBD'}{' '}
-                                        neste domingo
+                                        Não teve {words.program} neste{' '}
+                                        {words.one}
                                         {meeting.title
                                             ? ` (${meeting.title})`
                                             : ''}
@@ -213,7 +214,7 @@ export default function MeetingPage({
                                         }
                                     >
                                         <RotateCcw /> Voltar a ter{' '}
-                                        {classroom.program_short_name ?? 'EBD'}
+                                        {words.program}
                                     </Button>
                                 </div>
                             ) : attendance ? (
@@ -236,12 +237,13 @@ export default function MeetingPage({
                                         initialPresent={attendance.present}
                                         initialVisitors={attendance.visitors}
                                         reloadOnly={['summary', 'meeting']}
+                                        classroom={classroom}
                                     />
                                 </>
                             ) : (
                                 <p className="flex items-center gap-2 rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
                                     <CalendarClock className="size-4 shrink-0" />
-                                    A chamada abre no dia do domingo.
+                                    A chamada abre no dia do {words.one}.
                                 </p>
                             )}
                         </Section>
@@ -250,7 +252,7 @@ export default function MeetingPage({
                             <Section
                                 title="Onde paramos"
                                 icon={<StickyNote />}
-                                description="Só professores veem. Ajuda a preparar o próximo domingo."
+                                description={`Só professores veem. Ajuda a preparar o próximo ${words.one}.`}
                             >
                                 {/* Pelo id, não pelo texto: o salvamento automático
                                     recarrega o domingo e não pode remontar o campo. */}
@@ -291,8 +293,7 @@ export default function MeetingPage({
                                         variant="outline"
                                         onClick={() => setCancelOpen(true)}
                                     >
-                                        <CalendarOff /> Sem{' '}
-                                        {classroom.program_short_name ?? 'EBD'}
+                                        <CalendarOff /> Sem {words.program}
                                     </Button>
                                 )}
                                 <Button
@@ -306,7 +307,7 @@ export default function MeetingPage({
                     </div>
 
                     <CancelMeetingDialog
-                        program={classroom.program_short_name ?? 'EBD'}
+                        classroom={classroom}
                         meeting={meeting}
                         dateLabel={title}
                         open={cancelOpen}
@@ -314,6 +315,7 @@ export default function MeetingPage({
                     />
                     <EditMeetingDialog
                         key={`${meeting.held_on}-${meeting.title}`}
+                        classroom={classroom}
                         meeting={meeting}
                         open={editOpen}
                         onOpenChange={setEditOpen}
@@ -333,8 +335,11 @@ function NeighborLink({
     id: number | null;
     direction: 'previous' | 'next';
 }) {
+    const words = meetingWords(classroom);
     const label =
-        direction === 'previous' ? 'Domingo anterior' : 'Próximo domingo';
+        direction === 'previous'
+            ? `${words.One} anterior`
+            : `Próximo ${words.one}`;
     const Icon = direction === 'previous' ? ChevronLeft : ChevronRight;
 
     if (id === null) {

@@ -10,7 +10,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { meetingWords } from '@/lib/meeting-words';
 import { update } from '@/routes/admin/meetings';
+import type { Classroom } from '@/types';
 
 /**
  * Data e título do domingo (ex.: "Revisão do trimestre").
@@ -19,11 +21,15 @@ export function EditMeetingDialog({
     meeting,
     open,
     onOpenChange,
+    classroom,
 }: {
     meeting: { id: number; held_on: string; title: string | null };
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    /** Dia da classe (padrão: domingo). */
+    classroom?: Pick<Classroom, 'meeting_weekday' | 'program_short_name'>;
 }) {
+    const words = meetingWords(classroom);
     const form = useForm({
         held_on: meeting.held_on,
         title: meeting.title ?? '',
@@ -48,7 +54,7 @@ export function EditMeetingDialog({
                     className="space-y-4"
                 >
                     <DialogHeader>
-                        <DialogTitle>Editar domingo</DialogTitle>
+                        <DialogTitle>Editar {words.one}</DialogTitle>
                         <DialogDescription>
                             Para trocar a lição, use a seção Lição do dia.
                         </DialogDescription>
@@ -72,7 +78,7 @@ export function EditMeetingDialog({
                         label="Título (opcional)"
                         htmlFor="edit-meeting-title"
                         error={form.errors.title}
-                        hint="Para domingos especiais, ex.: Revisão da série."
+                        hint={`Para ${words.many} especiais, ex.: Revisão da série.`}
                     >
                         <Input
                             id="edit-meeting-title"

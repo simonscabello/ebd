@@ -20,7 +20,7 @@ class SaveMeetingTool extends EbdTool
 
     protected string $title = 'Salvar encontro';
 
-    protected string $description = 'Adiciona um domingo à agenda ou edita um encontro (meeting): data, lição do dia, título (ex.: "Culto de missões") e anotações. Na edição, campos omitidos ficam como estão; lesson_id null tira a lição do encontro. Para marcar "sem EBD" use cancel_meeting.';
+    protected string $description = 'Adiciona um encontro à agenda da classe ou edita um encontro (meeting): data, lição do dia, título (ex.: "Culto de missões") e anotações. Na edição, campos omitidos ficam como estão; lesson_id null tira a lição do encontro. Para marcar que não haverá aula ("sem EBD") use cancel_meeting.';
 
     public function schema(JsonSchema $schema): array
     {

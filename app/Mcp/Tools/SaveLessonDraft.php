@@ -26,7 +26,7 @@ class SaveLessonDraft extends EbdTool
 
     protected string $description = <<<'TEXT'
         Cria uma lição como rascunho ou edita um rascunho existente (lesson_id). Lições publicadas não podem ser alteradas por aqui.
-        Na criação informe classroom e title; series e meeting_on (domingo da aula) são opcionais.
+        Na criação informe classroom e title; series e meeting_on (data do encontro da aula) são opcionais.
         Na edição, só os campos enviados mudam. As listas readings, blocks e materials, quando enviadas, SUBSTITUEM as atuais por inteiro;
         para mexer em um item só, use save_lesson_block, save_lesson_reading ou save_lesson_material.
         A lição fica como rascunho: a publicação é feita pela pessoa no app (link edit_url).

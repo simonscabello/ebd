@@ -23,6 +23,7 @@ import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
 import { dayMonth, longDate } from '@/lib/dates';
+import { meetingWords } from '@/lib/meeting-words';
 import { report } from '@/routes/admin/classrooms';
 import { show as showMeeting } from '@/routes/admin/classrooms/meetings';
 import type { Classroom } from '@/types';
@@ -107,6 +108,8 @@ export default function ClassroomReport({
         );
     };
 
+    const words = meetingWords(classroom);
+
     return (
         <>
             <Head title={`Relatório · ${classroom.name}`} />
@@ -116,12 +119,12 @@ export default function ClassroomReport({
                 <ClassroomHeader classroom={classroom} active="relatorio" />
 
                 <p className="mb-2 hidden text-sm text-muted-foreground print:block">
-                    {classroom.program_short_name ?? 'EBD'} · Classe{' '}
-                    {classroom.name} · impresso em {longDate(printedAt)}
+                    {words.program} · Classe {classroom.name} · impresso em{' '}
+                    {longDate(printedAt)}
                 </p>
                 <PageHeader
                     title={`Relatório · ${period.label}`}
-                    description={`${range} · ${totals.sundays} ${totals.sundays === 1 ? 'domingo' : 'domingos'} com chamada. Cada aluno conta a partir de quando entrou na classe.`}
+                    description={`${range} · ${totals.sundays} ${totals.sundays === 1 ? words.one : words.many} com chamada. Cada aluno conta a partir de quando entrou na classe.`}
                     actions={
                         <div className="flex flex-wrap gap-2 print:hidden">
                             <label htmlFor="report-period" className="sr-only">
@@ -155,10 +158,10 @@ export default function ClassroomReport({
                 {sundays.length === 0 ? (
                     <EmptyState
                         icon={<FileBarChart />}
-                        title="Nenhum domingo com chamada neste período"
+                        title={`Nenhum ${words.one} com chamada neste período`}
                     >
-                        A chamada é feita no Modo Domingo ou na página de cada
-                        domingo.
+                        A chamada é feita no Modo Domingo ou na página de cada{' '}
+                        {words.one}.
                     </EmptyState>
                 ) : (
                     <div className="space-y-10">
@@ -188,7 +191,7 @@ export default function ClassroomReport({
                                 icon={<Users />}
                                 label="Visitantes"
                                 value={String(totals.visitors)}
-                                hint="somando todos os domingos"
+                                hint={`somando todos os ${words.many}`}
                             />
                         </div>
 
@@ -248,6 +251,7 @@ export default function ClassroomReport({
                             <AttendanceMatrix
                                 sundays={sundays}
                                 students={students}
+                                classroom={classroom}
                             />
                         </Section>
 
@@ -296,17 +300,18 @@ function SundaysSection({
     classroom: Classroom;
     calendar: Calendar;
 }) {
+    const words = meetingWords(classroom);
     const plural = (n: number, one: string, many: string) =>
         `${n} ${n === 1 ? one : many}`;
 
     return (
         <Section
-            title="Domingos do período"
+            title={`${words.Many} do período`}
             icon={<CalendarDays />}
             description={[
-                plural(calendar.total, 'domingo', 'domingos'),
+                plural(calendar.total, words.one, words.many),
                 `${calendar.held} com aula`,
-                `${calendar.cancelled.length} sem ${classroom.program_short_name ?? 'EBD'}`,
+                `${calendar.cancelled.length} sem ${words.program}`,
                 calendar.pending.length > 0 &&
                     plural(calendar.pending.length, 'pendente', 'pendentes'),
             ]
@@ -325,7 +330,7 @@ function SundaysSection({
                                 {dayMonth(sunday.held_on)}
                             </span>
                             <span className="text-muted-foreground">
-                                Sem {classroom.program_short_name ?? 'EBD'}
+                                Sem {words.program}
                                 {sunday.reason ? ` · ${sunday.reason}` : ''}
                             </span>
                         </li>
@@ -344,7 +349,7 @@ function SundaysSection({
                                 </span>
                                 <span className="font-medium text-warning-foreground">
                                     Pendente: faça a chamada ou marque “Sem{' '}
-                                    {classroom.program_short_name ?? 'EBD'}”
+                                    {words.program}”
                                 </span>
                             </Link>
                         </li>

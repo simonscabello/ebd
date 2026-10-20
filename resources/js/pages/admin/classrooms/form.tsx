@@ -22,6 +22,7 @@ import {
 import type { Classroom } from '@/types';
 
 type Teacher = { id: number; name: string; email: string | null };
+type ProgramOption = { id: number; name: string };
 
 /** Dias da semana no padrão ISO, na ordem em que a igreja pensa: domingo primeiro. */
 const WEEKDAYS: [number, string][] = [
@@ -37,9 +38,13 @@ const WEEKDAYS: [number, string][] = [
 export default function ClassroomForm({
     classroom,
     teachers = [],
+    programs = [],
+    defaultProgramId = null,
 }: {
-    classroom: (Classroom & { position: number }) | null;
+    classroom: (Classroom & { position: number; program_id: number }) | null;
     teachers?: Teacher[];
+    programs?: ProgramOption[];
+    defaultProgramId?: number | null;
 }) {
     const form = useForm({
         name: classroom?.name ?? '',
@@ -47,6 +52,8 @@ export default function ClassroomForm({
         is_active: classroom?.is_active ?? true,
         position: classroom?.position ?? 0,
         meeting_weekday: classroom?.meeting_weekday ?? 7,
+        program_id:
+            classroom?.program_id ?? defaultProgramId ?? programs[0]?.id ?? 0,
     });
     const { data, setData, errors, processing } = form;
 
@@ -96,6 +103,31 @@ export default function ClassroomForm({
                             rows={3}
                         />
                     </Field>
+                    {programs.length > 1 && (
+                        <Field
+                            label="Programa"
+                            htmlFor="program_id"
+                            error={errors.program_id}
+                        >
+                            <NativeSelect
+                                id="program_id"
+                                value={data.program_id}
+                                onChange={(e) =>
+                                    setData(
+                                        'program_id',
+                                        Number(e.target.value),
+                                    )
+                                }
+                                className="w-full sm:w-72"
+                            >
+                                {programs.map((program) => (
+                                    <option key={program.id} value={program.id}>
+                                        {program.name}
+                                    </option>
+                                ))}
+                            </NativeSelect>
+                        </Field>
+                    )}
                     <Field
                         label="Dia do encontro"
                         htmlFor="meeting_weekday"

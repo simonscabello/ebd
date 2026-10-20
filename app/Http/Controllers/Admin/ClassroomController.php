@@ -8,7 +8,9 @@ use App\Enums\Weekday;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ClassroomRequest;
 use App\Http\Resources\ClassroomResource;
+use App\Models\Church;
 use App\Models\Classroom;
+use App\Models\Program;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +31,7 @@ class ClassroomController extends Controller
         $classrooms = Classroom::query()
             ->when($manageable !== null, fn ($query) => $query->whereIn('id', $manageable))
             ->ordered()
+            ->with('program')
             ->withCount(['students', 'lessons', 'series'])
             ->get();
 
@@ -49,11 +52,17 @@ class ClassroomController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         Gate::authorize('create', Classroom::class);
 
-        return Inertia::render('admin/classrooms/form', ['classroom' => null]);
+        $church = $request->user()->currentChurch();
+
+        return Inertia::render('admin/classrooms/form', [
+            'classroom' => null,
+            'programs' => $church === null ? [] : $this->programOptions($church),
+            'defaultProgramId' => $church?->defaultProgram()->id,
+        ]);
     }
 
     public function store(ClassroomRequest $request, CreateClassroom $create): RedirectResponse
@@ -61,7 +70,9 @@ class ClassroomController extends Controller
         // A igreja da pessoa (a biblioteca oficial nunca é).
         $church = $request->user()->currentChurch();
         abort_if($church === null || ! $request->user()->isChurchAdminOf($church), 403);
-        $classroom = $create->handle($request->validated(), $church->defaultProgram());
+        $data = $request->validated();
+        $program = isset($data['program_id']) ? $church->programs()->whereKey((int) $data['program_id'])->firstOrFail() : $church->defaultProgram();
+        $classroom = $create->handle($data, $program);
 
         $this->toast("Classe \"{$classroom->name}\" criada.");
 
@@ -73,7 +84,12 @@ class ClassroomController extends Controller
         Gate::authorize('update', $classroom);
 
         return Inertia::render('admin/classrooms/form', [
-            'classroom' => [...ClassroomResource::make($classroom)->resolve(), 'position' => $classroom->position],
+            'classroom' => [
+                ...ClassroomResource::make($classroom)->resolve(),
+                'position' => $classroom->position,
+                'program_id' => $classroom->program_id,
+            ],
+            'programs' => $this->programOptions($classroom->church),
             'teachers' => $classroom->teachers()->orderBy('name')->get(['users.id', 'users.name', 'users.email'])
                 ->map(fn (User $teacher) => ['id' => $teacher->id, 'name' => $teacher->name, 'email' => $teacher->email]),
         ]);
@@ -83,10 +99,12 @@ class ClassroomController extends Controller
     {
         $data = $request->validated();
         $weekday = isset($data['meeting_weekday']) ? Weekday::from((int) $data['meeting_weekday']) : null;
-        unset($data['meeting_weekday']);
+        $programId = isset($data['program_id']) ? (int) $data['program_id'] : $classroom->program_id;
+        unset($data['meeting_weekday'], $data['program_id']);
 
-        // Nome e dia juntos: ou salva tudo, ou nada.
-        $moved = DB::transaction(function () use ($classroom, $data, $weekday, $changeWeekday) {
+        // Nome, programa e dia juntos: ou salva tudo, ou nada.
+        $moved = DB::transaction(function () use ($classroom, $data, $programId, $weekday, $changeWeekday) {
+            $classroom->program_id = $programId;
             $classroom->update($data);
 
             return $weekday !== null && $weekday !== $classroom->meeting_weekday
@@ -97,5 +115,15 @@ class ClassroomController extends Controller
         $this->toast($moved > 0 ? "Classe atualizada. Encontros remarcados para {$weekday->label()}." : 'Classe atualizada.');
 
         return to_route('admin.classrooms.show', $classroom);
+    }
+
+    /**
+     * @return list<array{id: int, name: string}>
+     */
+    private function programOptions(Church $church): array
+    {
+        return array_values($church->programs()->get(['id', 'name'])
+            ->map(fn (Program $program) => ['id' => $program->id, 'name' => $program->name])
+            ->all());
     }
 }
