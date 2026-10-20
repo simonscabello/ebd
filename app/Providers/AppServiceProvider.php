@@ -125,6 +125,13 @@ class AppServiceProvider extends ServiceProvider
             Limit::perDay(50)->by('day:'.$request->ip()),
         ]);
 
+        // Cadastro público e "Criar minha igreja": cada envio pode criar uma
+        // igreja inteira. Limite por IP, contando também envios com erro.
+        RateLimiter::for('church-signup', fn (Request $request) => [
+            Limit::perMinute(5)->by('min:'.$request->ip()),
+            Limit::perDay(20)->by('day:'.$request->ip()),
+        ]);
+
         RateLimiter::for('engagement', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
         RateLimiter::for('study-helper', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id ?: $request->ip()));

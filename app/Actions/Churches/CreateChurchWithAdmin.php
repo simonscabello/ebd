@@ -4,6 +4,7 @@ namespace App\Actions\Churches;
 
 use App\Models\Church;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -19,13 +20,7 @@ class CreateChurchWithAdmin
     public function handle(User $user, string $churchName, ?string $programName = null): Church
     {
         return DB::transaction(function () use ($user, $churchName, $programName) {
-            $name = trim($churchName);
-
-            $church = Church::query()->create([
-                'name' => $name,
-                'slug' => $this->uniqueSlug($name),
-                'timezone' => (string) config('ebd.timezone'),
-            ]);
+            $church = $this->createChurch(trim($churchName));
 
             $church->admins()->attach($user->id);
 
@@ -43,9 +38,37 @@ class CreateChurchWithAdmin
         });
     }
 
-    private function uniqueSlug(string $name): string
+    /**
+     * Dois cadastros com o mesmo nome ao mesmo tempo escolhem o mesmo slug, e
+     * o índice único barra o segundo. Cada tentativa roda num savepoint (a
+     * transação de fora continua válida no Postgres) e a seguinte já enxerga
+     * a igreja que ganhou a corrida; a última apela para um sufixo aleatório.
+     */
+    private function createChurch(string $name, int $attempts = 3): Church
     {
-        $base = Str::slug($name) ?: 'igreja';
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return DB::transaction(fn () => Church::query()->create([
+                    'name' => $name,
+                    'slug' => $this->uniqueSlug($name, random: $attempt === $attempts),
+                    'timezone' => (string) config('ebd.timezone'),
+                ]));
+            } catch (UniqueConstraintViolationException $e) {
+                if ($attempt >= $attempts) {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    private function uniqueSlug(string $name, bool $random = false): string
+    {
+        $base = rtrim(Str::limit(Str::slug($name), 120, ''), '-') ?: 'igreja';
+
+        if ($random) {
+            return $base.'-'.Str::lower(Str::random(6));
+        }
+
         $slug = $base;
 
         for ($suffix = 2; Church::query()->where('slug', $slug)->exists(); $suffix++) {
