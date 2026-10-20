@@ -1,7 +1,9 @@
+import { brand } from '@/lib/brand';
 import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookMarked,
+    Heart,
     Home,
     LayoutDashboard,
     LogIn,
@@ -22,7 +24,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
-import { account, home, install, library, login, logout } from '@/routes';
+import {
+    account,
+    home,
+    install,
+    library,
+    login,
+    logout,
+    support,
+} from '@/routes';
 import { dashboard } from '@/routes/admin';
 import { UserAvatar } from '@/components/user-avatar';
 
@@ -202,6 +212,11 @@ export function UserMenu({ inAdmin = false }: { inAdmin?: boolean }) {
                 <DropdownMenuItem asChild>
                     <Link href={install()} className="w-full">
                         <Smartphone /> Instalar o app
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href={support()} className="w-full">
+                        <Heart /> Apoie a {brand.name}
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

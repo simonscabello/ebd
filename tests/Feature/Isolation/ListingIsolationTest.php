@@ -8,6 +8,7 @@ use App\Models\Lesson;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -77,10 +78,11 @@ class ListingIsolationTest extends TestCase
         $this->assertSame(['Pública A'], $this->titles($this->actingAs($owner)->get('/biblioteca')));
     }
 
-    public function test_a_visitor_sees_the_first_church_and_public_links_still_open(): void
+    public function test_a_visitor_sees_no_church_listing_and_public_links_still_open(): void
     {
-        $this->assertSame(['Pública A'], $this->titles($this->get('/biblioteca')));
-        $this->assertSame(['turma-a'], $this->classroomSlugs($this->get('/')));
+        // Visitante: o site em "/" e, na biblioteca, só os estudos da biblioteca oficial.
+        $this->assertSame([], $this->titles($this->get('/biblioteca')));
+        $this->get('/')->assertInertia(fn (Assert $page) => $page->component('site/home'));
 
         $this->get('/licoes/publica-b')->assertOk();
         $this->get('/licoes/membros-b')->assertRedirect();

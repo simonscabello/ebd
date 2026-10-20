@@ -13,6 +13,7 @@
         "ext-bcmath": "*",
         "ext-intl": "*",
         "ext-pdo_pgsql": "*",
+        "bacon/bacon-qr-code": "^3.1",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",

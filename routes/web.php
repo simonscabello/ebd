@@ -16,6 +16,7 @@ use App\Http\Controllers\MyWeekController;
 use App\Http\Controllers\Owner;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReadingCheckinController;
+use App\Http\Controllers\SiteController;
 use App\Http\Controllers\StudyQuestionController;
 use App\Models\Classroom;
 use App\Models\Series;
@@ -30,6 +31,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', HomeController::class)->name('home');
+
+// "Apoie a Didaché": ofertas voluntárias via Pix.
+Route::get('apoie', [SiteController::class, 'support'])->name('support');
 
 Route::get('licoes/{lesson:slug}', [LessonController::class, 'show'])->name('lessons.show');
 Route::get('licoes/{lesson:slug}/domingo', [LessonController::class, 'sunday'])->name('lessons.sunday');

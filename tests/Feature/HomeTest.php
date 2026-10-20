@@ -57,8 +57,9 @@ class HomeTest extends TestCase
                 ->where('recentLessons.0.title', 'Aula passada'));
     }
 
-    public function test_guest_sees_public_lessons_and_can_switch_classroom(): void
+    public function test_account_without_church_sees_public_lessons_and_can_switch_classroom(): void
     {
+        $this->actingAs(User::factory()->create());
         $jovens = Classroom::factory()->create(['slug' => 'jovens', 'position' => 1]);
         $adultos = Classroom::factory()->create(['slug' => 'adultos', 'position' => 2]);
         Lesson::factory()->for($jovens)->published()->on('2026-09-27')->create(['title' => 'Jovens']);
@@ -76,6 +77,7 @@ class HomeTest extends TestCase
 
     public function test_sunday_without_ebd_is_skipped_and_announced(): void
     {
+        $this->actingAs(User::factory()->create());
         $classroom = Classroom::factory()->create();
         ClassMeeting::factory()->for($classroom)->on('2026-09-27')->cancelled()->create(['title' => 'Culto de Missões']);
         Lesson::factory()->for($classroom)->published()->on('2026-10-04')->create(['title' => 'É Necessário']);
@@ -89,6 +91,7 @@ class HomeTest extends TestCase
 
     public function test_lesson_spanning_two_sundays_shows_second_meeting(): void
     {
+        $this->actingAs(User::factory()->create());
         $classroom = Classroom::factory()->create();
         $lesson = Lesson::factory()->for($classroom)->published()->on('2026-09-20')->create(['title' => 'Temor Inquestionável']);
         ClassMeeting::factory()->forLesson($lesson)->on('2026-09-27')->create();
@@ -102,6 +105,7 @@ class HomeTest extends TestCase
 
     public function test_draft_on_next_meeting_is_announced_as_in_preparation(): void
     {
+        $this->actingAs(User::factory()->create());
         $classroom = Classroom::factory()->create();
         Lesson::factory()->for($classroom)->on('2026-09-27')->create(['title' => 'Rascunho']);
 
@@ -113,6 +117,7 @@ class HomeTest extends TestCase
 
     public function test_without_future_meetings_falls_back_to_the_last_held_lesson(): void
     {
+        $this->actingAs(User::factory()->create());
         $classroom = Classroom::factory()->create();
         Lesson::factory()->for($classroom)->completed()->on('2026-09-13')->create(['title' => 'Antiga']);
         Lesson::factory()->for($classroom)->completed()->on('2026-09-20')->create(['title' => 'Última']);
