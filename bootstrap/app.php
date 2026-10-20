@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureProfileIsComplete;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RedirectToCanonicalHost;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\UseChurchTimezone;
 use Illuminate\Foundation\Application;
@@ -24,6 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // plataforma, que termina o HTTPS e envia X-Forwarded-*. Confiar nele faz o
         // Laravel reconhecer HTTPS, host e IP real do visitante.
         $middleware->trustProxies(at: '*');
+
+        // Domínio próprio: endereços antigos levam para ele (todas as rotas, MCP inclusive).
+        $middleware->prepend(RedirectToCanonicalHost::class);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
