@@ -147,6 +147,12 @@ class ChangeMeetingWeekday
 
             // As marcações saem e voltam com o dia novo: trocar uma a uma
             // esbarraria na chave única (pessoa, lição, dia, data) no meio do caminho.
+            // A trava (até o fim da transação) impede que uma marcação feita entre
+            // a leitura e a volta se perca.
+            if (DB::connection()->getDriverName() === 'pgsql') {
+                DB::statement('LOCK TABLE reading_checkins IN SHARE ROW EXCLUSIVE MODE');
+            }
+
             $checkins = DB::table('reading_checkins')->where('lesson_id', $lessonId)->get()
                 ->map(fn (object $row) => [...(array) $row, 'weekday' => $shift((int) $row->weekday)])
                 ->all();
