@@ -65,3 +65,24 @@ export function relativeDay(date: string, today: string): string {
 export function todayOnDevice(): string {
     return new Date().toLocaleDateString('en-CA');
 }
+
+/**
+ * O primeiro dia da semana $weekday (ISO: 1 = segunda ... 7 = domingo) a
+ * partir da data, inclusive (Y-m-d).
+ */
+export function onOrAfterWeekday(date: string, weekday: number): string {
+    const day = utc(date);
+    const iso = day.getUTCDay() === 0 ? 7 : day.getUTCDay();
+    day.setUTCDate(day.getUTCDate() + ((weekday - iso + 7) % 7));
+
+    return day.toISOString().slice(0, 10);
+}
+
+/** O último dia da semana $weekday (ISO) até a data, inclusive (Y-m-d). */
+export function onOrBeforeWeekday(date: string, weekday: number): string {
+    const day = utc(date);
+    const iso = day.getUTCDay() === 0 ? 7 : day.getUTCDay();
+    day.setUTCDate(day.getUTCDate() - ((iso - weekday + 7) % 7));
+
+    return day.toISOString().slice(0, 10);
+}
