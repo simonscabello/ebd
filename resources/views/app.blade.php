@@ -46,12 +46,20 @@
         <meta property="og:image" content="{{ url('/brand/og-didache.png') }}">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
-        <meta name="description" content="{{ config('brand.name') }} · {{ config('brand.tagline') }}">
+        {{-- Páginas do site (SiteController) mandam título, descrição e endereço em $meta. --}}
+        <meta name="description" content="{{ $meta['description'] ?? config('brand.name').' · '.config('brand.tagline') }}">
+        @isset($meta)
+            <meta property="og:type" content="website">
+            <meta property="og:title" content="{{ $meta['title'] }}">
+            <meta property="og:description" content="{{ $meta['description'] }}">
+            <meta property="og:url" content="{{ $meta['url'] }}">
+            <link rel="canonical" href="{{ $meta['url'] }}">
+        @endisset
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>
-            <title>{{ config('brand.name') }}</title>
+            <title>{{ $meta['title'] ?? config('brand.name') }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

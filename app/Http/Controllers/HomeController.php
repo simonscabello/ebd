@@ -23,17 +23,24 @@ use Inertia\Response;
  * Para quem é da classe, também é a semana de estudo: a leitura de hoje (que
  * dá para marcar ali mesmo), o progresso da semana, a sequência e o conteúdo
  * do dia. A lista completa das leituras fica em "Leituras da semana".
+ * Visitante (sem login) vê o site público (SiteController::home).
+ * Visitante (sem login) vê o site público (SiteController::home).
  */
 class HomeController extends Controller
 {
-    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector, StudyWeekQuery $week): Response|RedirectResponse
+    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector, StudyWeekQuery $week, SiteController $site): Response|RedirectResponse
     {
         /** @var User|null $user */
         $user = $request->user();
 
+        // Quem não entrou vê o site de apresentação.
+        if ($user === null) {
+            return $site->home();
+        }
+
         // Quem acabou de criar a igreja (ainda sem nenhuma turma) começa pela
         // gestão, no passo a passo. Igreja que já tem turmas: tudo como antes.
-        if ($user !== null && $user->memberClassroomIds() === [] && $user->administersAnyChurch()
+        if ($user->memberClassroomIds() === [] && $user->administersAnyChurch()
             && $user->administeredClassroomIds() === []) {
             return redirect('/admin');
         }
@@ -43,7 +50,7 @@ class HomeController extends Controller
 
         $current = $classroom ? $lessons->for($classroom, $user) : null;
         $lesson = $current?->lesson;
-        $isMember = $classroom && $user?->isMemberOf($classroom);
+        $isMember = $classroom && $user->isMemberOf($classroom);
 
         $lesson?->load([
             'readings',

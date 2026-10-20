@@ -13,6 +13,7 @@ import { dismissSplash } from '@/lib/splash';
 import AdminLayout from '@/layouts/admin-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
+import SiteLayout from '@/layouts/site-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
 const appName = brand.name;
@@ -25,7 +26,13 @@ function SplashDismisser() {
 }
 
 void createInertiaApp({
-    title: (title) => (title ? `${title} · ${appName}` : appName),
+    // Títulos que já levam a marca (site público) ficam como estão.
+    title: (title) =>
+        !title
+            ? appName
+            : title.includes(appName)
+              ? title
+              : `${title} · ${appName}`,
     layout: (name) => {
         switch (true) {
             case name === 'lessons/sunday':
@@ -33,6 +40,8 @@ void createInertiaApp({
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
+            case name.startsWith('site/'):
+                return SiteLayout;
             // Gestão: área à parte, com casca e menu próprios.
             case name.startsWith('admin/'):
             case name.startsWith('owner/'):

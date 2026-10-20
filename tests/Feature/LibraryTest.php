@@ -24,9 +24,14 @@ class LibraryTest extends TestCase
 
     private Series $milagres;
 
+    /** Conta sem igreja: vê a primeira igreja (o visitante só vê a biblioteca oficial). */
+    private User $reader;
+
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->reader = User::factory()->create();
 
         $this->jovens = Classroom::factory()->create(['name' => 'Jovens']);
         $this->adultos = Classroom::factory()->create(['name' => 'Adultos']);
@@ -65,7 +70,7 @@ class LibraryTest extends TestCase
      */
     private function titles(string $query, ?User $user = null): array
     {
-        $response = $user ? $this->actingAs($user)->get('/biblioteca?'.$query) : $this->get('/biblioteca?'.$query);
+        $response = $this->actingAs($user ?? $this->reader)->get('/biblioteca?'.$query);
         $response->assertOk();
 
         return collect($response->viewData('page')['props']['results']['data'])->pluck('title')->all();
@@ -102,7 +107,7 @@ class LibraryTest extends TestCase
 
     public function test_highlights_matches_safely(): void
     {
-        $response = $this->get('/biblioteca?q=pesca');
+        $response = $this->actingAs($this->reader)->get('/biblioteca?q=pesca');
 
         $response->assertInertia(fn (Assert $page) => $page
             ->where('results.data.0.headline', fn (string $headline) => str_contains($headline, '<mark>pesca</mark>')));

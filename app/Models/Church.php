@@ -125,14 +125,19 @@ class Church extends Model
     /**
      * Igrejas cujo conteúdo a pessoa vê nas listas (início, biblioteca): as
      * das turmas dela, as que administra e as dos programas que coordena.
-     * Visitante, ou quem ainda não tem igreja, vê a primeira (a do Simon),
-     * como hoje, até existir o site institucional.
+     * Quem entrou e ainda não tem igreja vê a primeira (a do Simon); o
+     * visitante vê só a biblioteca oficial (os estudos de exemplo do site).
      *
      * @return list<int>
      */
     public static function idsVisibleTo(?User $user): array
     {
-        $ids = $user === null ? [] : array_values(array_unique([
+        // Lição pública de qualquer igreja continua abrindo pelo link (LessonPolicy).
+        if ($user === null) {
+            return array_values(self::query()->where('is_official', true)->pluck('id')->map(fn ($id) => (int) $id)->all());
+        }
+
+        $ids = array_values(array_unique([
             ...$user->memberChurchIds(),
             ...$user->administeredChurchIds(),
             ...Classroom::query()->whereIn('id', $user->coordinatedClassroomIds())->pluck('church_id')->map(fn ($id) => (int) $id)->all(),

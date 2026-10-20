@@ -190,9 +190,8 @@ class EngagementTest extends TestCase
                 ->where('week.progress.days_done', 1)
                 ->where('week.todayBlocks.0.title', 'Siloé significa Enviado'));
 
-        // Visitante não tem semana de estudo.
-        auth()->logout();
-        $this->get('/')->assertInertia(fn (Assert $page) => $page->where('week', null));
+        // Quem não é da classe não tem semana de estudo.
+        $this->actingAs(User::factory()->create())->get('/')->assertInertia(fn (Assert $page) => $page->where('week', null));
     }
 
     public function test_student_in_two_classrooms_can_switch_week(): void
