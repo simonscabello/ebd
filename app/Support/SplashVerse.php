@@ -54,11 +54,12 @@ final class SplashVerse
      */
     public static function pick(?User $user = null): array
     {
-        // O texto é licenciado: quem é de igreja sem licença vê a mensagem. O
-        // visitante segue a igreja do dono (a primeira).
-        $church = $user?->currentChurch() ?? Church::primary();
+        // O texto é licenciado: só quem é de igreja com licença vê o versículo.
+        // Visitante e quem ainda não tem igreja veem a mensagem, exceto numa
+        // instalação sem nenhuma igreja cadastrada (uma igreja só, como antes).
+        $church = $user?->currentChurch();
 
-        if ($church !== null && ! $church->shows_bible_text) {
+        if ($church === null ? Church::query()->exists() : ! $church->shows_bible_text) {
             return ['text' => self::FALLBACK, 'reference' => null];
         }
 
