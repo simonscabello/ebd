@@ -130,4 +130,13 @@ return [
         'timeout' => (int) env('EBD_HELPER_TIMEOUT', 60),
     ],
 
+    /*
+    | Domínio próprio. canonical_host: o endereço principal (ex.:
+    | usedidache.com.br). redirect_hosts: endereços antigos que levam para ele,
+    | no mesmo caminho (ex.: ebd.up.railway.app,www.usedidache.com.br). Vazio,
+    | nada é redirecionado.
+    */
+    'canonical_host' => env('EBD_CANONICAL_HOST') ?: null,
+    'redirect_hosts' => array_values(array_filter(array_map(fn ($host) => strtolower(trim($host)), explode(',', (string) env('EBD_REDIRECT_HOSTS', ''))))),
+
 ];
