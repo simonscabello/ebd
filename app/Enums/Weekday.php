@@ -81,6 +81,12 @@ enum Weekday: int
         return $this === self::Sunday ? 'Domingos' : 'Encontros';
     }
 
+    /** "domingos" / "encontros", no meio da frase. */
+    public function meetingNounPlural(): string
+    {
+        return mb_strtolower($this->meetingNamePlural());
+    }
+
     /** "domingo" / "encontro", no meio da frase. */
     public function meetingNoun(): string
     {
@@ -93,6 +99,18 @@ enum Weekday: int
         return in_array($this, [self::Saturday, self::Sunday], true)
             ? "no {$this->lowerLabel()}"
             : "na {$this->lowerLabel()}";
+    }
+
+    /**
+     * O mesmo dia do plano de leitura numa turma que se reúne em outro dia:
+     * anda o deslocamento entre os dois dias de encontro. De domingo para
+     * quarta, a segunda vira quinta e o domingo (dia da aula) vira quarta.
+     */
+    public function shiftedBetween(self $fromMeeting, self $toMeeting): self
+    {
+        $offset = $toMeeting->value - $fromMeeting->value;
+
+        return self::from((($this->value - 1 + $offset) % 7 + 7) % 7 + 1);
     }
 
     /** "no próximo domingo", "na próxima quarta-feira". */

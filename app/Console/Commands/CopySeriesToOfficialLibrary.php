@@ -53,11 +53,11 @@ class CopySeriesToOfficialLibrary extends Command
         $library = OfficialLibrary::classroom();
 
         try {
-            $copy = DB::transaction(function () use ($createSeries, $copier, $snapshot, $library, $owner) {
+            $copy = DB::transaction(function () use ($createSeries, $copier, $snapshot, $library, $owner, $series) {
                 $copy = $createSeries->handle($library, ['title' => $snapshot['title'], 'description' => $snapshot['description']]);
 
                 foreach ($snapshot['lessons'] as $lesson) {
-                    $copier->copy($lesson, $copy, $library, $owner, null);
+                    $copier->copy($lesson, $copy, $library, $owner, null, $series->classroom->meeting_weekday);
                 }
 
                 return $copy;

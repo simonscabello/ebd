@@ -73,8 +73,8 @@ class ClassroomScheduleTest extends TestCase
         $this->assertSame(['2026-09-30'], $dates($a->id));
         $this->assertSame(['2026-10-14'], $dates($b->id));
         $this->assertSame('2026-09-20', $held->refresh()->held_on->toDateString());
-        // O "sem EBD" futuro acompanha a troca, para a semana não ficar com dois dias.
-        $this->assertSame('2026-10-07', $cancelled->refresh()->held_on->toDateString());
+        // O "sem EBD" fica na data em que foi marcado: o cancelamento foi para aquele dia.
+        $this->assertSame('2026-10-11', $cancelled->refresh()->held_on->toDateString());
         $this->assertSame('2026-09-30', $a->refresh()->scheduled_for->toDateString());
         $this->assertSame(Weekday::Wednesday, $classroom->refresh()->meeting_weekday);
     }
@@ -114,17 +114,22 @@ class ClassroomScheduleTest extends TestCase
         $this->assertSame('2026-09-30', ClassMeeting::query()->whereBelongsTo($classroom)->whereRaw('extract(isodow from held_on) = 3')->orderBy('held_on')->value('held_on')->toDateString());
     }
 
-    public function test_changing_the_day_midweek_keeps_this_weeks_meeting_and_does_not_collide(): void
+    public function test_changing_the_day_midweek_pushes_this_weeks_meeting_and_the_next_ones_forward(): void
     {
-        // Quinta, 22/10: a quarta desta semana já passou.
+        // Quinta, 22/10: a quarta desta semana já passou. O encontro de
+        // domingo vai para a próxima quarta e os seguintes também andam para a
+        // frente, sem colidir e mantendo uma semana entre as lições.
         $this->travelTo(now('America/Sao_Paulo')->setDate(2026, 10, 22)->setTime(10, 0));
         $classroom = Classroom::factory()->create(['slug' => 'jovens']);
-        ClassMeeting::factory()->for($classroom)->on('2026-10-25')->create();
-        ClassMeeting::factory()->for($classroom)->on('2026-11-01')->create();
+        $a = Lesson::factory()->for($classroom)->published()->on('2026-10-25')->create();
+        $b = Lesson::factory()->for($classroom)->published()->on('2026-11-01')->create();
+        ClassMeeting::factory()->for($classroom)->on('2026-11-08')->create();
 
         $this->changeTo($classroom, 3, 'Jovens novo')->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertSame(['2026-10-25', '2026-10-28'], ClassMeeting::query()->whereBelongsTo($classroom)->orderBy('held_on')->pluck('held_on')->map->toDateString()->all());
+        $this->assertSame(['2026-10-28', '2026-11-04', '2026-11-11'], ClassMeeting::query()->whereBelongsTo($classroom)->orderBy('held_on')->pluck('held_on')->map->toDateString()->all());
+        $this->assertSame('2026-10-28', $a->refresh()->scheduled_for->toDateString());
+        $this->assertSame('2026-11-04', $b->refresh()->scheduled_for->toDateString());
         $this->assertSame(['Jovens novo', Weekday::Wednesday], [$classroom->refresh()->name, $classroom->meeting_weekday]);
     }
 
