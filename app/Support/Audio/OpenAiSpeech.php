@@ -20,6 +20,13 @@ class OpenAiSpeech
 
     private const RESPONSES_ENDPOINT = 'https://api.openai.com/v1/responses';
 
+    /**
+     * Uso de tokens da última chamada a write() (para a avaliação da IA).
+     *
+     * @var array<string, mixed>
+     */
+    public array $lastUsage = [];
+
     public function isConfigured(): bool
     {
         return filled(config('services.openai.key'));
@@ -54,14 +61,23 @@ class OpenAiSpeech
      *
      * @throws SpeechFailed com mensagem amigável
      */
-    public function write(string $instructions, string $input, ?string $model = null, ?int $timeout = null, int $attempts = 3): string
+    public function write(string $instructions, string $input, ?string $model = null, ?int $timeout = null, int $attempts = 3, ?int $maxOutputTokens = null): string
     {
-        $response = $this->post(self::RESPONSES_ENDPOINT, [
+        $response = $this->post(self::RESPONSES_ENDPOINT, array_filter([
             'model' => $model ?? config('ebd.audio.script_model'),
             'instructions' => $instructions,
             'input' => $input,
             'reasoning' => ['effort' => 'low'],
-        ], $timeout, $attempts);
+            // A OpenAI não guarda a conversa (lição, pergunta do aluno) do lado dela.
+            'store' => false,
+            'max_output_tokens' => $maxOutputTokens,
+        ], fn ($value) => $value !== null), $timeout, $attempts);
+
+        $this->lastUsage = (array) $response->json('usage');
+
+        if ($response->json('status') === 'incomplete') {
+            Log::warning('OpenAI: resposta cortada.', ['reason' => $response->json('incomplete_details.reason'), 'usage' => $this->lastUsage]);
+        }
 
         $text = collect((array) $response->json('output'))
             ->where('type', 'message')

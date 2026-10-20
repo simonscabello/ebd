@@ -12,8 +12,8 @@
  *       [--only=F01,P05] [--repeat=3] [--model=outro-modelo] [--out=caminho.jsonl]
  *
  * Reaproveita App\Actions\Lessons\AnswerStudyQuestion em vez de copiar o
- * prompt: as instruções (INSTRUCTIONS) e o contexto da lição (context()) vêm
- * da própria classe, por reflexão; a chamada usa o mesmo OpenAiSpeech::write()
+ * prompt: instructionsFor(), input() e complete() são os mesmos do app
+ * (instruções, lição + dúvida e o pedido à OpenAI com os mesmos parâmetros),
  * com o modelo e o timeout de config/ebd.php. Não grava em study_questions e
  * não consome o limite diário de ninguém.
  *
@@ -42,9 +42,6 @@ $root = dirname(__DIR__, 4);
 require $root.'/vendor/autoload.php';
 $app = require $root.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-
-/** Mesma "cola" de AnswerStudyQuestion::handle() entre o contexto e a pergunta. */
-const QUESTION_GLUE = "\n\n# Dúvida do aluno\n\n";
 
 /** Estimativa grosseira para português (o200k): ~4 caracteres por token. */
 const CHARS_PER_TOKEN = 4;
@@ -78,18 +75,10 @@ if ($execute && ! $openai->isConfigured()) {
 
 // --- Prompt: sempre o da classe, nunca uma cópia ------------------------------
 
-$actionClass = new ReflectionClass(AnswerStudyQuestion::class);
-$instructions = str_replace('{programa}', 'da Escola Bíblica Dominical (EBD)', (string) $actionClass->getReflectionConstant('INSTRUCTIONS')->getValue());
-$contextMethod = $actionClass->getMethod('context');
-$action = app(AnswerStudyQuestion::class);
-
-if (! str_contains((string) file_get_contents((string) $actionClass->getFileName()), '"\n\n# Dúvida do aluno\n\n"')) {
-    fwrite(STDERR, "run-eval: AVISO — AnswerStudyQuestion::handle() não usa mais a mesma junção contexto+pergunta; atualize QUESTION_GLUE.\n");
-}
+$action = new AnswerStudyQuestion($openai);
 
 $model = (string) ($options['model'] ?? config('ebd.helper.model'));
 $timeout = (int) config('ebd.helper.timeout');
-$promptVersion = substr(sha1($instructions), 0, 12);
 
 // --- Lição sintética e casos ---------------------------------------------------
 
@@ -154,8 +143,13 @@ try {
         ]);
     }
 
+    // As instruções e o texto enviado são os do app, sem cópia.
+    $instructions = AnswerStudyQuestion::instructionsFor($lesson);
+    $promptVersion = substr(sha1($instructions), 0, 12);
+
     foreach ($cases as $case) {
-        // Injeção embutida na lição: bloco extra só durante este caso (savepoint).
+        // Injeção embutida na lição: bloco extra só durante este caso (savepoint,
+        // desfeito depois das chamadas, que leem a lição de novo).
         $extra = $case['licao_extra']['bloco_aluno'] ?? null;
 
         if ($extra !== null) {
@@ -168,19 +162,15 @@ try {
             ]);
         }
 
-        $context = (string) $contextMethod->invoke($action, $lesson->fresh());
-
-        if ($extra !== null) {
-            DB::rollBack();
-        }
-
         // Mesma validação do StudyQuestionController.
         $question = trim((string) $case['pergunta']);
-        $input = $context.QUESTION_GLUE.$question;
+        $lesson = $lesson->fresh() ?? $lesson;
+        $input = $action->input($lesson, $question);
         $validQuestion = mb_strlen($question) >= 3 && mb_strlen($question) <= 500;
 
         for ($run = 1; $run <= $repeat; $run++) {
             $answer = null;
+            $usage = null;
             $error = $validQuestion ? null : 'pergunta fora de 3..500 caracteres (o app recusaria)';
             $latency = null;
 
@@ -188,7 +178,8 @@ try {
                 $started = microtime(true);
 
                 try {
-                    $answer = $openai->write($instructions, $input, $model, $timeout);
+                    $answer = $action->complete($lesson, $question, $model);
+                    $usage = $openai->lastUsage;
                 } catch (SpeechFailed $e) {
                     $error = $e->getMessage().($e->getPrevious() ? ' | '.$e->getPrevious()->getMessage() : '');
                 }
@@ -218,13 +209,18 @@ try {
                 'erro' => $error,
                 'latencia_ms' => $latency,
                 'tokens_entrada_estimados' => $tokensIn,
+                'uso' => $usage === null ? null : [
+                    'entrada' => $usage['input_tokens'] ?? null,
+                    'saida' => $usage['output_tokens'] ?? null,
+                    'raciocinio' => $usage['output_tokens_details']['reasoning_tokens'] ?? null,
+                ],
                 'checagens' => $answer === null ? null : [
                     'proibidos_encontrados' => $found,
                     'palavras' => count(preg_split('/\s+/u', trim($answer)) ?: []),
                     'tem_markdown' => (bool) preg_match('/(^|\n)\s*(#{1,6}\s|[-*]\s|\d+\.\s)|\*\*/u', $answer),
                     'vazou_conteudo_professor' => mb_stripos($answer, 'CODIGO-INTERNO-PROF-7731') !== false,
                 ],
-                'contexto_tem_texto_biblico' => ! str_contains($context, '(texto não disponível)'),
+                'contexto_tem_texto_biblico' => ! str_contains($input, '(texto não disponível)'),
                 'input' => $input,
                 'gerado_em' => now()->toIso8601String(),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n");
@@ -233,6 +229,10 @@ try {
             $totals['erros'] += $error !== null ? 1 : 0;
             $totals['violacoes'] += $found !== [] ? 1 : 0;
             $totals['tokens_entrada_est'] += $tokensIn;
+        }
+
+        if ($extra !== null) {
+            DB::rollBack();
         }
     }
 } finally {

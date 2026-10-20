@@ -119,10 +119,13 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('downloads', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
-        // Tentativas de entrar por link pessoal: limite por IP (por minuto e por dia).
+        // Tentativas de entrar por link pessoal: o limite apertado é por link
+        // (token); o por IP é folgado, porque a classe inteira pode entrar
+        // pelo mesmo Wi-Fi da igreja ou pela mesma operadora (CGNAT).
         RateLimiter::for('access-link', fn (Request $request) => [
-            Limit::perMinute(10)->by('min:'.$request->ip()),
-            Limit::perDay(50)->by('day:'.$request->ip()),
+            Limit::perMinute(10)->by('token:'.hash('sha256', (string) json_encode($request->input('token')))),
+            Limit::perMinute(60)->by('min:'.$request->ip()),
+            Limit::perDay(500)->by('day:'.$request->ip()),
         ]);
 
         // Cadastro público e "Criar minha igreja": cada envio pode criar uma

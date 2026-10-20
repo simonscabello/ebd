@@ -11,6 +11,7 @@ use App\Models\LessonBlock;
 use App\Models\User;
 use App\Queries\Data\CurrentLesson;
 use App\Support\ChurchCalendar;
+use App\Support\ReadingWeeks;
 use App\Support\StudyStreak;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -79,9 +80,12 @@ class StudyWeekQuery
             'blocks' => fn ($q) => $q->where('audience', ContentAudience::Student),
         ]);
 
-        $checked = DB::table('reading_checkins')
-            ->where('user_id', $user->id)
-            ->where('lesson_id', $lesson->id)
+        // Numa lição que continua, só as marcações desta semana de leitura.
+        $checked = ReadingWeeks::constrain(
+            DB::table('reading_checkins')->where('user_id', $user->id)->where('lesson_id', $lesson->id),
+            $lesson->id,
+            $today->toDateString(),
+        )
             ->pluck('weekday')
             ->map(fn ($d) => (int) $d)
             ->all();

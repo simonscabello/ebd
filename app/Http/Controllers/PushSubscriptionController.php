@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PushSubscription;
 use App\Models\User;
+use App\Support\Push\PushEndpoint;
 use App\Support\Push\PushMessage;
 use App\Support\Push\PushSender;
 use Illuminate\Http\JsonResponse;
@@ -18,19 +19,25 @@ use Illuminate\Support\Str;
  */
 class PushSubscriptionController extends Controller
 {
-    private const RULES = [
-        'endpoint' => ['required', 'string', 'url', 'max:500'],
-        'keys.p256dh' => ['required', 'string', 'max:255'],
-        'keys.auth' => ['required', 'string', 'max:255'],
-        'content_encoding' => ['nullable', 'string', 'in:aes128gcm,aesgcm'],
-    ];
+    /**
+     * @return array<string, list<mixed>>
+     */
+    private static function rules(): array
+    {
+        return [
+            'endpoint' => ['required', 'string', 'url', 'max:500', PushEndpoint::rule()],
+            'keys.p256dh' => ['required', 'string', 'max:255'],
+            'keys.auth' => ['required', 'string', 'max:255'],
+            'content_encoding' => ['nullable', 'string', 'in:aes128gcm,aesgcm'],
+        ];
+    }
 
     public function store(Request $request): RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        self::save($request, $user->id, $request->validate(self::RULES));
+        self::save($request, $user->id, $request->validate(self::rules()));
 
         return back();
     }
@@ -51,7 +58,7 @@ class PushSubscriptionController extends Controller
     public function renew(Request $request): Response
     {
         $data = $request->validate([
-            ...self::RULES,
+            ...self::rules(),
             'old_endpoint' => ['nullable', 'string', 'max:500'],
         ]);
 

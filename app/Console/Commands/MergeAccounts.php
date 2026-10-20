@@ -28,7 +28,7 @@ class MergeAccounts extends Command
     private const OWNED = [
         'classroom_user' => ['classroom_id'],
         'attendances' => ['class_meeting_id'],
-        'reading_checkins' => ['lesson_id', 'weekday'],
+        'reading_checkins' => ['lesson_id', 'weekday', 'read_on'],
         'lesson_notes' => ['lesson_id'],
         'push_subscriptions' => [],
     ];

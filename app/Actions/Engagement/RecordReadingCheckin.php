@@ -8,6 +8,7 @@ use App\Models\Lesson;
 use App\Models\LessonReading;
 use App\Models\User;
 use App\Support\ChurchCalendar;
+use App\Support\ReadingWeeks;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -15,7 +16,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Marca como lida a leitura de um dia do plano da lição. Qualquer dia pode
  * ser marcado a qualquer momento (adiantar ou pôr em dia); read_on guarda
- * quando a pessoa marcou, no fuso da igreja.
+ * quando a pessoa marcou, no fuso da igreja. Numa lição que continua, cada
+ * semana de leitura tem a sua marcação (ver ReadingWeeks).
  */
 class RecordReadingCheckin
 {
@@ -36,14 +38,25 @@ class RecordReadingCheckin
             throw ValidationException::withMessages(['reading_id' => 'Esta leitura não é desta lição.']);
         }
 
-        DB::table('reading_checkins')->insertOrIgnore([
-            'user_id' => $user->id,
-            'lesson_id' => $lesson->id,
-            'lesson_reading_id' => $reading?->id,
-            'weekday' => ($reading->weekday ?? $weekday)->value,
-            'read_on' => ChurchCalendar::today()->toDateString(),
-            'created_at' => now(),
-        ]);
+        $day = ($reading->weekday ?? $weekday)->value;
+        $today = ChurchCalendar::todayString();
+
+        $alreadyRead = ReadingWeeks::constrain(
+            DB::table('reading_checkins')->where('user_id', $user->id)->where('lesson_id', $lesson->id)->where('weekday', $day),
+            $lesson->id,
+            $today,
+        )->exists();
+
+        if (! $alreadyRead) {
+            DB::table('reading_checkins')->insertOrIgnore([
+                'user_id' => $user->id,
+                'lesson_id' => $lesson->id,
+                'lesson_reading_id' => $reading?->id,
+                'weekday' => $day,
+                'read_on' => $today,
+                'created_at' => now(),
+            ]);
+        }
 
         return $this->awardBadges->handle($user, $lesson->series);
     }

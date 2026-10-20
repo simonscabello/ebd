@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\ContentAudience;
 use App\Enums\LessonStatus;
 use App\Events\LessonPublished;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
+use App\Models\LessonBlock;
+use App\Models\LessonMaterial;
 use App\Models\Series;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,6 +125,35 @@ class LessonManagementTest extends TestCase
         $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'draft']);
         $this->assertSame(LessonStatus::Draft, $lesson->refresh()->status);
         $this->assertNull($lesson->published_at);
+    }
+
+    public function test_an_empty_lesson_cannot_be_published(): void
+    {
+        Event::fake([LessonPublished::class]);
+        // Só o título e o esqueleto do editor.
+        $lesson = Lesson::factory()->for($this->classroom)->create(['content' => "## I.\n\n### 1.\n\n## II.\n\n## III.\n\n## Conclusão\n"]);
+        $publish = fn () => $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published']);
+
+        $publish()->assertSessionHasErrors(['status' => 'A lição ainda está vazia. Escreva o estudo (ou um complemento para os alunos) antes de publicar.']);
+        $this->assertSame(LessonStatus::Draft, $lesson->refresh()->status);
+        Event::assertNotDispatched(LessonPublished::class);
+
+        // Bloco ou material só do professor não conta; um complemento para os alunos, sim.
+        LessonBlock::factory()->for($lesson)->create(['audience' => ContentAudience::Teacher, 'body' => 'Roteiro da aula']);
+        LessonMaterial::factory()->for($lesson)->create(['audience' => ContentAudience::Teacher]);
+        $publish()->assertSessionHasErrors('status');
+
+        LessonBlock::factory()->for($lesson)->create(['audience' => ContentAudience::Student, 'body' => 'Curiosidade sobre Siloé']);
+        $publish()->assertSessionHasNoErrors();
+        $this->assertSame(LessonStatus::Published, $lesson->refresh()->status);
+    }
+
+    public function test_a_lesson_with_study_text_and_no_blocks_is_published(): void
+    {
+        $lesson = Lesson::factory()->for($this->classroom)->create(['content' => "## I. A tempestade\n\nJesus dormia no barco."]);
+
+        $this->actingAs($this->teacher)->post("/admin/licoes/{$lesson->id}/status", ['status' => 'published'])->assertSessionHasNoErrors();
+        $this->assertSame(LessonStatus::Published, $lesson->refresh()->status);
     }
 
     public function test_lesson_can_be_published_before_having_a_date(): void

@@ -21,11 +21,11 @@ class WebPushSenderTest extends TestCase
     public function test_a_malformed_subscription_does_not_block_the_other_devices(): void
     {
         $good = PushSubscription::factory()->create([
-            'endpoint' => 'https://push.example/good',
+            'endpoint' => 'https://fcm.googleapis.com/fcm/send/good',
             ...self::browserKeys(),
         ]);
         PushSubscription::factory()->create([
-            'endpoint' => 'https://push.example/broken',
+            'endpoint' => 'https://fcm.googleapis.com/fcm/send/broken',
             'public_key' => 'nao-e-uma-chave',
         ]);
 
@@ -52,11 +52,37 @@ class WebPushSenderTest extends TestCase
         $this->assertDatabaseCount('push_subscriptions', 2);
     }
 
+    public function test_an_old_subscription_outside_known_push_services_is_skipped_but_kept(): void
+    {
+        $good = PushSubscription::factory()->create(['endpoint' => 'https://fcm.googleapis.com/fcm/send/good', ...self::browserKeys()]);
+        PushSubscription::factory()->create(['endpoint' => 'https://intranet.example/hook', ...self::browserKeys()]);
+
+        $client = new class implements ClientInterface
+        {
+            /** @var list<string> */
+            public array $sentTo = [];
+
+            public function sendRequest(RequestInterface $request): ResponseInterface
+            {
+                $this->sentTo[] = (string) $request->getUri();
+
+                return new Response(201);
+            }
+        };
+
+        $vapid = VAPID::createVapidKeys();
+        $sender = new WebPushSender('mailto:ebd@example.test', $vapid['publicKey'], $vapid['privateKey'], new NullLogger, $client);
+
+        $this->assertSame(1, $sender->send(PushSubscription::query()->orderBy('id')->get(), new PushMessage(title: 'L', body: 'H', url: '/', tag: 't')));
+        $this->assertSame([$good->endpoint], $client->sentTo);
+        $this->assertDatabaseCount('push_subscriptions', 2);
+    }
+
     public function test_a_failure_after_something_was_sent_is_not_retried(): void
     {
         PushSubscription::factory()->count(2)->sequence(
-            ['endpoint' => 'https://push.example/a', ...self::browserKeys()],
-            ['endpoint' => 'https://push.example/b', ...self::browserKeys()],
+            ['endpoint' => 'https://fcm.googleapis.com/fcm/send/a', ...self::browserKeys()],
+            ['endpoint' => 'https://fcm.googleapis.com/fcm/send/b', ...self::browserKeys()],
         )->create();
 
         $client = new class implements ClientInterface
@@ -87,7 +113,7 @@ class WebPushSenderTest extends TestCase
         }
 
         // Nenhum reenvio: o primeiro aparelho recebeu uma vez só.
-        $this->assertSame(['https://push.example/a', 'https://push.example/b'], $client->sentTo);
+        $this->assertSame(['https://fcm.googleapis.com/fcm/send/a', 'https://fcm.googleapis.com/fcm/send/b'], $client->sentTo);
     }
 
     /**

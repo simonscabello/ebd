@@ -4,6 +4,7 @@ namespace Tests\Feature\Isolation;
 
 use App\Actions\Classrooms\MoveStudentToClassroom;
 use App\Actions\Meetings\RecordAttendance;
+use App\Models\AuditLog;
 use App\Models\Church;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
@@ -67,6 +68,32 @@ class PeopleIsolationTest extends TestCase
 
         $this->assertFalse($student->fresh()->isMemberOf($this->classB));
         $this->assertTrue($stranger->fresh()->isTeacherOf($this->classB));
+    }
+
+    public function test_adding_by_email_a_student_of_a_classroom_you_do_not_manage_is_refused_and_audited(): void
+    {
+        // D1: mesma igreja, outra turma que o professor não acompanha.
+        $other = Classroom::factory()->create(['slug' => 'turma-a2', 'church_id' => $this->classA->church_id]);
+        $student = User::factory()->studentOf($other)->create(['email' => 'bia@example.com']);
+
+        $this->actingAs($this->teacherA)
+            ->post('/admin/classes/turma-a/membros', ['email' => 'bia@example.com', 'role' => 'student'])
+            ->assertSessionHasErrors(['email' => 'Não encontramos essa pessoa nas suas turmas. Envie um convite pelo link de acesso.']);
+
+        $this->assertFalse($student->fresh()->isMemberOf($this->classA));
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $this->teacherA->id,
+            'tool' => 'classroom.add_member',
+            'subject_id' => $student->id,
+            'classroom_id' => $this->classA->id,
+            'status' => AuditLog::STATUS_DENIED,
+        ]);
+
+        // E-mail sem conta: mesma resposta, nada a registrar.
+        $this->actingAs($this->teacherA)
+            ->post('/admin/classes/turma-a/membros', ['email' => 'ninguem@example.com', 'role' => 'student'])
+            ->assertSessionHasErrors('email');
+        $this->assertSame(1, AuditLog::query()->where('tool', 'classroom.add_member')->count());
     }
 
     public function test_a_person_in_two_churches_is_protected_from_the_other(): void

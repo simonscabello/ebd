@@ -173,6 +173,10 @@ export function StudyHelperSheet({
                     A IA pode errar e não substitui o professor nem a aula.
                     Confira na Bíblia e leve a dúvida para domingo.
                 </p>
+                <p className="text-xs text-muted-foreground">
+                    Sua pergunta vai para a OpenAI, que gera a resposta. O
+                    professor vê as perguntas da classe, sem o seu nome.
+                </p>
             </div>
 
             <form

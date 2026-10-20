@@ -10,6 +10,7 @@ use App\Models\Series;
 use App\Models\User;
 use App\Support\ChurchCalendar;
 use App\Support\Enrollment;
+use App\Support\ReadingWeeks;
 use App\Support\StudyStreak;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -99,19 +100,29 @@ class AwardBadges
         return $this->bestWeekDays($user) >= 6;
     }
 
-    /** Maior número de dias de leitura (fora o dia do encontro da turma) numa mesma lição. */
+    /**
+     * Maior número de dias de leitura (fora o dia do encontro da turma) numa
+     * mesma semana de leitura de uma lição: numa lição que continua, cada
+     * semana conta sozinha (ver ReadingWeeks).
+     */
     private function bestWeekDays(User $user): int
     {
-        return (int) DB::query()->fromSub(
-            DB::table('reading_checkins')
-                ->join('lessons', 'lessons.id', '=', 'reading_checkins.lesson_id')
-                ->join('classrooms', 'classrooms.id', '=', 'lessons.classroom_id')
-                ->where('reading_checkins.user_id', $user->id)
-                ->whereColumn('reading_checkins.weekday', '<>', 'classrooms.meeting_weekday')
-                ->groupBy('reading_checkins.lesson_id')
-                ->selectRaw('COUNT(DISTINCT reading_checkins.weekday) AS days'),
-            'weeks',
-        )->max('days');
+        $rows = DB::table('reading_checkins')
+            ->join('lessons', 'lessons.id', '=', 'reading_checkins.lesson_id')
+            ->join('classrooms', 'classrooms.id', '=', 'lessons.classroom_id')
+            ->where('reading_checkins.user_id', $user->id)
+            ->whereColumn('reading_checkins.weekday', '<>', 'classrooms.meeting_weekday')
+            ->get(['reading_checkins.lesson_id', 'reading_checkins.weekday', 'reading_checkins.read_on']);
+
+        $dates = ReadingWeeks::meetingDates(array_values(array_unique($rows->map(fn (object $row) => (int) $row->lesson_id)->all())));
+        $weeks = [];
+
+        foreach ($rows as $row) {
+            $week = ReadingWeeks::index($dates[(int) $row->lesson_id] ?? [], substr((string) $row->read_on, 0, 10));
+            $weeks["{$row->lesson_id}:{$week}"][(int) $row->weekday] = true;
+        }
+
+        return $weeks === [] ? 0 : max(array_map('count', $weeks));
     }
 
     /**

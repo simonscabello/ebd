@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\CelebratesBadges;
 use App\Models\Lesson;
 use App\Models\LessonReading;
 use App\Models\User;
+use App\Support\ReadingWeeks;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,17 +38,20 @@ class ReadingCheckinController extends Controller
     }
 
     /**
-     * Desmarca um dia do plano de leitura (só os próprios registros).
+     * Desmarca um dia do plano de leitura na semana de leitura de hoje (só os
+     * próprios registros).
      */
     public function destroy(Request $request, Lesson $lesson): RedirectResponse
     {
         $weekday = $request->validate(['weekday' => ['required', Rule::enum(Weekday::class)]])['weekday'];
 
-        DB::table('reading_checkins')
-            ->where('user_id', $request->user()?->id)
-            ->where('lesson_id', $lesson->id)
-            ->where('weekday', (int) $weekday)
-            ->delete();
+        ReadingWeeks::constrain(
+            DB::table('reading_checkins')
+                ->where('user_id', $request->user()?->id)
+                ->where('lesson_id', $lesson->id)
+                ->where('weekday', (int) $weekday),
+            $lesson->id,
+        )->delete();
 
         return back();
     }
