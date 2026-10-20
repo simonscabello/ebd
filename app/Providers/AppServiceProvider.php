@@ -117,32 +117,51 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureRateLimiting(): void
     {
-        RateLimiter::for('downloads', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('downloads', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: self::clientIp($request)));
 
         // Tentativas de entrar por link pessoal: o limite apertado é por link
         // (token); o por IP é folgado, porque a classe inteira pode entrar
         // pelo mesmo Wi-Fi da igreja ou pela mesma operadora (CGNAT).
         RateLimiter::for('access-link', fn (Request $request) => [
             Limit::perMinute(10)->by('token:'.hash('sha256', (string) json_encode($request->input('token')))),
-            Limit::perMinute(60)->by('min:'.$request->ip()),
-            Limit::perDay(500)->by('day:'.$request->ip()),
+            Limit::perMinute(60)->by('min:'.self::clientIp($request)),
+            Limit::perDay(500)->by('day:'.self::clientIp($request)),
         ]);
 
         // Cadastro público e "Criar minha igreja": cada envio pode criar uma
         // igreja inteira. Limite por IP, contando também envios com erro.
         RateLimiter::for('church-signup', fn (Request $request) => [
-            Limit::perMinute(5)->by('min:'.$request->ip()),
-            Limit::perDay(20)->by('day:'.$request->ip()),
+            Limit::perMinute(5)->by('min:'.self::clientIp($request)),
+            Limit::perDay(20)->by('day:'.self::clientIp($request)),
         ]);
 
-        RateLimiter::for('engagement', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('engagement', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: self::clientIp($request)));
 
-        RateLimiter::for('study-helper', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('study-helper', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id ?: self::clientIp($request)));
 
-        RateLimiter::for('library', fn (Request $request) => Limit::perMinute(90)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('library', fn (Request $request) => Limit::perMinute(90)->by($request->user()?->id ?: self::clientIp($request)));
 
         // Agentes de IA fazem várias chamadas seguidas numa mesma conversa.
-        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: self::clientIp($request)));
+    }
+
+    /**
+     * IP de quem fez a requisição, para os limites por IP. O $request->ip()
+     * (trustProxies "*") pega o primeiro endereço do X-Forwarded-For, que o
+     * próprio visitante pode mandar preenchido. O proxy do Railway informa o
+     * IP de quem se conectou a ele em X-Real-IP (docs.railway.com, Public
+     * Networking > Specs & Limits): é ele que vale quando vier um IP válido.
+     * Fora do Railway (local, testes), fica o $request->ip().
+     */
+    public static function clientIp(Request $request): string
+    {
+        $realIp = trim((string) $request->headers->get('X-Real-IP'));
+
+        if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP) !== false) {
+            return $realIp;
+        }
+
+        return (string) $request->ip();
     }
 
     /**

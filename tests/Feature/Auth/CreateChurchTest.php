@@ -116,6 +116,25 @@ class CreateChurchTest extends TestCase
             ->assertRedirect(route('home', absolute: false));
     }
 
+    public function test_a_forged_forwarded_for_does_not_escape_the_limit(): void
+    {
+        // No Railway, o IP de verdade vem em X-Real-IP; o X-Forwarded-For o
+        // visitante pode mandar preenchido com o que quiser.
+        for ($i = 0; $i < 5; $i++) {
+            $this->withHeaders(['X-Real-IP' => '203.0.113.7', 'X-Forwarded-For' => "198.51.100.{$i}"])
+                ->post(route('register.store'), $this->payload(['church_name' => '']));
+        }
+
+        $this->withHeaders(['X-Real-IP' => '203.0.113.7', 'X-Forwarded-For' => '198.51.100.99'])
+            ->post(route('register.store'), $this->payload())
+            ->assertTooManyRequests();
+
+        // Outro visitante (outro X-Real-IP) segue normal.
+        $this->withHeaders(['X-Real-IP' => '203.0.113.8'])
+            ->post(route('register.store'), $this->payload())
+            ->assertRedirect(route('home', absolute: false));
+    }
+
     public function test_signup_is_limited_per_ip_per_day(): void
     {
         for ($i = 0; $i < 20; $i++) {
