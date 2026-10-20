@@ -264,13 +264,51 @@ class AccessLinkTest extends TestCase
         $this->actingAs($outsider)->post('/admin/classes/adultos/alunos', ['name' => 'X'])->assertForbidden();
     }
 
-    public function test_login_attempts_are_rate_limited(): void
+    public function test_login_attempts_are_rate_limited_per_link(): void
     {
         foreach (range(1, 10) as $ignored) {
             $this->post('/entrar', ['token' => str_repeat('b', 48)]);
         }
 
         $this->post('/entrar', ['token' => str_repeat('b', 48)])->assertTooManyRequests();
+
+        // Outro link, do mesmo Wi-Fi da igreja, continua entrando.
+        $this->post('/entrar', ['token' => str_repeat('c', 48)])->assertStatus(302);
+    }
+
+    public function test_a_whole_class_on_the_same_network_is_not_locked_out(): void
+    {
+        // 40 alunos, mesmo IP, cada um com o seu link, no mesmo minuto.
+        foreach (range(1, 40) as $i) {
+            $this->post('/entrar', ['token' => str_pad((string) $i, 48, 'x')])->assertStatus(302);
+        }
+    }
+
+    public function test_one_network_still_has_a_ceiling_per_minute_and_per_day(): void
+    {
+        foreach (range(1, 60) as $i) {
+            $this->post('/entrar', ['token' => str_pad((string) $i, 48, 'y')]);
+        }
+
+        $this->post('/entrar', ['token' => str_repeat('z', 48)])->assertTooManyRequests();
+
+        // Outro IP não é afetado.
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])
+            ->post('/entrar', ['token' => str_repeat('z', 48)])->assertStatus(302);
+
+        // Limite do dia: 500 tentativas pelo mesmo IP, em minutos diferentes.
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10']);
+
+        foreach (range(1, 500) as $i) {
+            if ($i % 50 === 0) {
+                $this->travel(2)->minutes();
+            }
+
+            $this->post('/entrar', ['token' => str_pad((string) $i, 48, 'w')]);
+        }
+
+        $this->travel(2)->minutes();
+        $this->post('/entrar', ['token' => str_repeat('v', 48)])->assertTooManyRequests();
     }
 
     public function test_link_replaces_another_logged_user_on_the_same_device(): void

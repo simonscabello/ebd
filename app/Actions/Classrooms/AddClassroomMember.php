@@ -3,6 +3,7 @@
 namespace App\Actions\Classrooms;
 
 use App\Enums\ClassroomRole;
+use App\Models\AuditLog;
 use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +27,23 @@ class AddClassroomMember
             || array_intersect($user->memberClassroomIds(), $actor->manageableClassroomIds() ?? []) !== []);
 
         if (! $allowed) {
+            // Tentar trazer uma conta que existe mas não está ao seu alcance
+            // (aluno de uma turma que você não acompanha, ou de outra igreja)
+            // fica registrado, sem revelar nada a quem tentou.
+            if ($user !== null) {
+                AuditLog::query()->create([
+                    'user_id' => $actor->id,
+                    'source' => 'web',
+                    'tool' => 'classroom.add_member',
+                    'arguments' => ['role' => $role->value],
+                    'subject_type' => $user->getMorphClass(),
+                    'subject_id' => $user->id,
+                    'classroom_id' => $classroom->id,
+                    'status' => AuditLog::STATUS_DENIED,
+                    'error' => 'Conta fora do alcance de quem adicionou.',
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'email' => $role === ClassroomRole::Teacher
                     ? 'Não encontramos uma conta disponível com este e-mail.'

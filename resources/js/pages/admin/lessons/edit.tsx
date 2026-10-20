@@ -25,6 +25,7 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Breadcrumbs, Page, Section } from '@/components/page';
 import { SectionNav } from '@/components/section-nav';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { meetingWords } from '@/lib/meeting-words';
 import { dashboard } from '@/routes/admin';
@@ -131,7 +132,15 @@ export default function EditLesson({
         router.post(
             changeStatus.url(lesson.id),
             { status: target },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                // Ex.: lição ainda vazia não pode ser publicada.
+                onError: (errors) =>
+                    toast.error(
+                        errors.status ??
+                            'Não foi possível mudar a lição agora.',
+                    ),
+            },
         );
     };
 

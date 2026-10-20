@@ -2,6 +2,7 @@
 
 namespace App\Actions\Lessons;
 
+use App\Enums\ContentAudience;
 use App\Enums\LessonStatus;
 use App\Events\LessonPublished;
 use App\Models\Lesson;
@@ -29,6 +30,14 @@ class ChangeLessonStatus
 
         $wasDraft = $lesson->status === LessonStatus::Draft;
 
+        // Publicar avisa a classe inteira: lição só com título (ou só com o
+        // esqueleto "## I. / ### 1." do editor) não sai como "lição nova".
+        if ($target === LessonStatus::Published && ! self::hasRealContent($lesson)) {
+            throw ValidationException::withMessages([
+                'status' => 'A lição ainda está vazia. Escreva o estudo (ou um complemento para os alunos) antes de publicar.',
+            ]);
+        }
+
         $lesson->status = $target;
 
         match ($target) {
@@ -50,5 +59,21 @@ class ChangeLessonStatus
         }
 
         return $lesson;
+    }
+
+    /**
+     * Tem texto de estudo além dos títulos do esqueleto, um complemento para
+     * os alunos com texto ou um material (PDF, link) para os alunos.
+     */
+    public static function hasRealContent(Lesson $lesson): bool
+    {
+        $text = preg_replace('/^\s*#{1,6}\s.*$/m', '', strip_tags((string) $lesson->content)) ?? '';
+
+        if (preg_match('/[\p{L}\p{N}]/u', $text) === 1) {
+            return true;
+        }
+
+        return $lesson->materials()->where('audience', ContentAudience::Student)->exists()
+            || $lesson->blocks()->where('audience', ContentAudience::Student)->where(fn ($q) => $q->whereNotNull('body')->where('body', '<>', ''))->exists();
     }
 }

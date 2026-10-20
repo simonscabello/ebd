@@ -14,6 +14,7 @@ use App\Support\Bible\Bible;
 use App\Support\ChurchCalendar;
 use App\Support\Push\PushMessage;
 use App\Support\Push\PushSender;
+use App\Support\ReadingWeeks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -88,9 +89,13 @@ final class SendReadingReminders
             }
 
             if ($slot === ReminderSlot::Evening) {
-                $done = ReadingCheckin::query()
-                    ->where('lesson_id', $lesson->id)
-                    ->where('weekday', $weekday)
+                // Só quem marcou a leitura de hoje nesta semana de leitura: na
+                // 2ª semana de uma lição que continua, a da 1ª não conta.
+                $done = ReadingWeeks::constrain(
+                    ReadingCheckin::query()->where('lesson_id', $lesson->id)->where('weekday', $weekday)->toBase(),
+                    $lesson->id,
+                    $today->toDateString(),
+                )
                     ->pluck('user_id')
                     ->all();
 

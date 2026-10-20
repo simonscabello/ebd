@@ -11,6 +11,7 @@ use App\Models\Lesson;
 use App\Queries\MeetingForLessonQuery;
 use App\Support\ChurchCalendar;
 use App\Support\ChurchFeatures;
+use App\Support\ReadingWeeks;
 use App\Support\WeeklyMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -119,9 +120,10 @@ class LessonController extends Controller
         }
 
         return [
-            'checked_weekdays' => DB::table('reading_checkins')
-                ->where('user_id', $user->id)
-                ->where('lesson_id', $lesson->id)
+            'checked_weekdays' => ReadingWeeks::constrain(
+                DB::table('reading_checkins')->where('user_id', $user->id)->where('lesson_id', $lesson->id),
+                $lesson->id,
+            )
                 ->orderBy('weekday')
                 ->pluck('weekday')
                 ->map(fn ($d) => (int) $d),

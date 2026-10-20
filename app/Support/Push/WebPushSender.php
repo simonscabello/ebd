@@ -27,6 +27,17 @@ final class WebPushSender implements PushSender
 
     public function send(Collection $subscriptions, PushMessage $message): int
     {
+        // Inscrições antigas com endpoint fora dos serviços de push conhecidos
+        // (hoje recusadas na inscrição) não recebem nada, mas não são apagadas.
+        [$subscriptions, $unknown] = $subscriptions->partition(fn (PushSubscription $s) => PushEndpoint::isAllowed($s->endpoint));
+
+        foreach ($unknown as $subscription) {
+            Log::warning('Push: endpoint fora dos serviços conhecidos, pulado.', [
+                'subscription_id' => $subscription->id,
+                'host' => parse_url($subscription->endpoint, PHP_URL_HOST),
+            ]);
+        }
+
         if ($subscriptions->isEmpty()) {
             return 0;
         }

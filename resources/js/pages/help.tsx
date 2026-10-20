@@ -10,6 +10,7 @@ import {
     FileText,
     KeyRound,
     LayoutDashboard,
+    MessageCircleQuestion,
     Layers,
     Link2,
     NotebookPen,
@@ -151,6 +152,11 @@ function ForStudents() {
                 Em <strong>Meu progresso</strong> você vê quanto falta para cada
                 um.
             </Topic>
+            <Topic icon={<MessageCircleQuestion />} title="Tirar dúvida">
+                Na página da lição, a IA responde com base no estudo. Para isso,
+                a sua pergunta e a lição vão para a OpenAI. O professor vê as
+                perguntas da classe, mas sem o seu nome.
+            </Topic>
             <Topic icon={<BellRing />} title="Lembretes no celular">
                 Ative em <strong>Perfil → Lembretes no celular</strong> para
                 receber a leitura do dia, o aviso da véspera da EBD e as lições
@@ -216,7 +222,9 @@ function ForTeachers() {
             <Topic icon={<Send />} title="Publicar">
                 Quando a lição estiver pronta, toque em{' '}
                 <strong>Publicar</strong>. A classe recebe um aviso no celular e
-                a lição entra na biblioteca. Dá para despublicar depois.
+                a lição entra na biblioteca. Dá para despublicar depois. Lição
+                ainda vazia (sem estudo nem complemento para os alunos) não é
+                publicada.
             </Topic>
             <Topic icon={<CalendarRange />} title="Domingos">
                 Na aba <strong>Domingos</strong> da classe,{' '}
@@ -250,6 +258,10 @@ function ForTeachers() {
             <Topic icon={<KeyRound />} title="Privacidade">
                 As anotações pessoais dos alunos são só deles. As anotações que
                 você faz na ficha de um aluno só os professores da classe veem.
+                No <strong>Tirar dúvida</strong>, a pergunta do aluno e a lição
+                vão para a OpenAI para gerar a resposta (sem guardar a conversa
+                lá), e você vê as dúvidas da classe sem o nome de quem
+                perguntou.
             </Topic>
         </>
     );
