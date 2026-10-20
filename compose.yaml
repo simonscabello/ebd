@@ -58,7 +58,7 @@ services:
             POSTGRES_USER: ${DB_USERNAME:-ebd}
             POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
         ports:
-            - '${FORWARD_DB_PORT:-5432}:5432'
+            - '127.0.0.1:${FORWARD_DB_PORT:-5432}:5432'
         volumes:
             # A partir do PostgreSQL 18 o volume deve apontar para /var/lib/postgresql.
             - pgdata:/var/lib/postgresql

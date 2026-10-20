@@ -212,7 +212,7 @@ class ClassMeetingController extends Controller
     }
 
     /**
-     * @return Collection<int, array{id: int, label: string, status: 'draft'|'published', series_id: int|null}>
+     * @return Collection<int, array{id: int, label: string, status: 'draft'|'published', series_id: int|null, series_title: string|null}>
      */
     private function lessonOptions(Classroom $classroom): Collection
     {
