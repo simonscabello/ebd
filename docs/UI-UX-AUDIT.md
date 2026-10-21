@@ -147,14 +147,22 @@ Nenhuma regra de negócio mudou: a contagem de 6 dias, o período dos números e
     - Painel com uma série extra de rascunhos (criada só no banco descartável): seções "Próximas lições" e "Sem domingo marcado", rascunhos em ordem 1, 2.
     - Seletor do domingo: grupos "Jornada dos Milagres de Jesus (7)" e "Série de teste B (2)".
     - Biblioteca, Alunos e Meu progresso conferidos por DOM e captura.
-- **Produção:** validada depois do deploy (ver nota ao fim).
+- **Produção (2026-10-20, `https://usedidache.com.br`, Chrome do Simon, só leitura):** PR #51 em produção.
+    - Avatar carrega (`naturalWidth > 0`).
+    - Painel: "Próximas lições" só com as 3 aulas datadas; "Sem domingo marcado" com os rascunhos em ordem (Lição 1, 2, 3…).
+    - Classe Jovens: cabeçalho "14 alunos"; números "na série anterior, Milagres de Jesus".
+    - Domingos: nenhum selo "Planejado".
+    - Seletor do domingo: 5 grupos por série, Efésios primeiro.
+    - Início: "2 de 6 dias de leitura" e "2 de 6 dias lidos".
+    - Meu progresso: selos com ícones; nenhum erro de console.
 - **Não coberto:** a frase "série anterior" depende de uma semana de troca de série; foi verificada pela lógica (`isPreviousTo`) e pela tela da produção em que o caso existe hoje, não por teste automatizado novo.
 
 ## 8. Próximos passos
 
 Por impacto ÷ esforço:
 
-1. **Fora do código, urgente:** `APP_URL` de produção aponta para `usedidache.com.br`, que não resolve no DNS. Push, e-mails e qualquer link montado fora de uma requisição saem com esse domínio. Configurar o DNS ou voltar `APP_URL` para `ebd.up.railway.app` até lá.
+1. ~~DNS de `usedidache.com.br`~~: resolvido em 2026-10-20 (o domínio entrou no ar no mesmo dia da auditoria). A URL relativa do avatar continua valendo para qualquer domínio.
+    - Dado: uma série se chama "Fora de COntexto - Volume 3" (C maiúsculo a mais), visível no seletor do domingo.
 2. **C2** "Precisam de atenção": separar faltas de leitura e ordenar por gravidade (decisão de produto).
 3. **L2** ordem das séries pela próxima data de domingo.
 4. **A1** tirar os atalhos "Lição" e "Leituras" do Início (decisão de produto).
