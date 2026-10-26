@@ -78,6 +78,14 @@ await shot(
     630,
     'public/brand/og-didache.png',
 );
+// Cabeçalho dos e-mails (2x de 44×35); o Gmail não mostra SVG.
+await shot(
+    sized(read('public/brand/simbolo.svg'), 88, 70),
+    88,
+    70,
+    'public/brand/email-simbolo.png',
+    true,
+);
 await b.close();
 console.log('ok');
 // Os nomes antigos (icon-192.png, apple-touch-icon.png...) ficam como cópias
