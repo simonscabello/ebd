@@ -1,8 +1,5 @@
-import { Link } from '@inertiajs/react';
 import type { Crumb } from '@/components/page';
 import { Breadcrumbs } from '@/components/page';
-import { cn } from '@/lib/utils';
-import { dashboard } from '@/routes/admin';
 import { questions, report, show } from '@/routes/admin/classrooms';
 import { index as meetingsIndex } from '@/routes/admin/classrooms/meetings';
 import { index as studentsIndex } from '@/routes/admin/classrooms/students';
@@ -16,8 +13,8 @@ export type ClassroomTab =
     | 'relatorio';
 
 /**
- * Topo de toda página de uma classe: o caminho (Painel › Classe › …) e as
- * abas da classe. A página continua com o próprio PageHeader, sem caminho.
+ * Topo das páginas de dentro de uma classe: o caminho (Classe › Domingos › …)
+ * de volta à página da classe, que reúne tudo. As classes estão no menu.
  */
 export function ClassroomHeader({
     classroom,
@@ -30,7 +27,11 @@ export function ClassroomHeader({
     crumbs?: Crumb[];
 }) {
     const tabs: { key: ClassroomTab; title: string; href: string }[] = [
-        { key: 'resumo', title: 'Resumo', href: show.url(classroom.slug) },
+        {
+            key: 'resumo',
+            title: classroom.name,
+            href: show.url(classroom.slug),
+        },
         {
             key: 'domingos',
             title: classroom.meeting_name_plural ?? 'Domingos',
@@ -54,44 +55,19 @@ export function ClassroomHeader({
     ];
 
     const current = tabs.find((tab) => tab.key === active) ?? tabs[0];
+
+    // A página da classe já é o ponto de partida: não precisa de caminho.
+    if (active === 'resumo' && crumbs.length === 0) {
+        return null;
+    }
+
     const trail: Crumb[] = [
-        { title: 'Painel', href: dashboard.url() },
         { title: classroom.name, href: show.url(classroom.slug) },
-        ...(active === 'resumo' && crumbs.length === 0
+        ...(active === 'resumo'
             ? []
             : [{ title: current.title, href: current.href }]),
         ...crumbs,
     ];
 
-    return (
-        <div className="mb-6 print:hidden">
-            <Breadcrumbs items={trail} className="mb-3" />
-            <nav
-                aria-label={`Classe ${classroom.name}`}
-                className="-mx-4 overflow-x-auto scroll-fade-x px-4 sm:mx-0 sm:px-0"
-            >
-                <ul className="flex min-w-max gap-1 border-b">
-                    {tabs.map((tab) => {
-                        const selected = tab.key === active;
-
-                        return (
-                            <li key={tab.key}>
-                                <Link
-                                    href={tab.href}
-                                    aria-current={selected ? 'page' : undefined}
-                                    className={cn(
-                                        '-mb-px inline-flex min-h-11 items-center border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                                        selected &&
-                                            'border-primary text-foreground',
-                                    )}
-                                >
-                                    {tab.title}
-                                </Link>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </nav>
-        </div>
-    );
+    return <Breadcrumbs items={trail} className="mb-4 print:hidden" />;
 }

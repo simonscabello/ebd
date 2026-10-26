@@ -38,7 +38,7 @@ export default function ChurchSettings({
             <Page>
                 <PageHeader
                     breadcrumbs={[
-                        { title: 'Painel', href: dashboard.url() },
+                        { title: 'Visão geral', href: dashboard.url() },
                         { title: 'Dados da igreja' },
                     ]}
                     title="Dados da igreja"

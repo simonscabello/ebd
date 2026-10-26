@@ -83,7 +83,7 @@ export default function AdminDashboard({
 
     return (
         <>
-            <Head title="Painel" />
+            <Head title="Visão geral" />
 
             <Page width="wide">
                 <PageHeader

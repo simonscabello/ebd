@@ -63,7 +63,7 @@ export default function ClassroomForm({
             <Page>
                 <PageHeader
                     breadcrumbs={[
-                        { title: 'Painel', href: dashboard.url() },
+                        { title: 'Visão geral', href: dashboard.url() },
                         { title: 'Classes', href: classroomsIndex.url() },
                         { title: classroom ? classroom.name : 'Nova' },
                     ]}

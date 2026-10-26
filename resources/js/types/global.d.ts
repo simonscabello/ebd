@@ -17,6 +17,8 @@ declare module '@inertiajs/core' {
                 choices: { id: number; name: string }[];
             };
             auth: Auth;
+            /** Classes do menu lateral (só na gestão). */
+            adminClassrooms: { slug: string; name: string }[];
             features: { registration: boolean };
             push: { public_key: string | null };
             [key: string]: unknown;
