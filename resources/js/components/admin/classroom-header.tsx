@@ -68,7 +68,7 @@ export function ClassroomHeader({
             <Breadcrumbs items={trail} className="mb-3" />
             <nav
                 aria-label={`Classe ${classroom.name}`}
-                className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+                className="-mx-4 overflow-x-auto scroll-fade-x px-4 sm:mx-0 sm:px-0"
             >
                 <ul className="flex min-w-max gap-1 border-b">
                     {tabs.map((tab) => {

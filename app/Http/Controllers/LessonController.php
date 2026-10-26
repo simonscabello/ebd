@@ -94,7 +94,9 @@ class LessonController extends Controller
 
         return [
             'meeting' => ClassMeetingResource::make($meeting)->withNotes()->resolve($request),
-            'can_take_attendance' => $meeting->held_on->toDateString() <= ChurchCalendar::todayString(),
+            // Domingo passado já com chamada: a correção é feita na página do domingo.
+            'can_take_attendance' => $meeting->held_on->toDateString() === ChurchCalendar::todayString()
+                || ($meeting->held_on->toDateString() < ChurchCalendar::todayString() && $meeting->attendance_taken_at === null),
             'roster' => $roster,
             // Só quem continua na classe: a chamada reenvia esta lista inteira.
             'present' => $meeting->attendances()->pluck('user_id')

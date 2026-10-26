@@ -211,7 +211,7 @@
     </div>
     <div class="splash__footer">
         <span class="splash__bar" aria-hidden="true"></span>
-        <span class="splash__name">Escola Bíblica Dominical</span>
+        <span class="splash__name">{{ config('brand.name') }}</span>
         <span class="splash__sr">Carregando…</span>
         <div class="splash__stuck">
             <p>O app está demorando para abrir. Verifique a internet e tente de novo.</p>
@@ -225,11 +225,14 @@
         var splash = document.getElementById('splash');
         var seen = false;
 
+        // Versículo inteiro só na primeira abertura do dia: no app instalado
+        // cada abertura é uma sessão nova, e a espera se repetiria sempre.
         try {
-            seen = sessionStorage.getItem('ebd.splash') === '1';
-            sessionStorage.setItem('ebd.splash', '1');
+            var today = new Date().toDateString();
+            seen = localStorage.getItem('ebd.splash') === today;
+            localStorage.setItem('ebd.splash', today);
         } catch (e) {
-            // Sem sessionStorage (modo privado antigo): trata como primeira abertura.
+            // Sem localStorage (modo privado antigo): trata como primeira abertura.
         }
 
         splash.dataset.mode = seen ? 'quick' : 'full';

@@ -232,6 +232,15 @@
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
 }
 
+/* Barra rolável na horizontal: esmaece a borda direita para indicar que há mais itens. */
+@utility scroll-fade-x {
+    mask-image: linear-gradient(
+        to right,
+        #000 calc(100% - 1.5rem),
+        transparent
+    );
+}
+
 /*
  * Altura do menu inferior do celular (lista de 3.75rem + pb-safe + borda).
  * A partir de md o menu some e a altura vira zero.

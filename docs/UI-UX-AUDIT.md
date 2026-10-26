@@ -164,9 +164,49 @@ Por impacto ÷ esforço:
 1. ~~DNS de `usedidache.com.br`~~: resolvido em 2026-10-20 (o domínio entrou no ar no mesmo dia da auditoria). A URL relativa do avatar continua valendo para qualquer domínio.
     - Dado: uma série se chama "Fora de COntexto - Volume 3" (C maiúsculo a mais), visível no seletor do domingo.
 2. **C2** "Precisam de atenção": separar faltas de leitura e ordenar por gravidade (decisão de produto).
-3. **L2** ordem das séries pela próxima data de domingo.
+3. ~~**L2** ordem das séries pela próxima data de domingo~~: feito na rodada 2.
 4. **A1** tirar os atalhos "Lição" e "Leituras" do Início (decisão de produto).
-5. **C7/L3/A4** componente único de barra rolável com degradê nas bordas.
-6. **T3** abertura no máximo 1×/dia.
+5. ~~**C7/L3/A4** barra rolável com degradê~~: feito na rodada 2.
+6. ~~**T3** abertura no máximo 1×/dia~~: feito na rodada 2.
 7. **P2** "Igreja" (dados, programas, fuso) no menu da conta da gestão.
 8. **A3** Biblioteca: separar próximas de já estudadas.
+
+---
+
+## 9. Rodada 2 (2026-10-26)
+
+Branch `feat/ui-ux-rodada-2`. Cobriu o que a rodada 1 deixou de fora (telas deslogadas, editor de lição, Modo Domingo) e os pendentes que não dependem de decisão de produto. Ambiente: app local (Postgres em contêiner, seed), navegador embutido do app a 375 px.
+
+### Achados novos
+
+| #   | Onde                         | Problema                                                                                                                                                                                                                    | Prio  | Esforço | Situação     |
+| --- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------- | ------------ |
+| D1  | Modo Domingo (professor)     | Lição cujo domingo já passou e teve chamada: o aviso dizia "Esta lição ainda não está em nenhum domingo", enquanto o editor mostrava "Domingos (1)". [LOCAL] [CÓD] `MeetingForLessonQuery` devolvia nada nesse caso.        | **A** | baixo   | Corrigido    |
+| D2  | Login, cadastro, link, senha | Visitante via "Didaché · Segunda Igreja Batista em Barcelona" (a igreja principal) — inclusive em "Criar minha igreja" e para alunos de outras igrejas. [LOCAL] [CÓD] `Church::displayName()` cai na principal sem usuário. | **A** | baixo   | Corrigido    |
+| D3  | Abertura                     | Rodapé fixo "Escola Bíblica Dominical", errado para igrejas com outros programas.                                                                                                                                           | B     | baixo   | Corrigido    |
+| D4  | Esqueci minha senha          | Sem provedor de e-mail, a única orientação é "peça ao seu professor um novo link" — não serve para professor, coordenador ou quem criou a igreja. [LOCAL] [CÓD] `forgot-password.tsx`.                                      | M     | médio   | Decisão (\*) |
+
+(\*) Caminho possível: com e-mail desligado, dizer "Professor ou responsável pela igreja? Peça a quem administra a igreja para gerar um link de acesso para você" — só se esse link existir para quem gerencia. Precisa de decisão sobre como recuperar o acesso de quem administra.
+
+### Implementado
+
+| Item     | O que mudou                                                                                                                                                       | Arquivos                                                                                  |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| D1       | Sem domingo de hoje, atrasado ou futuro, o Modo Domingo aponta o último domingo já com chamada: "A chamada de 4 de out já foi feita. Ver o domingo" (corrige lá). | `MeetingForLessonQuery.php`, `LessonController.php` (`can_take_attendance`), `sunday.tsx` |
+| D2       | Telas de entrada mostram só "Didaché" para visitante; logado continua com o nome da própria igreja.                                                               | `layouts/auth/auth-simple-layout.tsx`                                                     |
+| L2       | Lista de Lições: séries com domingo marcado primeiro (a mais próxima no topo), depois as já dadas, depois as sem domingo, e avulsas no fim.                       | `Admin/LessonController.php`                                                              |
+| C7/L3/A4 | Utilitário `scroll-fade-x` (máscara na borda direita) nas duas barras compartilhadas: abas da classe e `SectionNav` (abas do editor e seções da lição).           | `app.css`, `classroom-header.tsx`, `section-nav.tsx`                                      |
+| T3, D3   | Versículo inteiro só na primeira abertura do dia (`localStorage` com a data); depois sai assim que o app monta. Rodapé com a marca.                               | `partials/splash.blade.php`, `lib/splash.ts`                                              |
+
+### Validação
+
+- Testes novos: Modo Domingo com domingo passado e chamada feita; ordem das séries (em curso → dada → sem domingo). Ambos falhariam antes da mudança.
+- `php artisan test`: 631 passaram, 1 pulado (o mesmo). `tsc --noEmit` limpo, `vp check` sem avisos, Pint, `npm run build` ok.
+- Navegador (local, 375 px): Modo Domingo mostra "A chamada de 4 de out de 2026 já foi feita."; abas da classe e do editor com a borda direita esmaecida.
+- Revisão independente (Codex) do diff: nenhum bug; confirmou que nenhum caso que antes abria a chamada deixou de abrir.
+- Login como visitante: só "Didaché" acima do título.
+- **Não coberto:** ordem das séries só por teste (o seed tem uma série); abertura 1×/dia conferida pelo código.
+
+### Ainda pendente (decisão de produto)
+
+C2 "Precisam de atenção" por gravidade · A1 atalhos duplicados do Início · P2 "Igreja" no menu da conta · A3 Biblioteca separando próximas de já estudadas · D4 recuperar acesso de quem administra sem e-mail.

@@ -1,9 +1,9 @@
 /**
  * Tela de abertura (resources/views/partials/splash.blade.php).
  *
- * Sai quando o app termina de montar. Na primeira abertura da sessão fica o
+ * Sai quando o app termina de montar. Na primeira abertura do dia fica o
  * tempo de ler o versículo (proporcional ao tamanho, com teto); tocar nela
- * dispensa a espera. Nas recargas seguintes sai assim que o app está pronto.
+ * dispensa a espera. Nas aberturas seguintes sai assim que o app está pronto.
  */
 
 /** Mesmo atraso do CSS antes de o conteúdo aparecer no modo "quick". */
