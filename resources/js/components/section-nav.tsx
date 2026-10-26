@@ -92,7 +92,7 @@ export function SectionNav({
                 className,
             )}
         >
-            <ul className="flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 py-2.5">
+            <ul className="flex [scrollbar-width:none] gap-2 overflow-x-auto scroll-fade-x px-4 py-2.5">
                 {sections.map((section) => {
                     const isActive = section.id === active;
 

@@ -148,8 +148,9 @@ export default function SundayMode({
                         <CalendarClock className="mt-0.5 size-5 shrink-0 text-primary" />
                         {conduct ? (
                             <span>
-                                A chamada abre no dia do {words.one} (
-                                {conduct.meeting.date_short}).{' '}
+                                {conduct.meeting.has_attendance
+                                    ? `A chamada de ${conduct.meeting.date_short} já foi feita.`
+                                    : `A chamada abre no dia do ${words.one} (${conduct.meeting.date_short}).`}{' '}
                                 <Link
                                     href={conduct.meeting_url}
                                     className="font-medium text-primary hover:underline"

@@ -129,6 +129,18 @@ class AttendanceAndInsightsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('conduct', null));
     }
 
+    public function test_sunday_mode_points_to_a_past_sunday_whose_attendance_is_done(): void
+    {
+        $lesson = Lesson::factory()->for($this->classroom)->published()->on('2026-09-20')->create(['slug' => 'passada']);
+        $this->actingAs($this->teacher)->put("/admin/encontros/{$this->meetingFor($lesson)->id}/chamada", ['present' => []]);
+
+        $this->actingAs($this->teacher)->get('/licoes/passada/domingo')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('conduct.can_take_attendance', false)
+                ->where('conduct.meeting.has_attendance', true)
+                ->where('conduct.meeting.held_on', '2026-09-20'));
+    }
+
     public function test_overview_respects_join_dates_and_flags_students_needing_attention(): void
     {
         $ana = $this->student('Ana', '2026-08-01');

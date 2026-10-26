@@ -12,6 +12,7 @@ use App\Models\LessonBlock;
 use App\Models\LessonMaterial;
 use App\Models\Series;
 use App\Models\User;
+use App\Support\ChurchCalendar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -265,5 +266,21 @@ class LessonManagementTest extends TestCase
                 ->where('lessons.data.2.title', 'M16')
                 ->where('lessons.data.3.title', 'M17')
                 ->where('lessons.data.4.title', 'Avulsa'));
+    }
+
+    public function test_series_in_progress_comes_before_newer_series_without_sundays(): void
+    {
+        $drafts = Series::factory()->for($this->classroom)->create(['title' => 'Rascunhos', 'starts_on' => '2027-01-03']);
+        $done = Series::factory()->for($this->classroom)->create(['title' => 'Dada', 'starts_on' => '2026-08-02']);
+        $current = Series::factory()->for($this->classroom)->create(['title' => 'Em curso', 'starts_on' => '2026-09-06']);
+        Lesson::factory()->forSeries($drafts)->number(1)->create(['title' => 'R1']);
+        Lesson::factory()->forSeries($done)->number(1)->on(ChurchCalendar::today()->subWeeks(8)->toDateString())->create(['title' => 'D1']);
+        Lesson::factory()->forSeries($current)->number(1)->on(ChurchCalendar::today()->addWeek()->toDateString())->create(['title' => 'C1']);
+
+        $this->actingAs($this->teacher)->get('/admin/licoes')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('lessons.data.0.title', 'C1')
+                ->where('lessons.data.1.title', 'D1')
+                ->where('lessons.data.2.title', 'R1'));
     }
 }

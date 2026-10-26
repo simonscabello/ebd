@@ -8,7 +8,7 @@ use App\Support\ChurchCalendar;
 
 /**
  * Qual encontro o Modo Domingo está conduzindo: o de hoje; senão o último já
- * passado ainda sem chamada; senão o próximo.
+ * passado ainda sem chamada; senão o próximo; senão o último, já com chamada.
  */
 class MeetingForLessonQuery
 {
@@ -19,6 +19,7 @@ class MeetingForLessonQuery
 
         return $base()->whereDate('held_on', $today)->first()
             ?? $base()->whereDate('held_on', '<', $today)->whereNull('attendance_taken_at')->orderByDesc('held_on')->first()
-            ?? $base()->whereDate('held_on', '>', $today)->chronological()->first();
+            ?? $base()->whereDate('held_on', '>', $today)->chronological()->first()
+            ?? $base()->whereDate('held_on', '<', $today)->orderByDesc('held_on')->first();
     }
 }

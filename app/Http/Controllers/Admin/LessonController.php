@@ -51,17 +51,30 @@ class LessonController extends Controller
 
         $manageable = $request->user()->listedClassroomIds();
 
+        // Próximo e último domingo de cada série: a que está em curso vem antes dos rascunhos.
+        $seriesDates = ClassMeeting::query()->active()
+            ->join('lessons as dated', 'dated.id', '=', 'class_meetings.lesson_id')
+            ->whereNotNull('dated.series_id')
+            ->groupBy('dated.series_id')
+            ->select('dated.series_id')
+            ->selectRaw('MIN(CASE WHEN class_meetings.held_on >= ? THEN class_meetings.held_on END) AS next_on', [ChurchCalendar::todayString()])
+            ->selectRaw('MAX(class_meetings.held_on) AS last_on');
+
         $lessons = Lesson::query()
             ->select('lessons.*')
             ->leftJoin('series', 'series.id', '=', 'lessons.series_id')
+            ->leftJoinSub($seriesDates, 'series_dates', 'series_dates.series_id', '=', 'lessons.series_id')
             ->whereIn('lessons.classroom_id', $manageable)
             ->when($filters['classe'] ?? null, fn ($q, $id) => $q->where('lessons.classroom_id', $id))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('lessons.status', $status))
             ->when($filters['q'] ?? null, fn ($q, $term) => $q->whereRaw('unaccent(lessons.title) ILIKE unaccent(?)', ['%'.addcslashes($term, '%_\\').'%']))
             ->with(['classroom', 'series'])
             ->withCount(['materials'])
-            // Agrupadas por série (a mais recente primeiro; sem série no fim), na ordem da revista.
+            // Agrupadas por série, na ordem da revista: com domingo marcado (a mais
+            // próxima primeiro), depois as já dadas, depois as sem domingo; sem série no fim.
             ->orderByRaw('lessons.series_id IS NULL')
+            ->orderByRaw('series_dates.next_on IS NULL, series_dates.next_on')
+            ->orderByRaw('series_dates.last_on DESC NULLS LAST')
             ->orderByRaw('series.starts_on DESC NULLS LAST')
             ->orderByDesc('lessons.series_id')
             ->orderByRaw('lessons.number IS NULL, lessons.number')

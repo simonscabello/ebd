@@ -9,7 +9,7 @@ export default function AuthSimpleLayout({
     title,
     description,
 }: AuthLayoutProps) {
-    const { church } = usePage().props;
+    const { church, auth } = usePage().props;
 
     return (
         <div className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10">
@@ -22,7 +22,10 @@ export default function AuthSimpleLayout({
                         >
                             <AppLogoMark className="size-12" />
                             <span className="text-sm text-muted-foreground">
-                                {brand.name} · {church.name}
+                                {/* Visitante: sem igreja ainda (a principal confundiria quem é de outra). */}
+                                {auth.user
+                                    ? `${brand.name} · ${church.name}`
+                                    : brand.name}
                             </span>
                         </Link>
 
