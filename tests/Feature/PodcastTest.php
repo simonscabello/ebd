@@ -6,6 +6,7 @@ use App\Enums\LessonVisibility;
 use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\Lesson;
+use App\Models\Series;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -41,6 +42,24 @@ class PodcastTest extends TestCase
         $this->assertSame('1234', (string) $xml->channel->item->enclosure['length']);
         $this->assertSame($classroom->church->name, (string) $xml->channel->title);
         $this->assertStringContainsString('<itunes:email>podcast@example.com</itunes:email>', $response->getContent());
+    }
+
+    public function test_each_series_is_a_season_and_prefixes_the_title(): void
+    {
+        $classroom = Classroom::factory()->create();
+        Series::factory()->for($classroom)->create();
+        $series = Series::factory()->for($classroom)->create(['title' => 'Milagres de Jesus']);
+        Lesson::factory()->for($classroom)->for($series)->published()->create([
+            'number' => 17, 'title' => 'Por que não vemos milagres?',
+            'audio_disk' => 'local', 'audio_path' => 'audio/x.mp3',
+        ]);
+
+        $xml = simplexml_load_string($this->get(route('churches.podcast', $classroom->church))->getContent());
+        $item = $xml->channel->item;
+
+        $this->assertSame('Milagres de Jesus · Lição 17 — Por que não vemos milagres?', (string) $item->title);
+        $this->assertSame('2', (string) $item->children('itunes', true)->season);
+        $this->assertSame('17', (string) $item->children('itunes', true)->episode);
     }
 
     public function test_official_library_has_no_feed(): void
