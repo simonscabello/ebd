@@ -263,7 +263,7 @@ export default function StudentPage({
                     <div className="min-w-0">
                         <nav
                             aria-label={`Sobre ${student.name}`}
-                            className="mb-4 flex gap-6 overflow-x-auto rounded-2xl border bg-card px-5"
+                            className="mb-4 flex gap-6 overflow-x-auto overflow-y-hidden rounded-2xl border bg-card px-5"
                         >
                             {TABS.map((item) => (
                                 <button

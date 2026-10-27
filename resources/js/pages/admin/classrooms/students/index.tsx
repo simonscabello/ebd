@@ -43,8 +43,8 @@ const FILTERS: Record<
     all: { label: 'Todos', test: () => true },
     attention: {
         label: 'Precisam de atenção',
-        // A mesma regra do selo: só leitura atrasada já aparece na coluna "Lição atual".
-        test: (student) => situationOf(student).tone === 'warning',
+        // A mesma conta da Visão geral.
+        test: (student) => student.needs_attention,
     },
     birthday: {
         label: 'Aniversário',
@@ -286,14 +286,9 @@ function situationOf(student: StudentRow): {
     label: string;
     tone: 'success' | 'warning' | 'info' | 'highlight' | 'muted';
 } {
-    // "Não leu" já tem coluna própria: o selo fica para o que a coluna não mostra.
-    const reasons = student.reasons.filter(
-        (reason) =>
-            student.read_current === null || !/leitura|l[eê]/i.test(reason),
-    );
-
-    if (student.needs_attention && reasons.length > 0) {
-        const reason = reasons[0];
+    // O mesmo motivo da Visão geral ("11 dias sem leitura" não é o mesmo que "não leu a lição atual").
+    if (student.needs_attention && student.reasons.length > 0) {
+        const reason = student.reasons[0];
 
         return {
             label: reason.charAt(0).toUpperCase() + reason.slice(1),

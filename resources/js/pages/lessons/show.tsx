@@ -151,7 +151,7 @@ export default function LessonShow({
 
     const goToTopic = (index: number) => {
         studyPanel.current
-            ?.querySelectorAll<HTMLElement>('.reading h2, .reading h3')
+            ?.querySelectorAll<HTMLElement>('.reading h2')
             [index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
@@ -332,7 +332,7 @@ export default function LessonShow({
                     <div
                         role="tablist"
                         aria-label="Partes da lição"
-                        className="flex min-w-0 flex-1 [scrollbar-width:none] gap-4 overflow-x-auto"
+                        className="flex min-w-0 flex-1 [scrollbar-width:none] gap-4 overflow-x-auto overflow-y-hidden"
                     >
                         {tabs.map((item) => (
                             <button
@@ -412,14 +412,14 @@ export default function LessonShow({
                                                 onClick={() => goToTopic(index)}
                                                 className="inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                             >
-                                                {index + 1} · {topic}
+                                                {topic}
                                             </button>
                                         ))}
                                     </nav>
                                 )}
                                 {lesson.content_html && (
                                     <RichText
-                                        className="reading [&_h2]:scroll-mt-32 [&_h3]:scroll-mt-32"
+                                        className="reading [&_h2]:scroll-mt-32"
                                         html={lesson.content_html}
                                     />
                                 )}

@@ -29,7 +29,12 @@ class LibraryController extends Controller
                 'ano' => $filters['year'],
             ],
             'results' => LessonResource::collection($results),
-            'classrooms' => ClassroomResource::collection(Classroom::query()->whereIn('church_id', Church::idsVisibleTo($user))->ordered()->get()),
+            // Logado, os estudos oficiais ficam fora da biblioteca (ver LibrarySearch): a classe deles também.
+            'classrooms' => ClassroomResource::collection(Classroom::query()
+                ->whereIn('church_id', Church::idsVisibleTo($user))
+                ->when($user !== null, fn ($q) => $q->whereNotIn('church_id', Church::query()->where('is_official', true)->select('id')))
+                ->ordered()
+                ->get()),
             // Sem busca, a biblioteca é por série.
             'shelves' => $browsing ? $library->shelves($filters, $user) : [],
         ]);
