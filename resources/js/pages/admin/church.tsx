@@ -24,9 +24,11 @@ function localTime(timezone: string): string | null {
 export default function ChurchSettings({
     settings: church,
     timezones,
+    podcastUrl,
 }: {
     settings: { id: number; name: string; timezone: string };
     timezones: string[];
+    podcastUrl: string;
 }) {
     const form = useForm({ name: church.name, timezone: church.timezone });
     const { data, setData, errors, processing } = form;
@@ -80,6 +82,18 @@ export default function ChurchSettings({
                                 </option>
                             ))}
                         </NativeSelect>
+                    </Field>
+                    <Field
+                        label="Podcast"
+                        htmlFor="podcast"
+                        hint="Cadastre este endereço no Spotify for Creators. Entram as lições públicas que têm áudio."
+                    >
+                        <Input
+                            id="podcast"
+                            value={podcastUrl}
+                            readOnly
+                            onFocus={(e) => e.target.select()}
+                        />
                     </Field>
                     <div className="flex justify-end">
                         <Button type="submit" disabled={processing}>
