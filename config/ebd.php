@@ -136,6 +136,9 @@ return [
     | no mesmo caminho (ex.: ebd.up.railway.app,www.usedidache.com.br). Vazio,
     | nada é redirecionado.
     */
+    // E-mail do dono no feed do podcast: o Spotify manda o código de confirmação para ele.
+    'podcast_email' => env('EBD_PODCAST_EMAIL') ?: env('MAIL_FROM_ADDRESS'),
+
     'canonical_host' => env('EBD_CANONICAL_HOST') ?: null,
     'redirect_hosts' => array_values(array_filter(array_map(fn ($host) => strtolower(trim($host)), explode(',', (string) env('EBD_REDIRECT_HOSTS', ''))))),
 

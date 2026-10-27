@@ -20,6 +20,7 @@ class PodcastTest extends TestCase
     public function test_feed_lists_public_lessons_with_audio_of_the_church(): void
     {
         Storage::fake('local');
+        config(['ebd.podcast_email' => 'podcast@example.com']);
         Storage::disk('local')->put('audio/jonas.mp3', str_repeat('x', 1234));
 
         $classroom = Classroom::factory()->create();
@@ -39,6 +40,7 @@ class PodcastTest extends TestCase
         $this->assertSame(['Lição 3 — O sinal de Jonas'], array_map('strval', $xml->xpath('//item/title')));
         $this->assertSame('1234', (string) $xml->channel->item->enclosure['length']);
         $this->assertSame($classroom->church->name, (string) $xml->channel->title);
+        $this->assertStringContainsString('<itunes:email>podcast@example.com</itunes:email>', $response->getContent());
     }
 
     public function test_official_library_has_no_feed(): void

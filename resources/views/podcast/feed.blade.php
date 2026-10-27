@@ -9,7 +9,7 @@
         <itunes:author>{{ $church->name }}</itunes:author>
         <itunes:owner>
             <itunes:name>Didaché</itunes:name>
-            <itunes:email>{{ config('mail.from.address') }}</itunes:email>
+            <itunes:email>{{ config('ebd.podcast_email') }}</itunes:email>
         </itunes:owner>
         <itunes:image href="{{ asset('brand/podcast-capa.png') }}" />
         <itunes:category text="Religion &amp; Spirituality">
