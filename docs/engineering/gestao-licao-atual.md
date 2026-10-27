@@ -1,5 +1,7 @@
 # Plano: gestão centrada na lição (Didaché / repo /home/scabello/projetos/ebd)
 
+> **Situação (2026-10-27):** feito nos PRs #67 (fundação), #68 (virada), #70 (alunos, ajustes, menu) e no PR de limpeza. Em produção, `ebd:licao-atual --force` rodou em 2026-10-27. O resto deste arquivo é o plano como foi escrito.
+
 ## Objetivo do produto
 
 - A classe tem uma LIÇÃO ATUAL. "Domingo" é só quando ela acontece. Uma lição pode durar 1, 2 ou 3 domingos; só sai quando o professor clica "Concluir e passar para a próxima".

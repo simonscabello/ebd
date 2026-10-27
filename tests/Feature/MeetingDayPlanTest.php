@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Actions\Classrooms\ChangeMeetingWeekday;
 use App\Actions\Engagement\AwardBadges;
 use App\Actions\Library\PublishSeriesVersion;
-use App\Actions\Meetings\FillSundays;
 use App\Actions\Meetings\RecordAttendance;
 use App\Enums\Badge;
 use App\Enums\Weekday;
@@ -207,7 +206,6 @@ class MeetingDayPlanTest extends TestCase
         $b = Lesson::factory()->for($classroom)->published()->on('2026-10-18')->create();
 
         app(ChangeMeetingWeekday::class)->handle($classroom, Weekday::Wednesday);
-        app(FillSundays::class)->handle($classroom->refresh());
 
         $this->assertSame('2026-10-11', $cancelled->refresh()->held_on->toDateString());
         $this->assertSame('2026-10-07', $a->refresh()->scheduled_for->toDateString());

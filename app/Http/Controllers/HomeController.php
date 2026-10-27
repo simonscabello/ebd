@@ -76,7 +76,7 @@ class HomeController extends Controller
             'isStudent' => $isMember && ! $user->isTeacherOf($classroom),
             'nextLesson' => $lesson ? LessonResource::make($lesson) : null,
             'week' => $isMember && $lesson ? $week->for($user, $classroom, $request, $current) : null,
-            'meeting' => $current?->meeting && ! $current->isFallback ? ClassMeetingResource::make($current->meeting) : null,
+            'meeting' => $current?->meeting ? ClassMeetingResource::make($current->meeting) : null,
             'meetingIndex' => $current->meetingIndex ?? 0,
             'meetingTotal' => $current->meetingTotal ?? 0,
             'preparing' => $current->preparing ?? false,

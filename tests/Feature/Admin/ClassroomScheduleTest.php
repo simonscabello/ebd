@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Actions\Meetings\FillSundays;
 use App\Actions\Meetings\RecordAttendance;
+use App\Actions\Meetings\SyncUpcomingMeeting;
 use App\Enums\Weekday;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
@@ -99,17 +99,16 @@ class ClassroomScheduleTest extends TestCase
             ->put("/admin/classes/{$classroom->slug}", ['name' => $name ?? $classroom->name, 'is_active' => true, 'meeting_weekday' => $weekday]);
     }
 
-    public function test_fill_after_changing_the_day_does_not_create_past_meetings(): void
+    public function test_the_next_meeting_after_changing_the_day_is_not_in_the_past(): void
     {
         $classroom = Classroom::factory()->create(['slug' => 'jovens']);
-        // Histórico contínuo de domingos (o preenchimento sempre completa
-        // semanas vazias desde o primeiro encontro; isso não muda aqui).
+        $classroom->forceFill(['current_lesson_id' => Lesson::factory()->for($classroom)->create()->id])->save();
         for ($day = now()->parse('2026-08-02'); $day->lte(now()->parse('2026-09-20')); $day = $day->addWeek()) {
             ClassMeeting::factory()->for($classroom)->on($day->toDateString())->create(['status' => 'held']);
         }
 
         $this->changeTo($classroom, 3)->assertRedirect();
-        app(FillSundays::class)->handle($classroom->refresh());
+        app(SyncUpcomingMeeting::class)->handle($classroom->refresh());
 
         $this->assertSame(0, ClassMeeting::query()->whereBelongsTo($classroom)->whereDate('held_on', '<', '2026-09-27')
             ->whereRaw('extract(isodow from held_on) = 3')->count());

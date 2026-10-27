@@ -197,7 +197,7 @@ class AwardBadges
             return false;
         }
 
-        if ($this->upcomingMeetings($series) > 0) {
+        if ($this->remainingLessons($series) > 0) {
             return false;
         }
 
@@ -221,7 +221,7 @@ class AwardBadges
 
         return [
             'current' => $this->presences($user, $meetings),
-            'target' => max(4, $meetings->count() + $this->upcomingMeetings($series)),
+            'target' => max(4, $meetings->count() + $this->remainingLessons($series)),
         ];
     }
 
@@ -250,7 +250,7 @@ class AwardBadges
      * Lições da série que faltam: o selo de presença só sai quando o professor
      * conclui a série (antes, ao menos uma ainda falta).
      */
-    private function upcomingMeetings(Series $series): int
+    private function remainingLessons(Series $series): int
     {
         if ($series->concluded_at !== null) {
             return 0;

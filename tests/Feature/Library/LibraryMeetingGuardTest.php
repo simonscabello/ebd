@@ -3,8 +3,6 @@
 namespace Tests\Feature\Library;
 
 use App\Actions\Lessons\CreateLesson;
-use App\Actions\Meetings\ContinueLessonNextMeeting;
-use App\Actions\Meetings\PlanMeetings;
 use App\Actions\Meetings\SaveMeeting;
 use App\Mcp\Servers\EbdServer;
 use App\Mcp\Tools\ListClassrooms;
@@ -14,7 +12,6 @@ use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\User;
 use App\Support\OfficialLibrary;
-use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -71,17 +68,6 @@ class LibraryMeetingGuardTest extends TestCase
         $this->assertSame($this->library->id, $lesson->classroom_id);
     }
 
-    public function test_plan_meetings_is_refused(): void
-    {
-        $this->expectException(ValidationException::class);
-
-        try {
-            app(PlanMeetings::class)->handle($this->library, CarbonImmutable::parse('2026-10-20'), CarbonImmutable::parse('2026-12-31'), null);
-        } finally {
-            $this->assertNoLibraryMeetings();
-        }
-    }
-
     public function test_save_meeting_is_refused(): void
     {
         $this->expectException(ValidationException::class);
@@ -90,21 +76,6 @@ class LibraryMeetingGuardTest extends TestCase
             app(SaveMeeting::class)->handle($this->library, ['held_on' => '2026-10-25']);
         } finally {
             $this->assertNoLibraryMeetings();
-        }
-    }
-
-    public function test_continue_next_meeting_is_refused(): void
-    {
-        // Um encontro antigo, de antes da migração que os apagou.
-        $lesson = Lesson::factory()->for($this->library)->create();
-        $meeting = ClassMeeting::factory()->for($this->library)->on('2026-10-18')->create(['lesson_id' => $lesson->id]);
-
-        $this->expectException(ValidationException::class);
-
-        try {
-            app(ContinueLessonNextMeeting::class)->handle($meeting);
-        } finally {
-            $this->assertSame(1, ClassMeeting::query()->where('classroom_id', $this->library->id)->count());
         }
     }
 
@@ -123,14 +94,5 @@ class LibraryMeetingGuardTest extends TestCase
         EbdServer::actingAs($this->owner)->tool(ListClassrooms::class)
             ->assertOk()
             ->assertSee(['Biblioteca oficial', '"holds_meetings":false', '"holds_meetings":true']);
-    }
-
-    public function test_real_classrooms_still_plan_meetings(): void
-    {
-        $jovens = Classroom::factory()->create();
-
-        $result = app(PlanMeetings::class)->handle($jovens, CarbonImmutable::parse('2026-10-20'), CarbonImmutable::parse('2026-11-08'), null);
-
-        $this->assertSame(3, $result['created']);
     }
 }

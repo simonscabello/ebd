@@ -51,22 +51,6 @@ trait MeetingValidationRules
     }
 
     /**
-     * "Planejar trimestre": no máximo um ano de encontros por vez.
-     *
-     * @return array<string, mixed>
-     */
-    protected function meetingPlanRules(Classroom $classroom, mixed $from): array
-    {
-        $limit = rescue(fn () => CarbonImmutable::parse((string) $from)->addYear()->toDateString(), null, false);
-
-        return [
-            'from' => ['required', 'date'],
-            'to' => ['required', 'date', 'after_or_equal:from', ...($limit ? ["before_or_equal:{$limit}"] : [])],
-            'series_id' => ['nullable', 'integer', Rule::exists('series', 'id')->where('classroom_id', $classroom->id)],
-        ];
-    }
-
-    /**
      * @return array<string, mixed>
      */
     protected function attendanceRules(): array

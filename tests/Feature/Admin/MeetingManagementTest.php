@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Actions\Meetings\FillSundays;
 use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
@@ -219,20 +218,11 @@ class MeetingManagementTest extends TestCase
         $this->actingAs($this->teacher)->delete('/admin/encontros/'.ClassMeeting::query()->value('id'))->assertMethodNotAllowed();
     }
 
-    public function test_new_classroom_starts_the_agenda_this_week(): void
-    {
-        app(FillSundays::class)->handle($this->classroom);
-
-        $dates = ClassMeeting::query()->whereBelongsTo($this->classroom)->chronological()->pluck('held_on')->map->toDateString();
-
-        $this->assertSame('2026-09-20', $dates->first());
-        $this->assertCount(13, $dates);
-    }
-
     public function test_lesson_of_the_week_skips_empty_sundays(): void
     {
+        ClassMeeting::factory()->for($this->classroom)->on('2026-09-27')->held()->create();
+        ClassMeeting::factory()->for($this->classroom)->on('2026-10-04')->create(['status' => 'cancelled']);
         $lesson = Lesson::factory()->for($this->classroom)->published()->number(1)->on('2026-10-11')->create();
-        app(FillSundays::class)->handle($this->classroom);
 
         $current = app(CurrentLessonQuery::class)->for($this->classroom->refresh(), $this->teacher);
 
