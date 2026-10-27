@@ -20,7 +20,12 @@ export type MeetingRowData = {
     status: MeetingStatus;
     status_label: string;
     title: string | null;
-    lesson: { id: number; display_title: string; status: LessonStatus } | null;
+    lesson: {
+        id: number;
+        slug: string;
+        display_title: string;
+        status: LessonStatus;
+    } | null;
     has_attendance: boolean;
     summary: SundaySummary | null;
     position: { index: number; total: number } | null;

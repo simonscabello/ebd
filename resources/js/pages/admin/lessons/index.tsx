@@ -3,6 +3,7 @@ import {
     BookOpen,
     ChevronLeft,
     ChevronRight,
+    Layers,
     Plus,
     Search,
 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { create, edit, index } from '@/routes/admin/lessons';
+import { index as seriesIndex } from '@/routes/admin/series';
 import type { Classroom, Lesson, Option, Paginated } from '@/types';
 
 type Filters = { classe: number | null; status: string | null; q: string };
@@ -53,11 +55,18 @@ export default function AdminLessonsIndex({
                 <PageHeader
                     title="Lições"
                     actions={
-                        <Button asChild>
-                            <Link href={create()}>
-                                <Plus /> Nova lição
-                            </Link>
-                        </Button>
+                        <>
+                            <Button asChild variant="outline">
+                                <Link href={seriesIndex()}>
+                                    <Layers /> Séries
+                                </Link>
+                            </Button>
+                            <Button asChild>
+                                <Link href={create()}>
+                                    <Plus /> Nova lição
+                                </Link>
+                            </Button>
+                        </>
                     }
                 />
 

@@ -17,7 +17,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
- * Página da classe na gestão (linha do tempo), no fuso de São Paulo.
+ * Página da classe na gestão (agenda), no fuso de São Paulo.
  */
 class ClassroomOverviewTest extends TestCase
 {
@@ -113,6 +113,28 @@ class ClassroomOverviewTest extends TestCase
         $this->actingAs($this->teacher)->get('/admin/classes/jovens')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('overview.week.meeting.held_on', '2026-10-04'));
+    }
+
+    public function test_past_sundays_list_who_was_absent_with_the_streak(): void
+    {
+        $ana = $this->student('Ana');
+        $rafael = $this->student('Rafael', attributes: ['phone' => '11999990000']);
+
+        foreach (['2026-09-13', '2026-09-20'] as $date) {
+            $meeting = Lesson::factory()->for($this->classroom)->published()->on($date)->create()->meetings()->firstOrFail();
+            $meeting->forceFill(['status' => MeetingStatus::Held, 'attendance_taken_at' => now()])->save();
+            DB::table('attendances')->insert(['class_meeting_id' => $meeting->id, 'user_id' => $ana->id, 'created_at' => now()]);
+        }
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('past.0.held_on', '2026-09-20')
+                ->where('past.0.summary.present', 1)
+                ->has('past.0.absent', 1)
+                ->where('past.0.absent.0.name', 'Rafael')
+                ->where('past.0.absent.0.phone', '11999990000')
+                ->where('past.0.absent.0.missed_in_a_row', 2)
+                ->where('past.1.held_on', '2026-09-13'));
     }
 
     public function test_upcoming_lessons_are_listed_once_each_with_the_message(): void

@@ -5,11 +5,8 @@ import {
     Check,
     ChevronDown,
     Church as ChurchIcon,
-    Layers,
-    LayoutDashboard,
     Library,
     Menu,
-    Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -49,8 +46,8 @@ import { index as seriesIndex } from '@/routes/admin/series';
  * Área de gestão (backoffice): casca própria, separada do app de estudo.
  *
  * As classes ficam sempre à vista (barra lateral no computador, botões no
- * topo do celular): cada classe é uma página só, com a linha do tempo dos
- * domingos. Lições, séries e dados da igreja ficam abaixo, como apoio.
+ * topo do celular): cada classe é uma agenda. Lições (com as séries) e os
+ * dados da igreja ficam abaixo, como apoio.
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -189,17 +186,17 @@ function AdminNav() {
                 </span>
             </div>
 
-            <NavItem
-                href={dashboard.url()}
-                icon={LayoutDashboard}
-                active={currentUrl === dashboard.url()}
-            >
-                Visão geral
-            </NavItem>
-
-            <p className="px-3 pt-5 pb-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                Classes
-            </p>
+            <div className="flex items-center justify-between px-3 pt-1 pb-1">
+                <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                    Classes
+                </p>
+                <Link
+                    href={classroomsIndex.url()}
+                    className="rounded text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                    Todas
+                </Link>
+            </div>
             {adminClassrooms.map((classroom) => (
                 <NavItem
                     key={classroom.slug}
@@ -209,30 +206,14 @@ function AdminNav() {
                     {classroom.name}
                 </NavItem>
             ))}
-            <NavItem
-                href={classroomsIndex.url()}
-                icon={Users}
-                active={currentUrl === classroomsIndex.url()}
-            >
-                Todas as classes
-            </NavItem>
 
-            <p className="px-3 pt-5 pb-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                Conteúdo
-            </p>
+            <div className="h-4" />
             <NavItem
                 href={lessonsIndex.url()}
                 icon={Library}
-                active={starts(lessonsIndex.url())}
+                active={starts(lessonsIndex.url()) || starts(seriesIndex.url())}
             >
                 Lições
-            </NavItem>
-            <NavItem
-                href={seriesIndex.url()}
-                icon={Layers}
-                active={starts(seriesIndex.url())}
-            >
-                Séries
             </NavItem>
 
             <div className="mt-auto flex flex-col gap-1 pt-6">

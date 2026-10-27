@@ -3,10 +3,10 @@ import { ChevronRight, GraduationCap, Search, Users } from 'lucide-react';
 import { useState } from 'react';
 import type { IssuedLink } from '@/components/admin/access-link-dialog';
 import { AccessLinkDialog } from '@/components/admin/access-link-dialog';
-import { ClassroomHeader } from '@/components/admin/classroom-header';
+import { ClassroomTabs } from '@/components/admin/classroom-header';
 import { AddByEmailDialog } from '@/components/admin/students/add-by-email-dialog';
 import { AddStudentDialog } from '@/components/admin/students/add-student-dialog';
-import { EmptyState, Page, PageHeader, Section } from '@/components/page';
+import { EmptyState, Page, Section } from '@/components/page';
 import { Input } from '@/components/ui/input';
 import { dayMonth } from '@/lib/dates';
 import { periodPhrase } from '@/lib/period';
@@ -33,6 +33,23 @@ type StudentRow = {
     access: 'ok' | 'pending_profile' | 'never_entered';
 };
 
+type Filter = 'all' | 'attention' | 'birthday';
+
+const FILTERS: Record<
+    Filter,
+    { label: string; test: (student: StudentRow) => boolean }
+> = {
+    all: { label: 'Todos', test: () => true },
+    attention: {
+        label: 'Precisam de atenção',
+        test: (student) => student.needs_attention,
+    },
+    birthday: {
+        label: 'Aniversário',
+        test: (student) => student.birthday !== null,
+    },
+};
+
 type Props = {
     classroom: Classroom;
     today: string;
@@ -55,30 +72,38 @@ export default function ClassroomStudents({
 }: Props) {
     const [issued, setIssued] = useState<IssuedLink | null>(null);
     const [query, setQuery] = useState('');
+    const [filter, setFilter] = useState<Filter>('all');
     const needle = normalize(query);
-    const visible = needle
-        ? students.filter((s) => normalize(s.name).includes(needle))
-        : students;
+    const visible = students.filter(
+        (s) =>
+            FILTERS[filter].test(s) &&
+            (!needle || normalize(s.name).includes(needle)),
+    );
 
     return (
         <>
             <Head title={`Alunos · ${classroom.name}`} />
 
             <Page width="wide">
-                <ClassroomHeader classroom={classroom} active="alunos" />
-                <PageHeader
-                    title="Alunos"
-                    description={`${students.length} ${students.length === 1 ? 'aluno' : 'alunos'} · frequência ${periodPhrase(period)}`}
-                    actions={
-                        <>
-                            <AddByEmailDialog classroom={classroom} />
-                            <AddStudentDialog
-                                classroom={classroom}
-                                onIssued={setIssued}
-                            />
-                        </>
-                    }
-                />
+                <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                        <h1 className="font-serif text-3xl font-semibold tracking-tight">
+                            {classroom.name}
+                        </h1>
+                        <ClassroomTabs
+                            classroom={classroom}
+                            active="alunos"
+                            students={students.length}
+                        />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <AddByEmailDialog classroom={classroom} />
+                        <AddStudentDialog
+                            classroom={classroom}
+                            onIssued={setIssued}
+                        />
+                    </div>
+                </header>
 
                 {students.length === 0 ? (
                     <EmptyState icon={<Users />} title="Nenhum aluno ainda">
@@ -100,6 +125,39 @@ export default function ClassroomStudents({
                                 className="pl-9"
                             />
                         </div>
+                        <div
+                            className="mb-4 flex flex-wrap gap-2"
+                            role="group"
+                            aria-label="Filtrar alunos"
+                        >
+                            {(Object.keys(FILTERS) as Filter[]).map((key) => {
+                                const count = students.filter(
+                                    FILTERS[key].test,
+                                ).length;
+
+                                return (
+                                    (key === 'all' || count > 0) && (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            aria-pressed={filter === key}
+                                            onClick={() => setFilter(key)}
+                                            className={cn(
+                                                'min-h-10 rounded-full border px-4 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                                filter === key &&
+                                                    'border-transparent bg-accent font-medium text-accent-foreground',
+                                            )}
+                                        >
+                                            {FILTERS[key].label}
+                                            {key !== 'all' && ` · ${count}`}
+                                        </button>
+                                    )
+                                );
+                            })}
+                            <span className="self-center text-sm text-muted-foreground">
+                                Frequência {periodPhrase(period)}
+                            </span>
+                        </div>
                         <ul className="divide-y rounded-2xl border bg-card">
                             {visible.map((student) => (
                                 <li key={student.id}>
@@ -111,7 +169,7 @@ export default function ClassroomStudents({
                             ))}
                             {visible.length === 0 && (
                                 <li className="px-4 py-6 text-center text-sm text-muted-foreground">
-                                    Ninguém com esse nome.
+                                    Ninguém aqui.
                                 </li>
                             )}
                         </ul>

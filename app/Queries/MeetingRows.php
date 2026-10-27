@@ -9,8 +9,8 @@ use App\Support\ProgramNames;
 use Illuminate\Support\Collection;
 
 /**
- * Linhas da agenda da classe (lista de Domingos e linha do tempo do Resumo):
- * lição, chamada e "domingo 2 de 2" de cada encontro.
+ * Linhas da agenda da classe (lista de Domingos e agenda da classe): lição,
+ * chamada, quem faltou e "domingo 2 de 2" de cada encontro.
  */
 class MeetingRows
 {
@@ -41,6 +41,7 @@ class MeetingRows
             'title' => $meeting->title,
             'lesson' => $meeting->lesson ? [
                 'id' => $meeting->lesson->id,
+                'slug' => $meeting->lesson->slug,
                 'display_title' => $meeting->lesson->displayTitle(),
                 'status' => $meeting->lesson->status->value,
             ] : null,
@@ -50,7 +51,29 @@ class MeetingRows
             'is_today' => $date === $today,
             'awaiting_confirmation' => $meeting->status->value === 'planned' && $date < $today,
             'has_notes' => filled($meeting->notes),
+            'absent' => $meeting->hasAttendance() ? $this->absent($meeting, $book) : [],
         ];
+    }
+
+    /**
+     * Quem faltou no encontro, com as faltas seguidas dentro do livro.
+     *
+     * @return list<array{id: int, name: string, phone: string|null, missed_in_a_row: int}>
+     */
+    private function absent(ClassMeeting $meeting, AttendanceBook $book): array
+    {
+        $present = $book->presentIds($meeting);
+        $date = $meeting->held_on->toDateString();
+
+        return array_values($book->students
+            ->filter(fn (object $s) => $book->isExpected($s->id, $date) && ! in_array($s->id, $present, true))
+            ->map(fn (object $s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'phone' => $s->phone,
+                'missed_in_a_row' => $book->student($s->id)['missed_in_a_row'],
+            ])
+            ->all());
     }
 
     /**
