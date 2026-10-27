@@ -12,12 +12,13 @@ import { ReadToggle } from '@/components/lesson/reading-plan';
 import { ReadingSheet } from '@/components/lesson/reading-sheet';
 import { EmptyState, Page } from '@/components/page';
 import { Button } from '@/components/ui/button';
-import { DailyBlocks } from '@/components/week/daily-blocks';
+import { BlockSheet } from '@/components/week/block-sheet';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn } from '@/lib/utils';
 import { myWeek } from '@/routes';
 import type {
     Classroom,
+    LessonBlock,
     LessonReading,
     StudyWeek,
     StudyWeekDay,
@@ -120,8 +121,11 @@ function DayList({
 }) {
     const days = week.days ?? [];
     const checkin = useReadingCheckin(lesson.slug);
-    // Conteúdo dos dias que já passaram fica recolhido numa linha; abre com "Ler".
-    const [expanded, setExpanded] = useState<string[]>([]);
+    // O conteúdo de cada dia fica numa linha e abre numa folha, como as leituras.
+    const [block, setBlock] = useState<{
+        block: LessonBlock;
+        label: string;
+    } | null>(null);
     const [open, setOpen] = useState<{
         weekday: number;
         reading: LessonReading;
@@ -142,6 +146,12 @@ function DayList({
 
     return (
         <div className="space-y-4">
+            <BlockSheet
+                block={block?.block ?? null}
+                label={block?.label ?? ''}
+                open={block !== null}
+                onOpenChange={(value) => !value && setBlock(null)}
+            />
             <ReadingSheet
                 reading={open?.reading ?? null}
                 open={open !== null}
@@ -300,62 +310,16 @@ function DayList({
                                 </div>
                             ))}
                             {day.blocks.length > 0 && !day.is_meeting_day && (
-                                <div className="pr-3 pb-3 pl-13">
-                                    {day.is_future ||
-                                    (!day.is_today &&
-                                        !expanded.includes(day.date)) ? (
-                                        <ul className="space-y-1.5">
-                                            {day.blocks.map((block) => (
-                                                <li
-                                                    key={block.id}
-                                                    className="flex items-start gap-2 text-sm text-muted-foreground"
-                                                >
-                                                    <BlockIcon
-                                                        kind={block.kind}
-                                                        className="mt-0.5 size-4 shrink-0"
-                                                    />
-                                                    <span className="line-clamp-2 min-w-0 flex-1">
-                                                        {block.kind_label}:{' '}
-                                                        {block.display_title}
-                                                    </span>
-                                                    {day.is_future && (
-                                                        <span className="shrink-0 font-medium">
-                                                            chega {arrives(day)}
-                                                        </span>
-                                                    )}
-                                                </li>
-                                            ))}
-                                            {!day.is_future && (
-                                                <li>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setExpanded(
-                                                                (dates) => [
-                                                                    ...dates,
-                                                                    day.date,
-                                                                ],
-                                                            )
-                                                        }
-                                                        className="min-h-9 rounded-md text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                                                    >
-                                                        Ler
-                                                    </button>
-                                                </li>
-                                            )}
-                                        </ul>
-                                    ) : (
-                                        <DailyBlocks
-                                            blocks={day.blocks}
-                                            label={
-                                                day.is_today
-                                                    ? 'Para hoje'
-                                                    : day.label
-                                            }
-                                            className=""
-                                        />
-                                    )}
-                                </div>
+                                <DayBlocks
+                                    day={day}
+                                    onOpen={(block) =>
+                                        setBlock({
+                                            block,
+                                            label: blockLabel(day),
+                                        })
+                                    }
+                                    className="pr-3 pb-2 pl-13"
+                                />
                             )}
                         </li>
                     ))}
@@ -383,10 +347,12 @@ function DayList({
                             <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
                         </Link>
                         {day.blocks.length > 0 && (
-                            <DailyBlocks
-                                blocks={day.blocks}
-                                label={day.is_today ? 'Para hoje' : day.label}
-                                className=""
+                            <DayBlocks
+                                day={day}
+                                onOpen={(block) =>
+                                    setBlock({ block, label: blockLabel(day) })
+                                }
+                                className="px-3"
                             />
                         )}
                     </div>
@@ -421,6 +387,57 @@ function countdown(days: number, day: string, program = 'EBD'): string {
     if (days === 1) return `amanhã é dia de ${program}`;
 
     return `faltam ${days} dias para ${day}`;
+}
+
+/** O dia do conteúdo, no título da folha: "Para hoje", "Quarta-feira"… */
+function blockLabel(day: StudyWeekDay): string {
+    return day.is_today ? 'Para hoje' : day.label;
+}
+
+/**
+ * O conteúdo de um dia em linhas curtas (tipo e título). Tocar abre a folha;
+ * o dos próximos dias também abre, só avisa quando chega.
+ */
+function DayBlocks({
+    day,
+    onOpen,
+    className,
+}: {
+    day: StudyWeekDay;
+    onOpen: (block: LessonBlock) => void;
+    className?: string;
+}) {
+    return (
+        <ul className={className}>
+            {day.blocks.map((block) => (
+                <li key={block.id}>
+                    <button
+                        type="button"
+                        onClick={() => onOpen(block)}
+                        className="flex min-h-11 w-full items-center gap-2 rounded-lg py-1 text-left text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        <BlockIcon
+                            kind={block.kind}
+                            className="size-4 shrink-0 text-highlight-foreground"
+                        />
+                        <span className="line-clamp-2 min-w-0 flex-1">
+                            <span className="font-medium text-foreground/80">
+                                {block.kind_label}:
+                            </span>{' '}
+                            {block.display_title}
+                        </span>
+                        {day.is_future ? (
+                            <span className="shrink-0 text-xs font-medium">
+                                chega {arrives(day)}
+                            </span>
+                        ) : (
+                            <ChevronRight className="size-4 shrink-0" />
+                        )}
+                    </button>
+                </li>
+            ))}
+        </ul>
+    );
 }
 
 /** "na quarta", "no sábado": quando o conteúdo do dia chega. */
