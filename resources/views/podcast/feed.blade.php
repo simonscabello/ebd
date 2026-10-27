@@ -19,14 +19,17 @@
         <itunes:type>episodic</itunes:type>
 @foreach ($lessons as $lesson)
         <item>
-            <title>{{ $lesson->displayTitle() }}</title>
+            <title>{{ collect([$lesson->series?->title, $lesson->displayTitle()])->filter()->implode(' · ') }}</title>
             <link>{{ route('lessons.show', $lesson->slug) }}</link>
             <guid isPermaLink="false">didache-licao-{{ $lesson->id }}</guid>
             <pubDate>{{ ($lesson->published_at ?? $lesson->created_at)->toRssString() }}</pubDate>
-            <description>{{ collect([$lesson->series?->title, $lesson->summary ?? $lesson->goal, $lesson->bible_reference])->filter()->implode(' · ') }}</description>
+            <description>{{ collect([$lesson->summary ?? $lesson->goal, $lesson->bible_reference])->filter()->implode(' · ') }}</description>
             <enclosure url="{{ route('lessons.audio', [$lesson->slug, 'v' => $lesson->audio_generated_at?->timestamp]) }}" length="{{ $sizes[$lesson->id] }}" type="audio/mpeg" />
 @if ($lesson->audio_duration)
             <itunes:duration>{{ $lesson->audio_duration }}</itunes:duration>
+@endif
+@if ($lesson->series_id)
+            <itunes:season>{{ $seasons[$lesson->series_id] }}</itunes:season>
 @endif
 @if ($lesson->number)
             <itunes:episode>{{ $lesson->number }}</itunes:episode>
