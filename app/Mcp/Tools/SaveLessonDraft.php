@@ -38,7 +38,7 @@ class SaveLessonDraft extends EbdTool
             'lesson_id' => $schema->integer()->description('Id do rascunho a editar. Omita para criar uma lição nova.'),
             'classroom' => $schema->string()->description('Slug, nome ou id da classe (obrigatório na criação).'),
             'series' => $schema->string()->description('Slug ou id da série da revista.'),
-            'number' => $schema->integer()->description('Número da lição na revista (único na série).'),
+            'number' => $schema->integer()->description('Número da lição na revista (único na série; 0 para a introdução).'),
             'title' => $schema->string()->description('Título da lição.'),
             'summary' => $schema->string()->description('Resumo curto.'),
             'bible_reference' => $schema->string()->description('Texto bíblico da lição, ex.: "Gênesis 12.1-9".'),

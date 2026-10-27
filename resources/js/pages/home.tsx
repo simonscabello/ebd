@@ -35,8 +35,12 @@ import type {
 type LessonSeries = {
     id: number;
     title: string;
+    /** Posição na ordem da série (a barrinha). */
     index: number;
     total: number;
+    /** O número da revista (sem número, a posição) e o maior número da série. */
+    number: number;
+    of: number;
     studied: number;
     /** Sem título: a pessoa ainda não pode ver (rascunho). */
     upcoming: {
@@ -566,7 +570,7 @@ function SeriesTrail({
                         className={cn(row, 'bg-accent/50')}
                     >
                         <Position className="bg-primary text-primary-foreground">
-                            {series.index}
+                            {series.number}
                         </Position>
                         <span className="min-w-0 flex-1 truncate font-semibold">
                             {lesson.title}

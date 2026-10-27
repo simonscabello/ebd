@@ -25,7 +25,14 @@ export function LessonHero({
     children,
 }: {
     lesson: HeroLesson;
-    series: { title: string; index: number; total: number } | null;
+    /** index/total: a barrinha (ordem da série); number/of: o número da revista. */
+    series: {
+        title: string;
+        index: number;
+        total: number;
+        number: number;
+        of: number;
+    } | null;
     when: string | null;
     continues?: boolean;
     children: ReactNode;
@@ -42,12 +49,14 @@ export function LessonHero({
                             {series.title}
                         </span>
                         <span className="shrink-0 text-accent-foreground">
-                            Lição {series.index} de {series.total}
+                            {series.number === 0
+                                ? 'Introdução'
+                                : `Lição ${series.number} de ${series.of}`}
                         </span>
                     </div>
                     <div
                         role="img"
-                        aria-label={`Lição ${series.index} de ${series.total} da série`}
+                        aria-label={`${series.index}ª de ${series.total} lições da série`}
                         className="mt-2.5 flex gap-1"
                     >
                         {Array.from({ length: series.total }, (_, i) => (
