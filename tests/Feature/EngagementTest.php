@@ -9,6 +9,7 @@ use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\LessonBlock;
 use App\Models\LessonReading;
+use App\Models\Series;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -284,11 +285,33 @@ class EngagementTest extends TestCase
 
         $this->actingAs($this->student)->get('/meu-progresso')
             ->assertInertia(fn (Assert $page) => $page
-                ->has('progress.lessons', 1)
-                ->where('progress.lessons.0.days_read', 1)
-                ->where('progress.lessons.0.readings_total', 3)
-                ->where('progress.lessons.0.present', 1)
-                ->where('progress.lessons.0.meetings', 1));
+                // A lição atual vem primeiro, mesmo antes do encontro.
+                ->has('progress.lessons', 2)
+                ->where('progress.lessons.0.id', $this->lesson->id)
+                ->where('progress.lessons.0.current', true)
+                ->where('progress.lessons.1.days_read', 1)
+                ->where('progress.lessons.1.readings_total', 3)
+                ->where('progress.lessons.1.present', 1)
+                ->where('progress.lessons.1.meetings', 1));
+    }
+
+    public function test_meu_progresso_tells_the_series_and_position_of_each_lesson(): void
+    {
+        $series = Series::factory()->for($this->classroom)->create(['title' => 'Milagres']);
+        $first = Lesson::factory()->forSeries($series)->published()->on('2026-09-20')->create(['title' => 'Primeira']);
+        $second = Lesson::factory()->forSeries($series)->published()->on('2026-10-04')->create(['title' => 'Segunda']);
+        $this->classroom->forceFill(['current_lesson_id' => $second->id, 'current_series_id' => $series->id])->save();
+
+        $this->actingAs($this->student)->get('/meu-progresso')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('progress.lessons', 2)
+                ->where('progress.lessons.0.id', $second->id)
+                ->where('progress.lessons.0.position', 2)
+                ->where('progress.lessons.0.series.title', 'Milagres')
+                ->where('progress.lessons.0.series.current', true)
+                ->where('progress.lessons.1.id', $first->id)
+                ->where('progress.lessons.1.position', 1)
+                ->where('progress.lessons.1.current', false));
     }
 
     public function test_meu_progresso_shows_how_far_each_badge_is(): void
