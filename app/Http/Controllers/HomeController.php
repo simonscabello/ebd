@@ -6,9 +6,9 @@ use App\Enums\ContentAudience;
 use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\ClassroomResource;
 use App\Http\Resources\LessonResource;
-use App\Http\Resources\SeriesResource;
 use App\Models\User;
 use App\Queries\CurrentLessonQuery;
+use App\Queries\LessonSeriesQuery;
 use App\Queries\StudyWeekQuery;
 use App\Support\ChurchCalendar;
 use App\Support\ClassroomSelector;
@@ -27,7 +27,7 @@ use Inertia\Response;
  */
 class HomeController extends Controller
 {
-    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector, StudyWeekQuery $week, SiteController $site): Response|RedirectResponse
+    public function __invoke(Request $request, CurrentLessonQuery $lessons, ClassroomSelector $selector, StudyWeekQuery $week, LessonSeriesQuery $series, SiteController $site): Response|RedirectResponse
     {
         /** @var User|null $user */
         $user = $request->user();
@@ -57,11 +57,8 @@ class HomeController extends Controller
             'materials' => fn ($q) => $q->where('audience', ContentAudience::Student),
         ]);
 
-        $recent = $classroom ? $lessons->recent($classroom, $user, exceptLessonId: $lesson?->id) : collect();
-
-        // Série em estudo: a da lição da semana ou, se ela for avulsa, a da aula mais recente.
-        $currentSeries = $lesson?->series;
-        $currentSeries ??= $recent->first()?->series;
+        // Com lição atual, o que já passou fica na série dela; sem lição, as últimas estudadas.
+        $recent = $classroom && $lesson === null ? $lessons->recent($classroom, $user) : collect();
 
         return Inertia::render('home', [
             'greeting' => ChurchCalendar::greeting(),
@@ -81,7 +78,7 @@ class HomeController extends Controller
             'meetingTotal' => $current->meetingTotal ?? 0,
             'preparing' => $current->preparing ?? false,
             'cancelledBefore' => ClassMeetingResource::collection($current->cancelledBefore ?? collect()),
-            'currentSeries' => $currentSeries ? SeriesResource::make($currentSeries) : null,
+            'series' => $lesson ? $series->for($lesson, $user) : null,
             'recentLessons' => LessonResource::collection($recent),
         ]);
     }

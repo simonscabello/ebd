@@ -77,12 +77,11 @@ class CurrentLessonQuery
      *
      * @return Collection<int, Lesson>
      */
-    public function recent(Classroom $classroom, ?User $user, int $limit = 3, ?int $exceptLessonId = null): Collection
+    public function recent(Classroom $classroom, ?User $user, int $limit = 3): Collection
     {
         return Lesson::query()
             ->visibleTo($user)
             ->whereBelongsTo($classroom)
-            ->when($exceptLessonId, fn ($q, $id) => $q->whereKeyNot($id))
             ->whereNotNull('studied_at')
             ->with(['series', 'classroom'])
             ->orderByDesc('studied_at')

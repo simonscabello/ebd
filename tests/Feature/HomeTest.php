@@ -59,11 +59,37 @@ class HomeTest extends TestCase
                 ->where('meetingIndex', 1)
                 ->where('meetingTotal', 1)
                 ->where('nextLesson.readings.0.is_today', true)
-                ->where('currentSeries.title', 'Jornada dos Milagres de Jesus')
+                ->where('series.title', 'Jornada dos Milagres de Jesus')
+                ->where('series.index', 2)
+                ->where('series.total', 3)
+                ->where('series.studied', 1)
+                ->has('series.upcoming', 1)
+                ->where('series.upcoming.0.index', 3)
+                ->where('series.upcoming.0.title', 'Mais adiante')
                 ->where('isMember', true)
                 ->where('isStudent', true)
-                ->has('recentLessons', 1)
-                ->where('recentLessons.0.title', 'Aula passada'));
+                // O que já passou fica na série, não numa lista à parte.
+                ->has('recentLessons', 0));
+    }
+
+    /** A próxima da série ainda em rascunho aparece sem título ("em preparação"). */
+    public function test_next_lesson_still_in_draft_goes_without_title(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $series = Series::factory()->for($classroom)->create();
+        $student = User::factory()->studentOf($classroom)->create();
+
+        Lesson::factory()->forSeries($series)->published()->on('2026-09-27')->create(['title' => 'Atual']);
+        Lesson::factory()->forSeries($series)->create(['title' => 'Rascunho']);
+        Lesson::factory()->forSeries($series)->published()->create(['title' => 'Pronta']);
+
+        $this->actingAs($student)->get('/')->assertInertia(fn (Assert $page) => $page
+            ->where('series.index', 1)
+            ->where('series.studied', 0)
+            ->has('series.upcoming', 2)
+            ->where('series.upcoming.0.title', null)
+            ->where('series.upcoming.0.slug', null)
+            ->where('series.upcoming.1.title', 'Pronta'));
     }
 
     public function test_account_of_the_church_without_classroom_sees_public_lessons_and_can_switch_classroom(): void

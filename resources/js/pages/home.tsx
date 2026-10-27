@@ -1,15 +1,12 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
-    Award,
-    BookMarked,
     CalendarDays,
     CalendarOff,
-    FileText,
+    Check,
+    ChevronRight,
+    Flame,
     Hourglass,
-    Layers,
-    NotebookPen,
-    Presentation,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -19,6 +16,7 @@ import { ReadingRow, ReadToggle } from '@/components/lesson/reading-plan';
 import { ReadingSheet } from '@/components/lesson/reading-sheet';
 import { RemindersBanner } from '@/components/reminders-banner';
 import { EmptyState, Page } from '@/components/page';
+import { Button } from '@/components/ui/button';
 import { DailyBlocks } from '@/components/week/daily-blocks';
 import { WeekSummary } from '@/components/week/week-summary';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
@@ -30,9 +28,24 @@ import type {
     Classroom,
     Lesson,
     LessonReading,
-    Series,
     StudyWeek,
 } from '@/types';
+
+/** A série da lição atual: posição, quantas já foram e as próximas. */
+type LessonSeries = {
+    id: number;
+    title: string;
+    index: number;
+    total: number;
+    studied: number;
+    /** Sem título: a pessoa ainda não pode ver (rascunho). */
+    upcoming: {
+        index: number;
+        title: string | null;
+        slug: string | null;
+        bible_reference: string | null;
+    }[];
+};
 
 type Props = {
     greeting: string;
@@ -49,7 +62,8 @@ type Props = {
     meetingTotal: number;
     preparing: boolean;
     cancelledBefore: ClassMeeting[];
-    currentSeries: Series | null;
+    series: LessonSeries | null;
+    /** Só sem lição atual: as últimas estudadas. */
     recentLessons: Lesson[];
 };
 
@@ -64,30 +78,40 @@ export default function Home({
     meetingIndex,
     preparing,
     cancelledBefore,
-    currentSeries,
+    series,
     recentLessons,
 }: Props) {
     const { auth } = usePage().props;
     const name = auth.user?.first_name;
+    // Duas colunas no computador só quando há semana para pôr ao lado.
+    const wide = nextLesson !== null && (week?.days ?? []).length > 0;
 
     return (
         <>
             <Head title="Início" />
 
-            <Page>
+            <Page className={cn(wide && 'lg:max-w-5xl')}>
                 <InstallAppBanner />
                 {isMember && <RemindersBanner />}
-                <header className="mb-6">
-                    <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
-                        {greeting}
-                        {name ? `, ${name}` : ''}.
-                    </h1>
-                    <p className="mt-2 text-lg text-muted-foreground">
-                        {headline(
-                            meeting,
-                            classroom?.program_short_name ?? 'EBD',
-                        )}
-                    </p>
+                <header className="mb-6 flex items-start justify-between gap-4">
+                    <div>
+                        <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
+                            {greeting}
+                            {name ? `, ${name}` : ''}.
+                        </h1>
+                        <p className="mt-2 text-lg text-muted-foreground">
+                            {headline(
+                                meeting,
+                                classroom?.program_short_name ?? 'EBD',
+                            )}
+                        </p>
+                    </div>
+                    {week && (
+                        <StreakChip
+                            streak={week.streak}
+                            className={cn(wide && 'lg:hidden')}
+                        />
+                    )}
                 </header>
 
                 {classrooms.length > 1 && classroom && (
@@ -118,23 +142,6 @@ export default function Home({
                     </nav>
                 )}
 
-                {currentSeries && (
-                    <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-                        <Layers className="size-4 text-primary" />
-                        <span>
-                            Estamos estudando{' '}
-                            <Link
-                                href={library({
-                                    query: { serie: currentSeries.id },
-                                })}
-                                className="font-medium text-foreground underline-offset-4 hover:underline"
-                            >
-                                {currentSeries.title}
-                            </Link>
-                        </span>
-                    </div>
-                )}
-
                 {cancelledBefore.map((cancelled) => (
                     <p
                         key={cancelled.id}
@@ -150,16 +157,14 @@ export default function Home({
                 ))}
 
                 {nextLesson ? (
-                    <NextLesson
+                    <CurrentLesson
                         lesson={nextLesson}
+                        series={series}
                         week={week}
                         classroom={classroom}
                         meeting={meeting}
-                        position={
-                            meetingIndex > 1
-                                ? `${meetingIndex}º encontro desta lição`
-                                : null
-                        }
+                        meetingIndex={meetingIndex}
+                        wide={wide}
                     />
                 ) : preparing && meeting ? (
                     <EmptyState
@@ -268,168 +273,464 @@ function headline(meeting: ClassMeeting | null, program = 'EBD'): string {
         : `Faltam ${meeting.days_until} dias para o próximo encontro.`;
 }
 
-function NextLesson({
+/** Quando a classe estuda a lição: previsão, não regra. */
+function when(meeting: ClassMeeting | null, index: number): string | null {
+    if (!meeting) {
+        return null;
+    }
+
+    if (index > 1) {
+        return `${index}º encontro desta lição: ${meeting.days_until === 0 ? 'hoje' : meeting.date_label}`;
+    }
+
+    return meeting.days_until === 0
+        ? 'Aula de hoje'
+        : `Previsão: ${meeting.date_label}`;
+}
+
+/**
+ * A lição atual no Início: o destaque com as ações, a semana de leitura e a
+ * série. No computador, a semana vai para uma coluna ao lado, com cada dia
+ * para marcar.
+ */
+function CurrentLesson({
     lesson,
+    series,
     week,
     classroom,
     meeting,
-    position,
+    meetingIndex,
+    wide,
 }: {
     lesson: Lesson;
+    series: LessonSeries | null;
     week: StudyWeek | null;
     classroom: Classroom | null;
     meeting: ClassMeeting | null;
-    position: string | null;
+    meetingIndex: number;
+    wide: boolean;
 }) {
-    const readings = lesson.readings ?? [];
-    const materials = lesson.materials ?? [];
-    const primary = materials.find((m) => m.is_primary && m.file);
-    const complementary = materials.filter(
-        (m) => m !== primary && m.type !== 'reference',
-    );
-    const todayReading = readings.find((r) => r.is_today);
+    const checkin = useReadingCheckin(lesson.slug);
+    // O dia aberto no leitor; o dia em si vem sempre das props (marcar recarrega).
+    const [openWeekday, setOpenWeekday] = useState<number | null>(null);
+    const days = week?.days ?? [];
     const lessonUrl = show.url(lesson.slug);
-    const readingsHref = week
-        ? myWeek.url({
-              query: classroom ? { classe: classroom.slug } : {},
-          })
-        : `${lessonUrl}#leituras`;
+    const until = week?.meeting?.day ?? 'a aula';
+    const blocks = week?.todayBlocks ?? [];
+    const todayDay = days.find((d) => d.is_today);
+    const today =
+        todayDay && todayDay.readings[0]
+            ? { day: todayDay, reading: todayDay.readings[0] }
+            : null;
+    const openDay = days.find((d) => d.weekday === openWeekday);
+    const openReading = openDay?.readings[0] ?? null;
+    const guestReading = week
+        ? null
+        : ((lesson.readings ?? []).find((r) => r.is_today) ?? null);
+
+    const summary = week?.progress && days.length > 0 && (
+        <WeekSummary
+            days={days}
+            progress={week.progress}
+            until={until}
+            href={myWeek.url({
+                query: classroom ? { classe: classroom.slug } : {},
+            })}
+            today={today}
+            onRead={() => setOpenWeekday(today?.day.weekday ?? null)}
+        />
+    );
 
     return (
         <>
-            <LessonHero
-                lesson={lesson}
-                eyebrow={[
-                    meeting ? 'Próxima aula' : 'Última aula',
-                    meeting?.date_label,
-                    position,
-                ]
-                    .filter(Boolean)
-                    .join(' · ')}
-            />
-
-            {week ? (
-                <StudyToday
-                    week={week}
-                    lessonSlug={lesson.slug}
-                    readingsHref={readingsHref}
+            {week && (
+                <ReadingSheet
+                    reading={openReading}
+                    open={openReading !== null}
+                    onOpenChange={(open) => !open && setOpenWeekday(null)}
+                    footer={
+                        openDay &&
+                        openReading && (
+                            <ReadToggle
+                                done={openDay.done}
+                                pending={checkin.isPending(openDay.weekday)}
+                                highlight
+                                onClick={() =>
+                                    checkin.toggle(
+                                        openDay.weekday,
+                                        openDay.done,
+                                        openReading.id,
+                                    )
+                                }
+                                className="w-full justify-center"
+                            />
+                        )
+                    }
                 />
-            ) : (
-                todayReading && <GuestTodayReading reading={todayReading} />
             )}
 
-            <h2 className="mt-10 mb-3 text-lg font-semibold tracking-tight">
-                Atalhos da lição
-            </h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <StudyTile
-                    href={primary?.file?.open_url ?? lessonUrl}
-                    external={!!primary}
-                    icon={<FileText />}
-                    title="Lição"
-                    detail={
-                        primary
-                            ? `Abrir o ${primary.file?.extension || 'PDF'}`
-                            : 'Ler o estudo'
-                    }
-                />
-                <StudyTile
-                    href={`${lessonUrl}#materiais`}
-                    icon={<BookMarked />}
-                    title="Materiais"
-                    detail={
-                        complementary.length
-                            ? plural(complementary.length, 'item', 'itens')
-                            : 'Nenhum ainda'
-                    }
-                />
-                <StudyTile
-                    href={sunday.url(lesson.slug)}
-                    icon={<Presentation />}
-                    title="Modo Domingo"
-                    detail="Acompanhar a aula"
-                />
-                {week && (
-                    <>
-                        <StudyTile
-                            href={`${lessonUrl}#anotacoes`}
-                            icon={<NotebookPen />}
-                            title="Anotações"
-                            detail="Suas anotações"
+            <div
+                className={cn(
+                    wide &&
+                        'lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6',
+                )}
+            >
+                <div className="space-y-4">
+                    <LessonHero
+                        lesson={lesson}
+                        series={series}
+                        when={when(meeting, meetingIndex)}
+                        continues={meetingIndex > 1}
+                    >
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <Button asChild size="lg" className="sm:flex-none">
+                                <Link href={lessonUrl}>Estudar a lição</Link>
+                            </Button>
+                            <div
+                                className={cn(
+                                    'grid gap-2 sm:flex',
+                                    week ? 'grid-cols-3' : 'grid-cols-2',
+                                )}
+                            >
+                                <HeroLink href={`${lessonUrl}#materiais`}>
+                                    Materiais
+                                </HeroLink>
+                                <HeroLink href={sunday.url(lesson.slug)}>
+                                    Modo Domingo
+                                </HeroLink>
+                                {week && (
+                                    <HeroLink href={`${lessonUrl}#anotacoes`}>
+                                        Anotações
+                                    </HeroLink>
+                                )}
+                            </div>
+                        </div>
+                    </LessonHero>
+
+                    <div className={cn('space-y-4', wide && 'lg:hidden')}>
+                        {summary}
+                        {guestReading && (
+                            <GuestTodayReading reading={guestReading} />
+                        )}
+                        {blocks.length > 0 && (
+                            <DailyBlocks blocks={blocks} className="" />
+                        )}
+                    </div>
+
+                    {series && (
+                        <SeriesTrail
+                            series={series}
+                            lesson={lesson}
+                            className="pt-4"
                         />
-                        <StudyTile
+                    )}
+                </div>
+
+                {wide && week && (
+                    <aside className="hidden space-y-4 lg:block">
+                        <WeekChecklist
+                            week={week}
+                            until={until}
+                            checkin={checkin}
+                            onRead={setOpenWeekday}
+                        />
+                        {blocks.length > 0 && (
+                            <DailyBlocks blocks={blocks} className="" />
+                        )}
+                        <Link
                             href={myProgress.url()}
-                            icon={<Award />}
-                            title="Meu progresso"
-                            detail="Sequência e selos"
-                        />
-                    </>
+                            className="flex items-center gap-3 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/50"
+                        >
+                            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                                <Flame className="size-5" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                <span className="block text-lg font-semibold">
+                                    {week.streak.current > 0
+                                        ? plural(
+                                              week.streak.current,
+                                              'dia seguido',
+                                              'dias seguidos',
+                                          )
+                                        : 'Comece sua sequência hoje'}
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                    Recorde:{' '}
+                                    {plural(week.streak.best, 'dia', 'dias')} ·
+                                    ver selos
+                                </span>
+                            </span>
+                            <ChevronRight className="size-4 text-muted-foreground" />
+                        </Link>
+                    </aside>
                 )}
             </div>
         </>
     );
 }
 
-/**
- * O estudo de hoje para quem é da classe: a leitura do dia (ler e marcar ali
- * mesmo), o resumo da semana e o conteúdo liberado hoje.
- */
-function StudyToday({
-    week,
-    lessonSlug,
-    readingsHref,
+function HeroLink({ href, children }: { href: string; children: ReactNode }) {
+    return (
+        <Link
+            href={href}
+            className="inline-flex h-12 items-center justify-center rounded-xl border border-primary/20 bg-card/70 px-2 text-[13px] font-medium whitespace-nowrap transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:px-4 sm:text-sm"
+        >
+            {children}
+        </Link>
+    );
+}
+
+/** A sequência de leitura no topo; abre Meu progresso. */
+function StreakChip({
+    streak,
+    className,
 }: {
-    week: StudyWeek;
-    lessonSlug: string;
-    readingsHref: string;
+    streak: StudyWeek['streak'];
+    className?: string;
 }) {
-    const checkin = useReadingCheckin(lessonSlug);
-    const [open, setOpen] = useState(false);
-    const days = week.days ?? [];
-    const day = days.find((d) => d.is_today);
-    const reading = day?.readings[0];
-    const today = day && reading ? { day, reading } : null;
+    return (
+        <Link
+            href={myProgress.url()}
+            aria-label={`Meu progresso: ${plural(streak.current, 'dia seguido', 'dias seguidos')} de leitura`}
+            className={cn(
+                'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3 text-sm font-semibold text-accent-foreground',
+                className,
+            )}
+        >
+            <Flame className="size-4" />
+            {streak.current > 0
+                ? plural(streak.current, 'dia', 'dias')
+                : 'Progresso'}
+        </Link>
+    );
+}
+
+/**
+ * "Nesta série": as estudadas numa linha (abrem na biblioteca), a lição atual
+ * e as próximas na ordem, sem data. A próxima ainda em rascunho aparece como
+ * "em preparação".
+ */
+function SeriesTrail({
+    series,
+    lesson,
+    className,
+}: {
+    series: LessonSeries;
+    lesson: Lesson;
+    className?: string;
+}) {
+    if (series.studied === 0 && series.upcoming.length === 0) {
+        return null;
+    }
+
+    const seriesHref = library({ query: { serie: series.id } });
+    const row =
+        'flex min-h-13 items-center gap-3 px-4 py-2 transition-colors hover:bg-muted/50';
 
     return (
-        <>
-            {today && (
-                <ReadingSheet
-                    reading={open ? today.reading : null}
-                    open={open}
-                    onOpenChange={setOpen}
-                    footer={
-                        <ReadToggle
-                            done={today.day.done}
-                            pending={checkin.isPending(today.day.weekday)}
-                            highlight
-                            onClick={() =>
-                                checkin.toggle(
-                                    today.day.weekday,
-                                    today.day.done,
-                                    today.reading.id,
-                                )
-                            }
-                            className="w-full justify-center"
-                        />
-                    }
-                />
-            )}
+        <section aria-labelledby="nesta-serie" className={className}>
+            <div className="mb-2 flex items-baseline justify-between">
+                <h2
+                    id="nesta-serie"
+                    className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                >
+                    Nesta série
+                </h2>
+                <Link
+                    href={seriesHref}
+                    className="text-sm font-medium text-primary"
+                >
+                    Ver todas
+                </Link>
+            </div>
+            <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+                {series.studied > 0 && (
+                    <li>
+                        <Link href={seriesHref} className={row}>
+                            <Position className="bg-success-soft text-success-foreground">
+                                <Check className="size-3.5" />
+                            </Position>
+                            <span className="flex-1">
+                                {plural(
+                                    series.studied,
+                                    'lição estudada',
+                                    'lições estudadas',
+                                )}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                Rever
+                            </span>
+                        </Link>
+                    </li>
+                )}
+                <li>
+                    <Link
+                        href={lesson.url}
+                        aria-current="true"
+                        className={cn(row, 'bg-accent/50')}
+                    >
+                        <Position className="bg-primary text-primary-foreground">
+                            {series.index}
+                        </Position>
+                        <span className="min-w-0 flex-1 truncate font-semibold">
+                            {lesson.title}
+                        </span>
+                        <span className="rounded-md bg-success-soft px-2 py-0.5 text-xs font-medium text-success-foreground">
+                            Agora
+                        </span>
+                    </Link>
+                </li>
+                {series.upcoming.map((item) => (
+                    <li key={item.index}>
+                        {item.slug ? (
+                            <Link href={show(item.slug)} className={row}>
+                                <Position>{item.index}</Position>
+                                <span className="min-w-0 flex-1">
+                                    <span className="block truncate">
+                                        {item.title}
+                                    </span>
+                                    {item.bible_reference && (
+                                        <span className="block text-xs text-muted-foreground">
+                                            {item.bible_reference}
+                                        </span>
+                                    )}
+                                </span>
+                            </Link>
+                        ) : (
+                            <div className={cn(row, 'hover:bg-transparent')}>
+                                <Position>{item.index}</Position>
+                                <span className="flex-1 text-muted-foreground">
+                                    Em preparação
+                                </span>
+                            </div>
+                        )}
+                    </li>
+                ))}
+            </ul>
+        </section>
+    );
+}
 
-            {week.progress && days.length > 0 && (
-                <WeekSummary
-                    days={days}
-                    progress={week.progress}
-                    streak={week.streak}
-                    href={readingsHref}
-                    today={today}
-                    onRead={() => setOpen(true)}
-                />
+function Position({
+    children,
+    className,
+}: {
+    children: ReactNode;
+    className?: string;
+}) {
+    return (
+        <span
+            className={cn(
+                'flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground',
+                className,
             )}
+        >
+            {children}
+        </span>
+    );
+}
 
-            {(week.todayBlocks ?? []).length > 0 && (
-                <DailyBlocks blocks={week.todayBlocks ?? []} />
-            )}
-        </>
+/**
+ * As leituras até a aula, no computador: cada dia para marcar ali mesmo, e a
+ * referência abre o leitor.
+ */
+function WeekChecklist({
+    week,
+    until,
+    checkin,
+    onRead,
+}: {
+    week: StudyWeek;
+    until: string;
+    checkin: ReturnType<typeof useReadingCheckin>;
+    onRead: (weekday: number) => void;
+}) {
+    const days = (week.days ?? []).filter(
+        (day) => !day.is_meeting_day && day.readings[0],
+    );
+
+    return (
+        <section
+            aria-labelledby="ate-a-aula"
+            className="overflow-hidden rounded-2xl border bg-card"
+        >
+            <div className="flex items-baseline justify-between px-4 py-3">
+                <h2
+                    id="ate-a-aula"
+                    className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                >
+                    Até {until}
+                </h2>
+                {week.progress && (
+                    <span className="text-xs text-muted-foreground">
+                        {week.progress.days_done} de {week.progress.days_total}{' '}
+                        lidas
+                    </span>
+                )}
+            </div>
+            <ul>
+                {days.map((day) => {
+                    const reading = day.readings[0];
+
+                    return (
+                        <li
+                            key={day.date}
+                            className={cn(
+                                'flex min-h-12 items-center gap-1 border-t pr-4 pl-2',
+                                day.is_today && 'bg-accent/50',
+                            )}
+                        >
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    checkin.toggle(
+                                        day.weekday,
+                                        day.done,
+                                        reading.id,
+                                    )
+                                }
+                                disabled={checkin.isPending(day.weekday)}
+                                aria-pressed={day.done}
+                                aria-label={`${reading.reference} lida`}
+                                className="flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
+                            >
+                                <span
+                                    className={cn(
+                                        'flex size-6 items-center justify-center rounded-full border-2',
+                                        day.done
+                                            ? 'border-primary bg-primary text-primary-foreground'
+                                            : 'border-muted-foreground/50',
+                                    )}
+                                >
+                                    {day.done && <Check className="size-3.5" />}
+                                </span>
+                            </button>
+                            <span
+                                className={cn(
+                                    'w-10 shrink-0 text-[11px] font-semibold uppercase',
+                                    day.is_today
+                                        ? 'text-accent-foreground'
+                                        : 'text-muted-foreground',
+                                )}
+                            >
+                                {day.is_today ? 'Hoje' : day.short}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => onRead(day.weekday)}
+                                className={cn(
+                                    'min-h-11 flex-1 rounded-md text-left text-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                    day.done && 'text-muted-foreground',
+                                    day.is_today && 'font-semibold',
+                                )}
+                            >
+                                {reading.reference}
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
+        </section>
     );
 }
 
@@ -447,7 +748,6 @@ function GuestTodayReading({ reading }: { reading: LessonReading }) {
                 onOpenChange={setOpen}
             />
             <ReadingRow
-                className="mt-4"
                 badge={reading.weekday_short ?? '•'}
                 label="Leitura de hoje"
                 reference={reading.reference}
@@ -455,43 +755,5 @@ function GuestTodayReading({ reading }: { reading: LessonReading }) {
                 onRead={() => setOpen(true)}
             />
         </>
-    );
-}
-
-function StudyTile({
-    href,
-    icon,
-    title,
-    detail,
-    external = false,
-}: {
-    href: string;
-    icon: ReactNode;
-    title: string;
-    detail: string;
-    external?: boolean;
-}) {
-    const className =
-        'flex min-h-28 flex-col justify-between gap-3 rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:border-primary/40 hover:bg-accent/30';
-    const content = (
-        <>
-            <span className="text-primary [&_svg]:size-6">{icon}</span>
-            <span>
-                <span className="block leading-tight font-semibold">
-                    {title}
-                </span>
-                <span className="text-sm text-muted-foreground">{detail}</span>
-            </span>
-        </>
-    );
-
-    return external ? (
-        <a href={href} target="_blank" rel="noopener" className={className}>
-            {content}
-        </a>
-    ) : (
-        <Link href={href} className={className}>
-            {content}
-        </Link>
     );
 }
