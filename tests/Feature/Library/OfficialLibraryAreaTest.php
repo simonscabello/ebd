@@ -61,7 +61,10 @@ class OfficialLibraryAreaTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('classrooms', fn ($items) => collect($items)->doesntContain('name', 'Estudos oficiais')));
 
         $this->actingAs($this->owner)->get('/biblioteca')
-            ->assertInertia(fn (Assert $page) => $page->where('results.data', fn ($items) => collect($items)->doesntContain('title', 'Filipenses 4.13')));
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('results.data', fn ($items) => collect($items)->doesntContain('title', 'Filipenses 4.13'))
+                // Nem o botão da classe dos estudos oficiais, que não levaria a nada.
+                ->where('classrooms', fn ($items) => collect($items)->doesntContain('name', 'Estudos oficiais')));
     }
 
     public function test_the_owner_manages_the_library_in_its_own_area(): void

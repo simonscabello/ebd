@@ -234,7 +234,7 @@ export function ClassroomShell({
             </div>
             <nav
                 aria-label={`Classe ${classroom.name}`}
-                className="flex gap-6 overflow-x-auto border-t px-5 lg:px-6"
+                className="flex gap-6 overflow-x-auto overflow-y-hidden border-t px-5 lg:px-6"
             >
                 {tabs.map((tab) => (
                     <Link

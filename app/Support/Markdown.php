@@ -27,7 +27,7 @@ class Markdown
     }
 
     /**
-     * Títulos de seção (## e ###): as partes do estudo.
+     * Títulos de seção (##): as partes do estudo. Os ### são subtítulos dentro delas.
      *
      * @return list<string>
      */
@@ -37,7 +37,7 @@ class Markdown
             return [];
         }
 
-        preg_match_all('/^#{2,3}\s+(.+?)\s*#*\s*$/m', $markdown, $matches);
+        preg_match_all('/^##\s+(.+?)\s*#*\s*$/m', $markdown, $matches);
 
         return array_map(
             fn (string $heading) => trim(strip_tags(Str::inlineMarkdown($heading, ['html_input' => 'strip']))),

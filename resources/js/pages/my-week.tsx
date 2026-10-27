@@ -120,6 +120,8 @@ function DayList({
 }) {
     const days = week.days ?? [];
     const checkin = useReadingCheckin(lesson.slug);
+    // Conteúdo dos dias que já passaram fica recolhido numa linha; abre com "Ler".
+    const [expanded, setExpanded] = useState<string[]>([]);
     const [open, setOpen] = useState<{
         weekday: number;
         reading: LessonReading;
@@ -299,7 +301,9 @@ function DayList({
                             ))}
                             {day.blocks.length > 0 && !day.is_meeting_day && (
                                 <div className="pr-3 pb-3 pl-13">
-                                    {day.is_future ? (
+                                    {day.is_future ||
+                                    (!day.is_today &&
+                                        !expanded.includes(day.date)) ? (
                                         <ul className="space-y-1.5">
                                             {day.blocks.map((block) => (
                                                 <li
@@ -314,11 +318,31 @@ function DayList({
                                                         {block.kind_label}:{' '}
                                                         {block.display_title}
                                                     </span>
-                                                    <span className="shrink-0 font-medium">
-                                                        chega {arrives(day)}
-                                                    </span>
+                                                    {day.is_future && (
+                                                        <span className="shrink-0 font-medium">
+                                                            chega {arrives(day)}
+                                                        </span>
+                                                    )}
                                                 </li>
                                             ))}
+                                            {!day.is_future && (
+                                                <li>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setExpanded(
+                                                                (dates) => [
+                                                                    ...dates,
+                                                                    day.date,
+                                                                ],
+                                                            )
+                                                        }
+                                                        className="min-h-9 rounded-md text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                                    >
+                                                        Ler
+                                                    </button>
+                                                </li>
+                                            )}
                                         </ul>
                                     ) : (
                                         <DailyBlocks

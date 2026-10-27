@@ -46,9 +46,10 @@ class LessonStatusTest extends TestCase
 
     public function test_markdown_headings_become_topics(): void
     {
+        // Só os ## viram partes; ### é subtítulo dentro da parte.
         $this->assertSame(
             ['Introdução', 'O contexto'],
-            Markdown::headings("# Título\n\n## Introdução\n\ntexto\n\n### O **contexto**\n"),
+            Markdown::headings("# Título\n\n## Introdução\n\ntexto\n\n### Detalhe\n\n## O **contexto**\n"),
         );
     }
 }

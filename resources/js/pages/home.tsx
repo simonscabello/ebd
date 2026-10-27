@@ -409,9 +409,6 @@ function CurrentLesson({
                         {guestReading && (
                             <GuestTodayReading reading={guestReading} />
                         )}
-                        {blocks.length > 0 && (
-                            <DailyBlocks blocks={blocks} className="" />
-                        )}
                     </div>
 
                     {series && (
@@ -420,6 +417,11 @@ function CurrentLesson({
                             lesson={lesson}
                             className="pt-4"
                         />
+                    )}
+
+                    {/* O conteúdo do dia fica na coluna principal: na lateral, ela ficava comprida demais. */}
+                    {blocks.length > 0 && (
+                        <DailyBlocks blocks={blocks} className="pt-4" />
                     )}
                 </div>
 
@@ -431,9 +433,6 @@ function CurrentLesson({
                             checkin={checkin}
                             onRead={setOpenWeekday}
                         />
-                        {blocks.length > 0 && (
-                            <DailyBlocks blocks={blocks} className="" />
-                        )}
                         <Link
                             href={myProgress.url()}
                             className="flex items-center gap-3 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/50"
