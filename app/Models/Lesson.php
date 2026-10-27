@@ -46,6 +46,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $audio_error
  * @property Carbon|null $audio_requested_at
  * @property int|null $source_lesson_id lição do estudo oficial de onde veio a cópia
+ * @property Carbon|null $studied_at quando a classe concluiu a lição (AdvanceLesson)
  * @property-read Classroom $classroom
  * @property-read Series|null $series
  */
@@ -98,6 +99,7 @@ class Lesson extends Model
             'audio_duration' => 'integer',
             'audio_generated_at' => 'datetime',
             'audio_requested_at' => 'datetime',
+            'studied_at' => 'datetime',
         ];
     }
 
@@ -229,6 +231,19 @@ class Lesson extends Model
     public function isPublic(): bool
     {
         return $this->status->isVisible() && $this->visibility === LessonVisibility::Public;
+    }
+
+    /**
+     * Ordem das lições dentro da série: número (sem número no fim), depois id.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function inSequence(Builder $query): void
+    {
+        $query->orderByRaw('lessons.number IS NULL')
+            ->orderBy('lessons.number')
+            ->orderBy('lessons.id');
     }
 
     /**

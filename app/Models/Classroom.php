@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -27,6 +28,11 @@ use Illuminate\Validation\ValidationException;
  * @property bool $is_active
  * @property int $position
  * @property Weekday $meeting_weekday
+ * @property int|null $current_series_id
+ * @property int|null $current_lesson_id
+ * @property Carbon|null $current_lesson_started_at
+ * @property-read Series|null $currentSeries
+ * @property-read Lesson|null $currentLesson
  */
 #[Fillable(['name', 'slug', 'description', 'is_active', 'position', 'meeting_weekday'])]
 class Classroom extends Model
@@ -49,6 +55,7 @@ class Classroom extends Model
             'is_active' => 'boolean',
             'position' => 'integer',
             'meeting_weekday' => Weekday::class,
+            'current_lesson_started_at' => 'datetime',
         ];
     }
 
@@ -101,6 +108,28 @@ class Classroom extends Model
     public function lessons(): HasMany
     {
         return $this->hasMany(Lesson::class);
+    }
+
+    /**
+     * Série que a classe estuda agora. Pode existir sem lição atual (série
+     * nova, ainda sem lição pronta). Muda pelas ações em App\Actions\Teaching.
+     *
+     * @return BelongsTo<Series, $this>
+     */
+    public function currentSeries(): BelongsTo
+    {
+        return $this->belongsTo(Series::class, 'current_series_id');
+    }
+
+    /**
+     * Lição que a classe estuda agora: fica quantos encontros precisar e só
+     * sai quando o professor conclui (AdvanceLesson).
+     *
+     * @return BelongsTo<Lesson, $this>
+     */
+    public function currentLesson(): BelongsTo
+    {
+        return $this->belongsTo(Lesson::class, 'current_lesson_id');
     }
 
     /**
