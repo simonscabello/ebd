@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Actions\Lessons\AnswerStudyQuestion;
 use App\Enums\ContentAudience;
-use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\LessonAudioResource;
 use App\Http\Resources\LessonResource;
 use App\Models\Lesson;
