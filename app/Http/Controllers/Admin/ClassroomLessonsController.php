@@ -30,6 +30,7 @@ class ClassroomLessonsController extends Controller
             'slug' => $l->slug,
             'number' => $l->number,
             'display_title' => $l->displayTitle(),
+            'cover_url' => $l->coverUrl(thumbnail: true),
             'status' => $l->status->value,
             'studied' => $l->studied_at !== null,
             'is_current' => $l->id === $classroom->current_lesson_id,

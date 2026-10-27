@@ -16,6 +16,7 @@ import type { ReactNode } from 'react';
 import { BiblePassage } from '@/components/lesson/bible-passage';
 import { countdownLabel } from '@/components/lesson/countdown';
 import { LessonAudioPlayer } from '@/components/lesson/lesson-audio';
+import { LessonCover } from '@/components/lesson/lesson-cover';
 import {
     BlockAccordion,
     BlockCards,
@@ -244,59 +245,73 @@ export default function LessonShow({
                     </div>
                 </div>
 
-                <header>
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                        {lesson.classroom && (
-                            <span>Classe {lesson.classroom.name}</span>
-                        )}
-                        {lesson.series && (
-                            <>
-                                <span aria-hidden>·</span>
-                                <Link
-                                    href={library({
-                                        query: { serie: lesson.series.id },
-                                    })}
-                                    className="font-medium text-primary hover:underline"
-                                >
-                                    {lesson.series.title}
-                                </Link>
-                            </>
-                        )}
-                    </p>
-                    {lesson.number !== null && (
-                        <p className="mt-3 text-sm font-semibold tracking-wide text-primary uppercase">
-                            {lesson.number === 0
-                                ? 'Introdução'
-                                : `Lição ${lesson.number}`}
+                <header className="flex flex-col-reverse gap-5 sm:flex-row sm:items-start">
+                    <div className="min-w-0 flex-1">
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                            {lesson.classroom && (
+                                <span>Classe {lesson.classroom.name}</span>
+                            )}
+                            {lesson.series && (
+                                <>
+                                    <span aria-hidden>·</span>
+                                    <Link
+                                        href={library({
+                                            query: { serie: lesson.series.id },
+                                        })}
+                                        className="font-medium text-primary hover:underline"
+                                    >
+                                        {lesson.series.title}
+                                    </Link>
+                                </>
+                            )}
                         </p>
-                    )}
-                    <h1 className="mt-1 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
-                        {lesson.title}
-                    </h1>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground">
-                        {shownMeeting && (
-                            <span className="inline-flex items-center gap-1.5 first-letter:uppercase">
-                                <CalendarDays className="size-4" />{' '}
-                                {shownMeeting.date_label}
-                                {meetingPosition && ` · ${meetingPosition}`}
-                            </span>
+                        {lesson.number !== null && (
+                            <p className="mt-3 text-sm font-semibold tracking-wide text-primary uppercase">
+                                {lesson.number === 0
+                                    ? 'Introdução'
+                                    : `Lição ${lesson.number}`}
+                            </p>
                         )}
-                        {countdown && lesson.status !== 'draft' && (
-                            <Badge variant="secondary" className="rounded-full">
-                                {countdown}
-                            </Badge>
-                        )}
-                        {lesson.status === 'draft' && (
-                            <Badge className="rounded-full bg-amber-500 text-white">
-                                Rascunho
-                            </Badge>
-                        )}
-                        {lesson.visibility === 'members' && (
-                            <Badge variant="outline" className="rounded-full">
-                                <Lock /> Só membros
-                            </Badge>
-                        )}
+                        <h1 className="mt-1 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
+                            {lesson.title}
+                        </h1>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground">
+                            {shownMeeting && (
+                                <span className="inline-flex items-center gap-1.5 first-letter:uppercase">
+                                    <CalendarDays className="size-4" />{' '}
+                                    {shownMeeting.date_label}
+                                    {meetingPosition && ` · ${meetingPosition}`}
+                                </span>
+                            )}
+                            {countdown && lesson.status !== 'draft' && (
+                                <Badge
+                                    variant="secondary"
+                                    className="rounded-full"
+                                >
+                                    {countdown}
+                                </Badge>
+                            )}
+                            {lesson.status === 'draft' && (
+                                <Badge className="rounded-full bg-amber-500 text-white">
+                                    Rascunho
+                                </Badge>
+                            )}
+                            {lesson.visibility === 'members' && (
+                                <Badge
+                                    variant="outline"
+                                    className="rounded-full"
+                                >
+                                    <Lock /> Só membros
+                                </Badge>
+                            )}
+                        </div>
                     </div>
+                    {lesson.cover_url && (
+                        <LessonCover
+                            src={lesson.cover_url}
+                            className="w-36 sm:w-48"
+                        />
+                    )}
                 </header>
 
                 {lesson.bible_reference && (

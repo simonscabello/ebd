@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { BookOpen, CalendarDays, Repeat } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { LessonCover } from '@/components/lesson/lesson-cover';
 import { cn } from '@/lib/utils';
 import type { LessonStatus } from '@/types';
 
@@ -10,6 +11,7 @@ type HeroLesson = {
     status?: LessonStatus;
     title: string;
     bible_reference: string | null;
+    cover_url?: string | null;
 };
 
 /**
@@ -78,29 +80,42 @@ export function LessonHero({
                     Rascunho: só professores veem
                 </p>
             )}
-            <h2 className="mt-4 font-serif text-3xl leading-tight font-semibold text-balance">
-                <Link
-                    href={lesson.url}
-                    className="rounded-md underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                    {lesson.title}
-                </Link>
-            </h2>
-            {lesson.bible_reference && (
-                <p className="mt-1.5 flex items-center gap-2 text-foreground/85">
-                    <BookOpen className="size-4" /> {lesson.bible_reference}
-                </p>
-            )}
-            {when && (
-                <p className="mt-3 flex items-center gap-2 text-sm text-accent-foreground">
-                    {continues ? (
-                        <Repeat className="size-4 shrink-0" />
-                    ) : (
-                        <CalendarDays className="size-4 shrink-0" />
+            <div className="flex items-start gap-4">
+                <div className="min-w-0 flex-1">
+                    <h2 className="mt-4 font-serif text-3xl leading-tight font-semibold text-balance">
+                        <Link
+                            href={lesson.url}
+                            className="rounded-md underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        >
+                            {lesson.title}
+                        </Link>
+                    </h2>
+                    {lesson.bible_reference && (
+                        <p className="mt-1.5 flex items-center gap-2 text-foreground/85">
+                            <BookOpen className="size-4" />{' '}
+                            {lesson.bible_reference}
+                        </p>
                     )}
-                    <span className="first-letter:uppercase">{when}</span>
-                </p>
-            )}
+                    {when && (
+                        <p className="mt-3 flex items-center gap-2 text-sm text-accent-foreground">
+                            {continues ? (
+                                <Repeat className="size-4 shrink-0" />
+                            ) : (
+                                <CalendarDays className="size-4 shrink-0" />
+                            )}
+                            <span className="first-letter:uppercase">
+                                {when}
+                            </span>
+                        </p>
+                    )}
+                </div>
+                {lesson.cover_url && (
+                    <LessonCover
+                        src={lesson.cover_url}
+                        className="mt-4 w-24 sm:w-32"
+                    />
+                )}
+            </div>
             <div className="mt-5">{children}</div>
         </section>
     );

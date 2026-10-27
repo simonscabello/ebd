@@ -66,6 +66,7 @@ final class Presenter
             'classroom' => $lesson->relationLoaded('classroom') ? $lesson->classroom->slug : null,
             'bible_reference' => $lesson->bible_reference,
             'scheduled_for' => $lesson->scheduled_for?->toDateString(),
+            'has_cover' => $lesson->hasCover(),
             'edit_url' => route('admin.lessons.edit', $lesson),
         ];
     }

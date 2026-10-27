@@ -34,6 +34,10 @@ class LessonController extends Controller
             // "Ouvir estudo"; a geração fica na gestão (edição da lição).
             'audio' => LessonAudioResource::file($lesson),
             'helper' => $this->helper($request, $lesson),
+        ])->withViewData([
+            // Prévia do link: o WhatsApp não roda o JavaScript da página, e só
+            // enxerga a capa de lição pública (as outras pedem login).
+            'ogImage' => $lesson->isPublic() ? $lesson->coverUrl() : null,
         ]);
     }
 

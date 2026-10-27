@@ -10,6 +10,7 @@ import {
     ExternalLink,
     EyeOff,
     FileText,
+    ImageIcon,
     Layers,
     Paperclip,
     Send,
@@ -19,6 +20,7 @@ import type { ReactNode } from 'react';
 import type { BlockKindOption } from '@/components/admin/blocks-manager';
 import { BlocksManager } from '@/components/admin/blocks-manager';
 import { LessonAudioManager } from '@/components/admin/lesson-audio-manager';
+import { LessonCoverManager } from '@/components/admin/lesson-cover-manager';
 import { LessonForm } from '@/components/admin/lesson-form';
 import type { MaterialTypeOption } from '@/components/admin/materials-manager';
 import { MaterialsManager } from '@/components/admin/materials-manager';
@@ -63,6 +65,7 @@ type EditableLesson = {
     slug_locked: boolean;
     transitions: LessonStatus[];
     author_ids: number[];
+    cover_url: string | null;
     materials: LessonMaterial[];
     readings: LessonReading[];
     blocks: LessonBlock[];
@@ -212,6 +215,7 @@ export default function EditLesson({
                     className="mb-8"
                     sections={[
                         { id: 'dados', label: 'Dados' },
+                        { id: 'capa', label: 'Capa' },
                         ...(audio.enabled || audio.file
                             ? [{ id: 'audio', label: 'Áudio' }]
                             : []),
@@ -260,6 +264,13 @@ export default function EditLesson({
                                 visibility: lesson.visibility,
                                 author_ids: lesson.author_ids,
                             }}
+                        />
+                    </Section>
+
+                    <Section id="capa" title="Capa" icon={<ImageIcon />}>
+                        <LessonCoverManager
+                            lessonId={lesson.id}
+                            coverUrl={lesson.cover_url}
                         />
                     </Section>
 

@@ -156,6 +156,7 @@ class LessonController extends Controller
                 'slug_locked' => $lesson->status !== LessonStatus::Draft,
                 'transitions' => collect($lesson->status->allowedTransitions())->map(fn (LessonStatus $s) => $s->value),
                 'author_ids' => $lesson->authors->pluck('id'),
+                'cover_url' => $lesson->coverUrl(thumbnail: true),
                 'materials' => LessonMaterialResource::collection($lesson->materials),
                 'readings' => LessonReadingResource::collection($lesson->readings),
                 'blocks' => LessonBlockResource::editable($lesson->blocks, $request),

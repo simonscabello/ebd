@@ -45,6 +45,9 @@ use Illuminate\Support\Carbon;
  * @property string|null $audio_status
  * @property string|null $audio_error
  * @property Carbon|null $audio_requested_at
+ * @property string|null $cover_disk
+ * @property string|null $cover_path
+ * @property Carbon|null $cover_updated_at
  * @property int|null $source_lesson_id lição do estudo oficial de onde veio a cópia
  * @property Carbon|null $studied_at quando a classe concluiu a lição (AdvanceLesson)
  * @property-read Classroom $classroom
@@ -60,7 +63,7 @@ use Illuminate\Support\Carbon;
     'content',
     'visibility',
 ])]
-#[Hidden(['search_vector', 'blocks_text', 'audio_disk', 'audio_path', 'audio_source_hash', 'audio_error'])]
+#[Hidden(['search_vector', 'blocks_text', 'audio_disk', 'audio_path', 'audio_source_hash', 'audio_error', 'cover_disk', 'cover_path'])]
 class Lesson extends Model
 {
     /** Geração de áudio em andamento (ver GenerateLessonAudio). */
@@ -99,6 +102,7 @@ class Lesson extends Model
             'audio_duration' => 'integer',
             'audio_generated_at' => 'datetime',
             'audio_requested_at' => 'datetime',
+            'cover_updated_at' => 'datetime',
             'studied_at' => 'datetime',
         ];
     }
@@ -226,6 +230,22 @@ class Lesson extends Model
     {
         return $this->audio_status === self::AUDIO_GENERATING
             && $this->audio_requested_at?->gt(now()->subMinutes(self::AUDIO_GENERATION_TIMEOUT_MINUTES));
+    }
+
+    public function hasCover(): bool
+    {
+        return $this->cover_path !== null;
+    }
+
+    /**
+     * ?v= muda a cada troca: o navegador e o Spotify não reaproveitam a antiga.
+     * $thumbnail: a miniatura de 400 px dos cards.
+     */
+    public function coverUrl(bool $thumbnail = false): ?string
+    {
+        return $this->hasCover()
+            ? route('lessons.cover', array_filter(['lesson' => $this->slug, 'v' => $this->cover_updated_at?->timestamp, 'tamanho' => $thumbnail ? 'p' : null]))
+            : null;
     }
 
     public function isPublic(): bool

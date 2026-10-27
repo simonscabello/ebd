@@ -44,9 +44,15 @@
 
         {{-- Prévia do link (WhatsApp, redes). As páginas de lição completam título e descrição. --}}
         <meta property="og:site_name" content="{{ config('brand.name') }}">
-        <meta property="og:image" content="{{ url('/brand/og-didache.png') }}">
-        <meta property="og:image:width" content="1200">
-        <meta property="og:image:height" content="630">
+        @if (! empty($ogImage))
+            <meta property="og:image" content="{{ $ogImage }}">
+            <meta property="og:image:width" content="{{ config('ebd.covers.size') }}">
+            <meta property="og:image:height" content="{{ config('ebd.covers.size') }}">
+        @else
+            <meta property="og:image" content="{{ url('/brand/og-didache.png') }}">
+            <meta property="og:image:width" content="1200">
+            <meta property="og:image:height" content="630">
+        @endif
         {{-- Páginas do site (SiteController) mandam título, descrição e endereço em $meta. --}}
         <meta name="description" content="{{ $meta['description'] ?? config('brand.name').' · '.config('brand.tagline') }}">
         @isset($meta)

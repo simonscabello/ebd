@@ -31,6 +31,9 @@
 @if ($lesson->series_id)
             <itunes:season>{{ $seasons[$lesson->series_id] }}</itunes:season>
 @endif
+@if ($lesson->hasCover())
+            <itunes:image href="{{ $lesson->coverUrl() }}" />
+@endif
 @if ($lesson->number)
             <itunes:episode>{{ $lesson->number }}</itunes:episode>
 @endif
