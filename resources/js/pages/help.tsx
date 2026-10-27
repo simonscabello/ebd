@@ -14,7 +14,6 @@ import {
     Layers,
     Link2,
     NotebookPen,
-    Presentation,
     Send,
     Smartphone,
     TriangleAlert,
@@ -141,11 +140,6 @@ function ForStudents() {
                 com você e as dúvidas para levar no domingo. Salva sozinho e só
                 você vê: nem o professor tem acesso.
             </Topic>
-            <Topic icon={<Presentation />} title="Modo Domingo">
-                Na hora da aula, abra a lição em <strong>Modo Domingo</strong>:
-                o texto base e os tópicos em letra grande, para acompanhar o
-                professor. Os botões − e + ajustam o tamanho da letra.
-            </Topic>
             <Topic icon={<Award />} title="Sequência e selos">
                 Cada dia de leitura conta para a sua sequência. Os selos marcam
                 conquistas, como a primeira semana completa ou 7 dias seguidos.
@@ -199,7 +193,7 @@ function ForTeachers() {
                 <ul className="mt-2 list-disc space-y-1 pl-5">
                     <li>
                         <strong>Estudo principal</strong>: use a barra para os
-                        títulos de tópico; eles viram o roteiro do Modo Domingo.
+                        títulos de tópico; eles organizam o estudo em partes.
                         Confira em <strong>Prévia</strong>.
                     </li>
                     <li>

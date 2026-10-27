@@ -6,7 +6,6 @@ import {
     ChevronRight,
     Layers,
     Plus,
-    Presentation,
     Users,
 } from 'lucide-react';
 import { HelpHint } from '@/components/admin/help-hint';
@@ -25,7 +24,6 @@ import {
     edit as editLesson,
 } from '@/routes/admin/lessons';
 import { create as createSeries } from '@/routes/admin/series';
-import { sunday } from '@/routes/lessons';
 import type { Classroom, Lesson, LessonStatus } from '@/types';
 
 type ClassroomCard = Classroom & {
@@ -350,17 +348,6 @@ function ClassroomCardView({ classroom }: { classroom: ClassroomCard }) {
                         Abrir classe <ChevronRight />
                     </Link>
                 </Button>
-                {week?.lesson && (
-                    <Button asChild variant="outline">
-                        <Link
-                            href={sunday.url(week.lesson.slug, {
-                                query: { voltar: hub.url },
-                            })}
-                        >
-                            <Presentation /> Apresentar lição
-                        </Link>
-                    </Button>
-                )}
             </div>
         </section>
     );

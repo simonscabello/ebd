@@ -87,16 +87,16 @@ class LessonAccessTest extends TestCase
         $lesson = Lesson::factory()->for($this->classroom)->create(['slug' => 'rascunho']);
         LessonBlock::factory()->for($lesson)->teacherOnly()->create(['body' => '**Abrir com oração**']);
 
-        $this->actingAs($teacher)->get('/licoes/rascunho/domingo')
+        $this->actingAs($teacher)->get('/licoes/rascunho')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('lessons/sunday')
+                ->component('lessons/show')
                 ->where('lesson.teacher_blocks.0.body_html', '<p><strong>Abrir com oração</strong></p>')
                 ->where('lesson.teacher_blocks.0.kind', 'roteiro')
                 ->where('canManage', true));
     }
 
-    public function test_sunday_mode_is_available_to_readers_without_teacher_content(): void
+    public function test_readers_get_the_topics_without_teacher_content(): void
     {
         $lesson = Lesson::factory()->published()->for($this->classroom)->create([
             'slug' => 'publica',
@@ -104,7 +104,7 @@ class LessonAccessTest extends TestCase
         ]);
         LessonBlock::factory()->for($lesson)->teacherOnly()->create();
 
-        $this->get('/licoes/publica/domingo')
+        $this->get('/licoes/publica')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('lesson.topics', ['Introdução', 'Aplicação'])

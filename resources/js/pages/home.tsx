@@ -22,7 +22,7 @@ import { WeekSummary } from '@/components/week/week-summary';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn, plural } from '@/lib/utils';
 import { home, library, login, myProgress, myWeek } from '@/routes';
-import { show, sunday } from '@/routes/lessons';
+import { show } from '@/routes/lessons';
 import type {
     ClassMeeting,
     Classroom,
@@ -389,14 +389,11 @@ function CurrentLesson({
                             <div
                                 className={cn(
                                     'grid gap-2 sm:flex',
-                                    week ? 'grid-cols-3' : 'grid-cols-2',
+                                    week ? 'grid-cols-2' : 'grid-cols-1',
                                 )}
                             >
                                 <HeroLink href={`${lessonUrl}#materiais`}>
                                     Materiais
-                                </HeroLink>
-                                <HeroLink href={sunday.url(lesson.slug)}>
-                                    Modo Domingo
                                 </HeroLink>
                                 {week && (
                                     <HeroLink href={`${lessonUrl}#anotacoes`}>

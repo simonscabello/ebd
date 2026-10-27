@@ -132,7 +132,7 @@ class ReadingWeekTest extends TestCase
     {
         $teacher = User::factory()->teacherOf($this->classroom)->create();
 
-        $this->actingAs($teacher)->get('/licoes/licao-de-quarta/domingo')
+        $this->actingAs($teacher)->get('/licoes/licao-de-quarta')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('lesson.classroom.meeting_name', 'Encontro')
                 ->where('lesson.classroom.meeting_name_plural', 'Encontros')
@@ -145,7 +145,7 @@ class ReadingWeekTest extends TestCase
         $sundayLesson = Lesson::factory()->for($sunday)->published()->on('2026-10-04')->create(['slug' => 'licao-de-domingo']);
         $sundayMeeting = $sundayLesson->meetings()->sole();
         $this->assertStringContainsString("\nDomingo, ".ChurchCalendar::formatShort($sundayMeeting->held_on), (string) app(WeeklyMessage::class)->for($sundayMeeting));
-        $this->actingAs(User::factory()->teacherOf($sunday)->create())->get('/licoes/licao-de-domingo/domingo')
+        $this->actingAs(User::factory()->teacherOf($sunday)->create())->get('/licoes/licao-de-domingo')
             ->assertInertia(fn (Assert $page) => $page->where('lesson.classroom.meeting_name', 'Domingo'));
     }
 }

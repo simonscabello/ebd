@@ -10,7 +10,7 @@ use App\Support\ChurchCalendar;
 use Illuminate\Validation\ValidationException;
 
 /**
- * "Encerrar aula" no Modo Domingo: registra onde a turma parou e se a lição
+ * "Encerrar aula" na página do encontro: registra onde a turma parou e se a lição
  * terminou (a classe passa para a próxima) ou continua no próximo encontro.
  *
  * @return Lesson|null a nova lição atual, quando a lição terminou

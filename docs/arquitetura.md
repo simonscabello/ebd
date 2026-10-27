@@ -131,17 +131,13 @@ _Limitações conhecidas:_ abreviações bíblicas ("Lc 5") não são expandidas
 
 ## Conteúdo em Markdown
 
-O professor escreve o estudo em Markdown. A conversão é no servidor (`App\Support\Markdown`) com HTML bruto removido e links inseguros bloqueados, então o front pode renderizar o HTML com segurança. Títulos `##`/`###` viram os **tópicos do Modo Domingo**.
+O professor escreve o estudo em Markdown. A conversão é no servidor (`App\Support\Markdown`) com HTML bruto removido e links inseguros bloqueados, então o front pode renderizar o HTML com segurança. Títulos `##`/`###` dividem o estudo em partes.
 
 _Trade-off:_ um editor visual (rich text) seria mais amigável para alguns professores, mas traria sanitização de HTML, mais dependências e mais superfície de XSS. Markdown com dicas no formulário é suficiente para começar.
 
-## Modo Domingo
+## Chamada e encerramento da aula
 
-Página própria (`lessons/sunday`), sem a navegação do app: título, texto base, versículo-chave e tópicos. Fonte ajustável guardada no `localStorage`. Alunos também podem abrir.
-
-Para quem conduz a classe aparecem ainda: **chamada** (toque nos nomes; a lista inteira é reenviada a cada mudança, então Wi-Fi ruim não duplica nada), o **roteiro**, as **notas de precisão**, o "**se houver tempo**" recolhido e o botão **Encerrar aula** (registra onde a turma parou e se a lição terminou, passando a classe para a próxima, ou continua no próximo domingo). O encontro conduzido é o de hoje; senão o último sem chamada; senão o próximo (`MeetingForLessonQuery`).
-
-Ficou de fora de propósito: sincronizar a tela do professor com os alunos em tempo real e modo apresentação/projetor.
+Ficam na gestão: **Fazer chamada** abre o encontro de hoje direto nos nomes (a lista inteira é reenviada a cada mudança, então Wi-Fi ruim não duplica nada). Quando a lição termina, o professor usa **Concluir e passar para a próxima** na Visão geral da classe; se ela continua, não há nada a fazer, porque o próximo encontro recebe a mesma lição. As anotações do encontro ficam na página do domingo, e o roteiro e as notas do professor aparecem na página da lição, na parte "Professor". Pelo MCP, `finish_meeting` ainda encerra a aula de uma vez. O antigo Modo Domingo saiu em 2026-10-27: a ideia é chegar ao domingo já tendo estudado, e não acompanhar a aula pelo celular.
 
 ## Semana de estudo do aluno
 

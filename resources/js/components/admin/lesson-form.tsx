@@ -272,7 +272,7 @@ export function LessonForm({
                 label="Estudo principal"
                 htmlFor="content"
                 error={errors.content}
-                hint="Siga a revista: introdução, tópicos (I, II, III…) e conclusão. Os títulos de tópico viram o roteiro do Modo Domingo; veja como fica em “Prévia”. Roteiro, contexto, curiosidades e conceitos entram como blocos, mais abaixo."
+                hint="Siga a revista: introdução, tópicos (I, II, III…) e conclusão. Os títulos de tópico dividem o estudo em partes; veja como fica em “Prévia”. Roteiro, contexto, curiosidades e conceitos entram como blocos, mais abaixo."
             >
                 <MarkdownEditor
                     id="content"
