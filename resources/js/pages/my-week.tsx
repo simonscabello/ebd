@@ -1,11 +1,17 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { BookOpen, CalendarDays, ChevronRight, Hourglass } from 'lucide-react';
+import {
+    BookOpen,
+    CalendarDays,
+    Check,
+    ChevronRight,
+    Hourglass,
+} from 'lucide-react';
 import { BlockIcon } from '@/components/lesson/block-icon';
-import { ReadingRow, ReadToggle } from '@/components/lesson/reading-plan';
+import { ReadToggle } from '@/components/lesson/reading-plan';
 import { ReadingSheet } from '@/components/lesson/reading-sheet';
 import { EmptyState, Page } from '@/components/page';
-import { WeekBar } from '@/components/progress/week-bar';
+import { Button } from '@/components/ui/button';
 import { DailyBlocks } from '@/components/week/daily-blocks';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn } from '@/lib/utils';
@@ -133,7 +139,7 @@ function DayList({
         : null;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <ReadingSheet
                 reading={open?.reading ?? null}
                 open={open !== null}
@@ -159,90 +165,208 @@ function DayList({
                 }
             />
 
-            <section className="space-y-3">
-                <WeekBar days={days} />
-                {week.progress && (
-                    <p className="text-center text-sm text-muted-foreground">
-                        {week.progress.days_done} de {week.progress.days_total}{' '}
-                        dias de leitura antes da aula. Pode adiantar ou pôr em
-                        dia quando quiser.
-                    </p>
-                )}
-            </section>
+            {week.progress && (
+                <div className="flex items-center gap-3">
+                    <div
+                        className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+                        aria-hidden
+                    >
+                        <div
+                            className="h-full rounded-full bg-primary transition-[width]"
+                            style={{
+                                width: `${(week.progress.days_done / Math.max(week.progress.days_total, 1)) * 100}%`,
+                            }}
+                        />
+                    </div>
+                    <span className="text-sm font-semibold">
+                        {week.progress.days_done} de {week.progress.days_total}
+                    </span>
+                </div>
+            )}
 
-            <ol className="space-y-5">
-                {days.map((day) => (
-                    <li key={day.date} className="space-y-2.5">
-                        {readingsOf(day).map((reading) => (
-                            <ReadingRow
-                                key={reading.id}
-                                badge={day.short}
-                                label={
-                                    day.is_today
-                                        ? `Hoje · ${day.label}`
-                                        : day.label
-                                }
-                                reference={reading.reference}
-                                isToday={day.is_today}
-                                done={day.done}
-                                onRead={() =>
-                                    setOpen({ weekday: day.weekday, reading })
-                                }
-                            />
-                        ))}
-                        {day.is_meeting_day && (
-                            <Link
-                                href={lesson.url}
-                                className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-accent/40 p-3 transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                            >
-                                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                                    <BookOpen className="size-5" />
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                    <span className="block text-xs font-medium text-primary">
-                                        {day.label} · aula
-                                    </span>
-                                    <span className="block truncate font-serif text-lg font-semibold">
-                                        {lesson.display_title}
-                                    </span>
-                                </span>
-                                <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-                            </Link>
-                        )}
-                        {day.blocks.length > 0 &&
-                            (day.is_future ? (
-                                <ul className="space-y-2">
-                                    {day.blocks.map((block) => (
-                                        <li
-                                            key={block.id}
-                                            className="flex items-start gap-2 rounded-xl border border-dashed px-3 py-2.5 text-sm text-muted-foreground"
+            <ol
+                aria-label="Leituras da semana"
+                className="overflow-hidden rounded-2xl border bg-card"
+            >
+                {days
+                    // O dia da aula só entra na lista se tiver leitura própria.
+                    .filter(
+                        (day) =>
+                            !day.is_meeting_day || readingsOf(day).length > 0,
+                    )
+                    .map((day) => (
+                        <li
+                            key={day.date}
+                            className="border-t first:border-t-0"
+                        >
+                            {readingsOf(day).map((reading, index) => (
+                                <div
+                                    key={reading.id}
+                                    className={cn(
+                                        'flex min-h-16 items-center gap-2 py-1.5 pr-3 pl-1',
+                                        day.is_today && 'bg-accent/50',
+                                    )}
+                                >
+                                    {index === 0 ? (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                checkin.toggle(
+                                                    day.weekday,
+                                                    day.done,
+                                                    reading.id > 0
+                                                        ? reading.id
+                                                        : null,
+                                                )
+                                            }
+                                            disabled={checkin.isPending(
+                                                day.weekday,
+                                            )}
+                                            aria-pressed={day.done}
+                                            aria-label={`${day.label}: ${reading.reference} lida`}
+                                            className="flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
                                         >
-                                            <BlockIcon
-                                                kind={block.kind}
-                                                className="size-4 shrink-0"
-                                            />
-                                            <span className="line-clamp-2 min-w-0 flex-1">
-                                                {block.kind_label}:{' '}
-                                                {block.display_title}
+                                            <span
+                                                className={cn(
+                                                    'flex size-6.5 items-center justify-center rounded-full border-2',
+                                                    day.done
+                                                        ? 'border-primary bg-primary text-primary-foreground'
+                                                        : day.is_today
+                                                          ? 'border-primary'
+                                                          : 'border-muted-foreground/50',
+                                                )}
+                                            >
+                                                {day.done && (
+                                                    <Check className="size-3.5" />
+                                                )}
                                             </span>
-                                            <span className="shrink-0 font-medium">
-                                                chega {arrives(day)}
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <DailyBlocks
-                                    blocks={day.blocks}
-                                    label={
-                                        day.is_today ? 'Para hoje' : day.label
-                                    }
-                                    className=""
-                                />
+                                        </button>
+                                    ) : (
+                                        <span className="size-11 shrink-0" />
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                        <p
+                                            className={cn(
+                                                'text-[11px] font-semibold tracking-wide uppercase',
+                                                day.is_today
+                                                    ? 'text-accent-foreground'
+                                                    : 'text-muted-foreground',
+                                            )}
+                                        >
+                                            {day.is_today
+                                                ? `Hoje · ${day.label}`
+                                                : day.label}
+                                        </p>
+                                        <p
+                                            className={cn(
+                                                'font-serif text-[17px] leading-snug font-semibold',
+                                                day.done &&
+                                                    'text-muted-foreground',
+                                            )}
+                                        >
+                                            {reading.reference}
+                                        </p>
+                                    </div>
+                                    {day.is_today && !day.done ? (
+                                        <Button
+                                            type="button"
+                                            onClick={() =>
+                                                setOpen({
+                                                    weekday: day.weekday,
+                                                    reading,
+                                                })
+                                            }
+                                            className="h-10 rounded-xl px-4"
+                                        >
+                                            Ler
+                                        </Button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setOpen({
+                                                    weekday: day.weekday,
+                                                    reading,
+                                                })
+                                            }
+                                            aria-label={`Ler ${reading.reference}`}
+                                            className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                        >
+                                            <ChevronRight className="size-5" />
+                                        </button>
+                                    )}
+                                </div>
                             ))}
-                    </li>
-                ))}
+                            {day.blocks.length > 0 && !day.is_meeting_day && (
+                                <div className="pr-3 pb-3 pl-13">
+                                    {day.is_future ? (
+                                        <ul className="space-y-1.5">
+                                            {day.blocks.map((block) => (
+                                                <li
+                                                    key={block.id}
+                                                    className="flex items-start gap-2 text-sm text-muted-foreground"
+                                                >
+                                                    <BlockIcon
+                                                        kind={block.kind}
+                                                        className="mt-0.5 size-4 shrink-0"
+                                                    />
+                                                    <span className="line-clamp-2 min-w-0 flex-1">
+                                                        {block.kind_label}:{' '}
+                                                        {block.display_title}
+                                                    </span>
+                                                    <span className="shrink-0 font-medium">
+                                                        chega {arrives(day)}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <DailyBlocks
+                                            blocks={day.blocks}
+                                            label={
+                                                day.is_today
+                                                    ? 'Para hoje'
+                                                    : day.label
+                                            }
+                                            className=""
+                                        />
+                                    )}
+                                </div>
+                            )}
+                        </li>
+                    ))}
             </ol>
+
+            {days
+                .filter((day) => day.is_meeting_day)
+                .map((day) => (
+                    <div key={day.date} className="space-y-3">
+                        <Link
+                            href={lesson.url}
+                            className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-accent/40 p-3 transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        >
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                                <BookOpen className="size-5" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                <span className="block text-xs font-medium text-primary">
+                                    {day.label} · aula
+                                </span>
+                                <span className="block truncate font-serif text-lg font-semibold">
+                                    {lesson.display_title}
+                                </span>
+                            </span>
+                            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+                        </Link>
+                        {day.blocks.length > 0 && (
+                            <DailyBlocks
+                                blocks={day.blocks}
+                                label={day.is_today ? 'Para hoje' : day.label}
+                                className=""
+                            />
+                        )}
+                    </div>
+                ))}
         </div>
     );
 }
