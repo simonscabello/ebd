@@ -16,49 +16,45 @@ use Illuminate\Support\Facades\Gate;
 /**
  * "O que eu preciso estudar para o próximo domingo?"
  *
- * A lição da semana é a do próximo encontro (hoje incluído) que não foi
- * cancelado e já tem lição ou evento: domingo ainda vazio na agenda é pulado. Uma lição que ocupa dois domingos tem dois encontros ("2 de 2").
- * Sem encontro futuro, vale a do último encontro realizado.
+ * É a lição atual da classe (classrooms.current_lesson_id): fica quantos
+ * encontros precisar e só muda quando o professor conclui. O encontro diz
+ * quando: o próximo (hoje incluído) com a lição atual, ou um encontro com
+ * título antes dele (evento ou aula especial). Uma lição que já ocupou dois domingos está no "2º encontro".
+ * Sem lição atual, só um evento aparece; a última lição não volta.
  */
 class CurrentLessonQuery
 {
     public function for(Classroom $classroom, ?User $user, ?CarbonInterface $today = null): CurrentLesson
     {
         $today ??= ChurchCalendar::today();
+        $lessonId = $classroom->current_lesson_id;
 
         $meeting = ClassMeeting::query()
             ->whereBelongsTo($classroom)
             ->active()
-            ->where(fn ($q) => $q->whereNotNull('lesson_id')->orWhereNotNull('title'))
+            // Encontro com título é do professor (evento ou aula especial): vale como está.
+            ->where(fn ($q) => $q
+                ->whereNotNull('title')
+                ->when($lessonId, fn ($q, int $id) => $q->orWhere('lesson_id', $id)))
             ->fromDate($today)
             ->chronological()
             ->with(['lesson.series', 'lesson.classroom'])
             ->first();
 
-        $isFallback = false;
+        // Sem encontro marcado ainda (a projeção roda de madrugada e nas ações), a lição vale igual.
+        $lesson = $meeting !== null
+            ? $meeting->lesson
+            : ($lessonId !== null ? Lesson::query()->with(['series', 'classroom'])->find($lessonId) : null);
 
-        if ($meeting === null) {
-            $meeting = ClassMeeting::query()
-                ->whereBelongsTo($classroom)
-                ->where('status', MeetingStatus::Held)
-                ->whereNotNull('lesson_id')
-                ->whereDate('held_on', '<', $today->toDateString())
-                ->orderByDesc('held_on')
-                ->with(['lesson.series', 'lesson.classroom'])
-                ->first();
-            $isFallback = $meeting !== null;
-        }
-
-        if ($meeting === null) {
+        if ($meeting === null && $lesson === null) {
             return CurrentLesson::none();
         }
 
-        $lesson = $meeting->lesson;
         $visible = $lesson !== null && Gate::forUser($user)->allows('view', $lesson);
 
-        [$index, $total] = $lesson ? $this->position($lesson, $meeting) : [0, 0];
+        [$index, $total] = $lesson && $meeting ? $this->position($lesson, $meeting) : [0, 0];
 
-        $cancelled = $isFallback ? collect() : ClassMeeting::query()
+        $cancelled = $meeting === null ? collect() : ClassMeeting::query()
             ->whereBelongsTo($classroom)
             ->where('status', MeetingStatus::Cancelled)
             ->fromDate($today)
@@ -73,27 +69,24 @@ class CurrentLessonQuery
             meetingIndex: $index,
             meetingTotal: $total,
             cancelledBefore: $cancelled,
-            isFallback: $isFallback,
+            isFallback: false,
         );
     }
 
     /**
-     * Últimas lições já estudadas (encontros realizados), sem repetir lição.
+     * Últimas lições concluídas pela classe, da mais recente.
      *
      * @return Collection<int, Lesson>
      */
     public function recent(Classroom $classroom, ?User $user, int $limit = 3, ?int $exceptLessonId = null): Collection
     {
-        $today = ChurchCalendar::today()->toDateString();
-
         return Lesson::query()
             ->visibleTo($user)
             ->whereBelongsTo($classroom)
             ->when($exceptLessonId, fn ($q, $id) => $q->whereKeyNot($id))
-            ->whereHas('meetings', fn ($q) => $q->where('status', MeetingStatus::Held)->whereDate('held_on', '<', $today))
-            ->withMax(['meetings as last_held_on' => fn ($q) => $q->where('status', MeetingStatus::Held)], 'held_on')
+            ->whereNotNull('studied_at')
             ->with(['series', 'classroom'])
-            ->orderByDesc('last_held_on')
+            ->orderByDesc('studied_at')
             ->limit($limit)
             ->get();
     }

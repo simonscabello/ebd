@@ -71,7 +71,9 @@ class ClassroomScheduleTest extends TestCase
 
         $dates = fn (int $lessonId) => ClassMeeting::query()->where('lesson_id', $lessonId)->pluck('held_on')->map->toDateString()->all();
         $this->assertSame(['2026-09-30'], $dates($a->id));
-        $this->assertSame(['2026-10-14'], $dates($b->id));
+        // Só a lição atual fica na agenda: o encontro de b anda de dia, sem lição.
+        $this->assertSame([], $dates($b->id));
+        $this->assertTrue(ClassMeeting::query()->whereBelongsTo($classroom)->whereDate('held_on', '2026-10-14')->exists());
         $this->assertSame('2026-09-20', $held->refresh()->held_on->toDateString());
         // O "sem EBD" fica na data em que foi marcado: o cancelamento foi para aquele dia.
         $this->assertSame('2026-10-11', $cancelled->refresh()->held_on->toDateString());
@@ -129,7 +131,7 @@ class ClassroomScheduleTest extends TestCase
 
         $this->assertSame(['2026-10-28', '2026-11-04', '2026-11-11'], ClassMeeting::query()->whereBelongsTo($classroom)->orderBy('held_on')->pluck('held_on')->map->toDateString()->all());
         $this->assertSame('2026-10-28', $a->refresh()->scheduled_for->toDateString());
-        $this->assertSame('2026-11-04', $b->refresh()->scheduled_for->toDateString());
+        $this->assertNull($b->refresh()->scheduled_for);
         $this->assertSame(['Jovens novo', Weekday::Wednesday], [$classroom->refresh()->name, $classroom->meeting_weekday]);
     }
 

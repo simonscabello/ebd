@@ -2,19 +2,25 @@
 
 namespace App\Actions\Teaching;
 
+use App\Actions\Engagement\AwardBadges;
 use App\Actions\Meetings\SyncUpcomingMeeting;
 use App\Models\Classroom;
 use App\Models\Series;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
  * "Marcar como concluída": a série vai para o fim das listas. Se era a série
  * atual, a classe fica sem série atual; a lição atual dela conta como
- * estudada e deixa de ser a atual (lição avulsa atual continua).
+ * estudada e deixa de ser a atual (lição avulsa atual continua). Os alunos
+ * que foram a todos os encontros ganham o selo de presença.
  */
 class ConcludeSeries
 {
-    public function __construct(private readonly SyncUpcomingMeeting $syncMeeting) {}
+    public function __construct(
+        private readonly SyncUpcomingMeeting $syncMeeting,
+        private readonly AwardBadges $awardBadges,
+    ) {}
 
     public function handle(Series $series): void
     {
@@ -42,6 +48,9 @@ class ConcludeSeries
 
             $this->syncMeeting->handle($classroom);
         });
+
+        // O selo de presença da série espera a conclusão.
+        $series->classroom->students()->get()->each(fn (User $student) => $this->awardBadges->handle($student, $series));
     }
 
     /**

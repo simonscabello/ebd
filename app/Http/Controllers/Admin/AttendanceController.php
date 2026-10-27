@@ -7,7 +7,6 @@ use App\Actions\Meetings\RecordAttendance;
 use App\Concerns\MeetingValidationRules;
 use App\Http\Controllers\Controller;
 use App\Models\ClassMeeting;
-use App\Models\Lesson;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -38,16 +37,14 @@ class AttendanceController extends Controller
 
         $data = $request->validate($this->finishMeetingRules());
 
-        $leftover = $finish->handle($meeting, (bool) $data['continues'], $data['notes'] ?? null);
+        $next = $finish->handle($meeting, (bool) $data['continues'], $data['notes'] ?? null);
 
         $weekday = $meeting->classroom->meeting_weekday;
-        $this->toast($data['continues']
-            ? "Aula encerrada. A lição continua {$weekday->nextMeetingPhrase()}."
-            : "Aula encerrada. Até {$weekday->lowerLabel()}!");
-
-        if ($leftover !== null && ($lesson = Lesson::query()->find($leftover)) !== null) {
-            $this->toast("\"{$lesson->displayTitle()}\" ficou sem data. Ajuste em {$weekday->meetingNamePlural()}.", 'warning');
-        }
+        $this->toast(match (true) {
+            (bool) $data['continues'] => "Aula encerrada. A lição continua {$weekday->nextMeetingPhrase()}.",
+            $next !== null => "Aula encerrada. Próxima lição: {$next->displayTitle()}.",
+            default => 'Aula encerrada. Escolha a próxima lição na página da classe.',
+        });
 
         return back();
     }

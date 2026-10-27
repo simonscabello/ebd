@@ -7,7 +7,6 @@ use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
-use App\Models\Series;
 use App\Models\User;
 use App\Queries\CurrentLessonQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -53,30 +52,6 @@ class MeetingManagementTest extends TestCase
             ->all();
     }
 
-    public function test_plan_quarter_creates_sundays_and_distributes_series_lessons_by_number(): void
-    {
-        $series = Series::factory()->for($this->classroom)->create();
-        Lesson::factory()->forSeries($series)->number(2)->create(['title' => 'L2']);
-        Lesson::factory()->forSeries($series)->number(1)->create(['title' => 'L1']);
-        Lesson::factory()->forSeries($series)->number(3)->create(['title' => 'L3']);
-
-        $this->actingAs($this->teacher)->post('/admin/classes/adultos/domingos/planejar', [
-            'from' => '2026-09-24',
-            'to' => '2026-10-25',
-            'series_id' => $series->id,
-        ])->assertSessionHasNoErrors();
-
-        // Domingos: 27/09, 04/10, 11/10, 18/10, 25/10.
-        $this->assertSame(['L1', 'L2', 'L3', null, null], $this->agenda());
-        $this->assertSame('2026-09-27', Lesson::query()->where('title', 'L1')->sole()->scheduled_for?->toDateString());
-
-        // Planejar de novo não duplica domingos nem lições.
-        $this->actingAs($this->teacher)->post('/admin/classes/adultos/domingos/planejar', [
-            'from' => '2026-09-24', 'to' => '2026-10-25', 'series_id' => $series->id,
-        ]);
-        $this->assertCount(5, $this->agenda());
-    }
-
     public function test_only_one_meeting_per_day_and_lesson_must_be_of_the_classroom(): void
     {
         ClassMeeting::factory()->for($this->classroom)->on('2026-09-27')->create();
@@ -92,7 +67,7 @@ class MeetingManagementTest extends TestCase
             ->assertSessionHasErrors('lesson_id');
     }
 
-    public function test_sunday_without_ebd_pushes_the_lessons_forward(): void
+    public function test_sunday_without_ebd_sends_the_current_lesson_to_the_next_sunday(): void
     {
         $l1 = Lesson::factory()->for($this->classroom)->on('2026-09-27')->create(['title' => 'L1']);
         Lesson::factory()->for($this->classroom)->on('2026-10-04')->create(['title' => 'L2']);
@@ -100,61 +75,21 @@ class MeetingManagementTest extends TestCase
         $meeting = ClassMeeting::query()->where('lesson_id', $l1->id)->sole();
 
         $this->actingAs($this->teacher)
-            ->post("/admin/encontros/{$meeting->id}/cancelar", ['reason' => 'Culto de Missões', 'shift' => true])
+            ->post("/admin/encontros/{$meeting->id}/cancelar", ['reason' => 'Culto de Missões'])
             ->assertSessionHasNoErrors();
 
-        // L3 ficou sem domingo: o professor é avisado.
-        $this->assertSame(['SEM EBD', 'L1', 'L2'], $this->agenda());
+        // A sequência vem da série, não da agenda: as datas adiante ficam sem lição.
+        $this->assertSame(['SEM EBD', 'L1', null], $this->agenda());
         $this->assertSame('Culto de Missões', $meeting->refresh()->title);
         $this->assertSame('2026-10-04', $l1->refresh()->scheduled_for?->toDateString());
-        $this->assertNull(Lesson::query()->where('title', 'L3')->sole()->scheduled_for);
     }
 
-    public function test_cancel_without_shift_leaves_other_sundays_untouched(): void
-    {
-        $l1 = Lesson::factory()->for($this->classroom)->on('2026-09-27')->create(['title' => 'L1']);
-        Lesson::factory()->for($this->classroom)->on('2026-10-04')->create(['title' => 'L2']);
-        $meeting = ClassMeeting::query()->where('lesson_id', $l1->id)->sole();
-
-        $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/cancelar", ['shift' => false]);
-
-        $this->assertSame(['SEM EBD', 'L2'], $this->agenda());
-        $this->assertNull($l1->refresh()->scheduled_for);
-    }
-
-    public function test_lesson_continues_on_the_next_sunday(): void
-    {
-        $temor = Lesson::factory()->for($this->classroom)->on('2026-09-20')->create(['title' => 'Temor']);
-        Lesson::factory()->for($this->classroom)->on('2026-09-27')->create(['title' => 'L2']);
-        $meeting = ClassMeeting::query()->where('lesson_id', $temor->id)->sole();
-
-        $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/continuar")->assertSessionHasNoErrors();
-
-        $this->assertSame(['Temor', 'Temor'], $this->agenda());
-        $this->assertSame(MeetingStatus::Held, $meeting->refresh()->status);
-
-        // Repetir não empurra de novo.
-        $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/continuar");
-        $this->assertSame(['Temor', 'Temor'], $this->agenda());
-    }
-
-    public function test_continue_creates_the_next_sunday_when_agenda_is_empty(): void
-    {
-        $lesson = Lesson::factory()->for($this->classroom)->on('2026-09-20')->create(['title' => 'Temor']);
-        $meeting = ClassMeeting::query()->where('lesson_id', $lesson->id)->sole();
-
-        $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/continuar");
-
-        $this->assertDatabaseHas('class_meetings', ['lesson_id' => $lesson->id, 'held_on' => '2026-09-27', 'status' => 'planned']);
-    }
-
-    public function test_future_meeting_cannot_be_marked_as_held_or_continued(): void
+    public function test_future_meeting_cannot_be_marked_as_held(): void
     {
         $lesson = Lesson::factory()->for($this->classroom)->on('2026-10-04')->create();
         $meeting = ClassMeeting::query()->where('lesson_id', $lesson->id)->sole();
 
         $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/realizado");
-        $this->actingAs($this->teacher)->post("/admin/encontros/{$meeting->id}/continuar")->assertSessionHasErrors('meeting');
 
         $this->assertSame(MeetingStatus::Planned, $meeting->refresh()->status);
     }
@@ -266,24 +201,21 @@ class MeetingManagementTest extends TestCase
         $this->assertSame('Revisão do trimestre', $meeting->refresh()->title);
     }
 
-    public function test_every_sunday_is_on_the_agenda_from_the_first_one_to_weeks_ahead(): void
+    public function test_only_the_next_sunday_is_on_the_agenda_ahead(): void
     {
         ClassMeeting::factory()->for($this->classroom)->on('2026-09-06')->held()->create();
-        ClassMeeting::factory()->for($this->classroom)->on('2026-09-20')->cancelled()->create(['title' => 'Retiro']);
+        ClassMeeting::factory()->for($this->classroom)->on('2026-09-27')->cancelled()->create(['title' => 'Retiro']);
+        $lesson = Lesson::factory()->for($this->classroom)->create(['title' => 'Atual']);
+        $this->classroom->forceFill(['current_lesson_id' => $lesson->id])->save();
 
         $this->actingAs($this->teacher)->get('/admin/classes/adultos/domingos')->assertOk();
+        $this->actingAs($this->teacher)->get('/admin/classes/adultos/domingos')->assertOk();
 
-        $dates = ClassMeeting::query()->whereBelongsTo($this->classroom)->chronological()->pluck('held_on')->map->toDateString();
-
-        // Do primeiro domingo (06/09) até 12 semanas depois do domingo desta semana (20/09).
-        $this->assertSame('2026-09-06', $dates->first());
-        $this->assertSame('2026-12-13', $dates->last());
-        $this->assertCount(15, $dates);
-        $this->assertSame('Retiro', ClassMeeting::query()->whereDate('held_on', '2026-09-20')->sole()->title);
-
-        // Abrir de novo não duplica nada; domingo não se exclui, vira "sem EBD".
-        $this->actingAs($this->teacher)->get('/admin/classes/adultos/domingos');
-        $this->assertSame(15, ClassMeeting::query()->whereBelongsTo($this->classroom)->count());
+        // O domingo de "Retiro" fica; a lição atual vai para o seguinte. Abrir de novo não duplica.
+        $this->assertSame(['2026-09-06' => null, '2026-09-27' => 'SEM EBD', '2026-10-04' => 'Atual'], ClassMeeting::query()
+            ->whereBelongsTo($this->classroom)->chronological()->with('lesson')->get()
+            ->mapWithKeys(fn (ClassMeeting $m) => [$m->held_on->toDateString() => $m->isCancelled() ? 'SEM EBD' : $m->lesson?->title])
+            ->all());
         $this->actingAs($this->teacher)->delete('/admin/encontros/'.ClassMeeting::query()->value('id'))->assertMethodNotAllowed();
     }
 
@@ -302,9 +234,10 @@ class MeetingManagementTest extends TestCase
         $lesson = Lesson::factory()->for($this->classroom)->published()->number(1)->on('2026-10-11')->create();
         app(FillSundays::class)->handle($this->classroom);
 
-        $current = app(CurrentLessonQuery::class)->for($this->classroom, $this->teacher);
+        $current = app(CurrentLessonQuery::class)->for($this->classroom->refresh(), $this->teacher);
 
         $this->assertSame($lesson->id, $current->lesson?->id);
+        $this->assertSame('2026-10-11', $current->meeting?->held_on->toDateString());
     }
 
     public function test_old_agenda_and_evolution_addresses_redirect(): void

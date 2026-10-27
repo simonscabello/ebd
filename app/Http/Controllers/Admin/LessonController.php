@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Lessons\CreateLesson;
 use App\Actions\Lessons\UpdateLesson;
+use App\Actions\Meetings\SyncUpcomingMeeting;
+use App\Actions\Teaching\AdvanceLesson;
 use App\Enums\ClassroomRole;
 use App\Enums\ContentAudience;
 use App\Enums\LessonBlockKind;
@@ -111,8 +113,6 @@ class LessonController extends Controller
             'defaults' => [
                 'classroom_id' => $classroomId,
                 'series_id' => $request->integer('serie') ?: null,
-                // Do dia da turma sugerida; trocar de turma no formulário pede outra data.
-                'meeting_on' => $this->nextMeetingOf((int) $classroomId),
             ],
             'visibilities' => $this->visibilityOptions(),
         ]);
@@ -203,7 +203,7 @@ class LessonController extends Controller
         return back();
     }
 
-    public function destroy(Lesson $lesson): RedirectResponse
+    public function destroy(Lesson $lesson, AdvanceLesson $advance, SyncUpcomingMeeting $sync): RedirectResponse
     {
         Gate::authorize('delete', $lesson);
 
@@ -213,6 +213,12 @@ class LessonController extends Controller
             $lesson->meetings()->where('status', MeetingStatus::Planned)->update(['lesson_id' => null]);
             $lesson->delete();
         });
+
+        // Exclusão é soft delete: a FK não limpa a lição atual sozinha.
+        $classroom = $lesson->classroom;
+        $classroom->current_lesson_id === $lesson->id
+            ? $advance->handle($classroom, $lesson->id)
+            : $sync->handle($classroom);
 
         $this->toast('Lição excluída.');
 
@@ -237,17 +243,6 @@ class LessonController extends Controller
         return array_map(
             fn (LessonVisibility $v) => ['value' => $v->value, 'label' => $v->label()],
             LessonVisibility::cases(),
-        );
-    }
-
-    /** Próximo dia de encontro da turma, no fuso da igreja dela. */
-    private function nextMeetingOf(int $classroomId): string
-    {
-        $classroom = Classroom::query()->whereKey($classroomId)->first();
-
-        return ChurchCalendar::using(
-            $classroom?->church,
-            fn () => ChurchCalendar::nextMeetingDay($classroom === null ? Weekday::Sunday : $classroom->meeting_weekday)->toDateString(),
         );
     }
 }

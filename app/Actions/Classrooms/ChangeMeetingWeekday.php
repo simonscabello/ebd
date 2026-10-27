@@ -2,7 +2,7 @@
 
 namespace App\Actions\Classrooms;
 
-use App\Actions\Lessons\SyncLessonSchedule;
+use App\Actions\Meetings\SyncUpcomingMeeting;
 use App\Enums\MeetingStatus;
 use App\Enums\Weekday;
 use App\Models\ClassMeeting;
@@ -36,7 +36,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ChangeMeetingWeekday
 {
-    public function __construct(private readonly SyncLessonSchedule $syncSchedule) {}
+    public function __construct(private readonly SyncUpcomingMeeting $syncMeeting) {}
 
     public function handle(Classroom $classroom, Weekday $weekday): int
     {
@@ -91,7 +91,7 @@ class ChangeMeetingWeekday
             }
 
             $this->shiftReadingPlans($classroom, $previous, $weekday, $lessonShifts, $movedIds);
-            $this->syncSchedule->handle($classroom);
+            $this->syncMeeting->handle($classroom);
 
             return $moved;
         });

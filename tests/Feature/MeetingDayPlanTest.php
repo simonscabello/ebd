@@ -122,6 +122,7 @@ class MeetingDayPlanTest extends TestCase
         $copy = Lesson::query()->whereBelongsTo($classroom)->sole();
         $copy->forceFill(['status' => 'published', 'published_at' => now()])->save();
         ClassMeeting::factory()->for($classroom)->on('2026-09-30')->create(['lesson_id' => $copy->id]);
+        $classroom->forceFill(['current_lesson_id' => $copy->id])->save();
 
         $this->actingAs($student)->get('/minha-semana')
             ->assertInertia(fn (Assert $page) => $page
@@ -210,7 +211,9 @@ class MeetingDayPlanTest extends TestCase
 
         $this->assertSame('2026-10-11', $cancelled->refresh()->held_on->toDateString());
         $this->assertSame('2026-10-07', $a->refresh()->scheduled_for->toDateString());
-        $this->assertSame('2026-10-21', $b->refresh()->scheduled_for->toDateString());
+        // Só a lição atual fica na agenda: o encontro de b anda para a quarta, sem lição.
+        $this->assertNull($b->refresh()->scheduled_for);
+        $this->assertTrue(ClassMeeting::query()->whereBelongsTo($classroom)->whereDate('held_on', '2026-10-21')->exists());
         // A semana do "sem EBD" (08 a 14/10) não ganha um encontro na quarta.
         $this->assertFalse(ClassMeeting::query()->whereBelongsTo($classroom)->whereDate('held_on', '2026-10-14')->exists());
     }

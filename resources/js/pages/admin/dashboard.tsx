@@ -4,7 +4,6 @@ import {
     CalendarCheck,
     CalendarDays,
     ChevronRight,
-    FileClock,
     Layers,
     Plus,
     Presentation,
@@ -24,7 +23,6 @@ import { show as meetingPage } from '@/routes/admin/classrooms/meetings';
 import {
     create as createLesson,
     edit as editLesson,
-    index as lessonsIndex,
 } from '@/routes/admin/lessons';
 import { create as createSeries } from '@/routes/admin/series';
 import { sunday } from '@/routes/lessons';
@@ -62,7 +60,6 @@ type Props = {
     // Aulas com encontro marcado vêm primeiro; as sem encontro ficam à parte
     // para não disputar a atenção com o que vem aí.
     scheduled: UpcomingLesson[];
-    unscheduled: UpcomingLesson[];
     hasLessons: boolean;
 };
 
@@ -74,7 +71,6 @@ export default function AdminDashboard({
     classrooms,
     pending,
     scheduled,
-    unscheduled,
     hasLessons,
 }: Props) {
     const { auth } = usePage().props;
@@ -213,9 +209,8 @@ export default function AdminDashboard({
                                 title="Nenhuma lição cadastrada"
                             >
                                 <p>
-                                    Cadastre a primeira lição e depois escolha
-                                    em que {words.one} ela vai ser dada, na
-                                    agenda da classe.
+                                    Cadastre a primeira lição e escolha a lição
+                                    atual na página da classe.
                                 </p>
                                 <Button asChild className="mt-4">
                                     <Link href={createLesson()}>
@@ -226,10 +221,10 @@ export default function AdminDashboard({
                         ) : scheduled.length === 0 ? (
                             <EmptyState
                                 icon={<CalendarDays />}
-                                title={`Nenhuma lição com ${words.one} marcado`}
+                                title="Nenhuma lição atual"
                             >
-                                Escolha a lição de cada {words.one} na agenda da
-                                classe para que os alunos possam se preparar.
+                                Escolha a lição atual na página da classe para
+                                que os alunos possam se preparar.
                             </EmptyState>
                         ) : (
                             <ul className="divide-y rounded-2xl border bg-card">
@@ -241,33 +236,6 @@ export default function AdminDashboard({
                             </ul>
                         )}
                     </Section>
-
-                    {unscheduled.length > 0 && (
-                        <Section
-                            title={`Sem ${words.one} marcado`}
-                            icon={<FileClock />}
-                            description={
-                                <>
-                                    Rascunhos e publicadas que ainda não estão
-                                    em nenhum {words.one}.{' '}
-                                    <Link
-                                        href={lessonsIndex()}
-                                        className="font-medium text-primary underline underline-offset-4"
-                                    >
-                                        Ver todas as lições
-                                    </Link>
-                                </>
-                            }
-                        >
-                            <ul className="divide-y rounded-2xl border bg-card">
-                                {unscheduled.map((lesson) => (
-                                    <li key={lesson.id}>
-                                        <UpcomingRow lesson={lesson} />
-                                    </li>
-                                ))}
-                            </ul>
-                        </Section>
-                    )}
                 </div>
             </Page>
         </>
@@ -372,9 +340,7 @@ function ClassroomCardView({ classroom }: { classroom: ClassroomCard }) {
                         )}
                     </>
                 ) : (
-                    <p className="text-muted-foreground">
-                        Nenhum {words.one} planejado.
-                    </p>
+                    <p className="text-muted-foreground">Sem lição atual.</p>
                 )}
             </div>
 

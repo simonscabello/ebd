@@ -8,8 +8,6 @@ use App\Actions\Meetings\PlanMeetings;
 use App\Actions\Meetings\SaveMeeting;
 use App\Mcp\Servers\EbdServer;
 use App\Mcp\Tools\ListClassrooms;
-use App\Mcp\Tools\PlanMeetingsTool;
-use App\Mcp\Tools\SaveLessonDraft;
 use App\Mcp\Tools\SaveMeetingTool;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
@@ -58,16 +56,11 @@ class LibraryMeetingGuardTest extends TestCase
         $this->assertTrue(Classroom::factory()->create()->holdsMeetings());
     }
 
-    public function test_create_lesson_with_a_date_is_refused(): void
+    public function test_a_date_on_a_new_library_lesson_creates_no_meeting(): void
     {
-        try {
-            app(CreateLesson::class)->handle($this->owner, $this->library, ['title' => 'Oficial', 'visibility' => 'public', 'meeting_on' => '2026-10-25']);
-            $this->fail('Deveria recusar.');
-        } catch (ValidationException $e) {
-            $this->assertArrayHasKey('meeting_on', $e->errors());
-        }
+        app(CreateLesson::class)->handle($this->owner, $this->library, ['title' => 'Oficial', 'visibility' => 'public', 'meeting_on' => '2026-10-25']);
 
-        $this->assertSame(0, Lesson::query()->where('classroom_id', $this->library->id)->count());
+        $this->assertSame(1, Lesson::query()->where('classroom_id', $this->library->id)->count());
         $this->assertNoLibraryMeetings();
     }
 
@@ -119,13 +112,7 @@ class LibraryMeetingGuardTest extends TestCase
     {
         $slug = $this->library->slug;
 
-        EbdServer::actingAs($this->owner)->tool(PlanMeetingsTool::class, ['classroom' => $slug, 'from' => '2026-10-20', 'to' => '2026-12-31'])
-            ->assertHasErrors(['não tem agenda de encontros']);
-
         EbdServer::actingAs($this->owner)->tool(SaveMeetingTool::class, ['classroom' => $slug, 'held_on' => '2026-10-25'])
-            ->assertHasErrors(['não tem agenda de encontros']);
-
-        EbdServer::actingAs($this->owner)->tool(SaveLessonDraft::class, ['classroom' => $slug, 'title' => 'Oficial', 'meeting_on' => '2026-10-25'])
             ->assertHasErrors(['não tem agenda de encontros']);
 
         $this->assertNoLibraryMeetings();

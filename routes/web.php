@@ -156,7 +156,13 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::get('classes/{classroom}', Admin\ClassroomOverviewController::class)->name('classrooms.show');
 
         Route::get('classes/{classroom}/domingos', [Admin\ClassMeetingController::class, 'index'])->name('classrooms.meetings.index');
-        Route::post('classes/{classroom}/domingos/planejar', [Admin\ClassMeetingController::class, 'plan'])->name('classrooms.meetings.plan');
+        Route::get('classes/{classroom}/chamada', [Admin\ClassMeetingController::class, 'today'])->name('classrooms.meetings.today');
+        Route::get('classes/{classroom}/licoes', Admin\ClassroomLessonsController::class)->name('classrooms.lessons');
+        Route::post('classes/{classroom}/licao-atual', [Admin\CurrentLessonController::class, 'update'])->name('classrooms.current-lesson.update');
+        Route::post('classes/{classroom}/licao-atual/concluir', [Admin\CurrentLessonController::class, 'advance'])->name('classrooms.current-lesson.advance');
+        Route::post('classes/{classroom}/serie-atual', [Admin\CurrentLessonController::class, 'series'])->name('classrooms.current-series.update');
+        Route::post('series/{series}/concluir', [Admin\CurrentLessonController::class, 'conclude'])->name('series.conclude');
+        Route::post('series/{series}/reabrir', [Admin\CurrentLessonController::class, 'reopen'])->name('series.reopen');
         Route::get('classes/{classroom}/domingos/{meeting}', [Admin\ClassMeetingController::class, 'show'])
             ->scopeBindings()
             ->name('classrooms.meetings.show');
@@ -164,7 +170,6 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::put('encontros/{meeting}/anotacao', [Admin\MeetingNoteController::class, 'update'])->name('meetings.notes.update');
         Route::post('encontros/{meeting}/cancelar', [Admin\MeetingStatusController::class, 'cancel'])->name('meetings.cancel');
         Route::post('encontros/{meeting}/restaurar', [Admin\MeetingStatusController::class, 'restore'])->name('meetings.restore');
-        Route::post('encontros/{meeting}/continuar', [Admin\MeetingStatusController::class, 'continue'])->name('meetings.continue');
         Route::post('encontros/{meeting}/realizado', [Admin\MeetingStatusController::class, 'held'])->name('meetings.held');
         Route::put('encontros/{meeting}/chamada', [Admin\AttendanceController::class, 'update'])->name('meetings.attendance.update');
         Route::post('encontros/{meeting}/encerrar', [Admin\AttendanceController::class, 'finish'])->name('meetings.finish');

@@ -8,7 +8,6 @@ use App\Models\ClassMeeting;
 use App\Models\Lesson;
 use App\Models\Series;
 use App\Models\User;
-use App\Support\ChurchCalendar;
 use App\Support\Enrollment;
 use App\Support\ReadingWeeks;
 use App\Support\StudyStreak;
@@ -206,8 +205,8 @@ class AwardBadges
     }
 
     /**
-     * Presenças sobre os domingos da série: os que já tiveram chamada mais os
-     * que ainda vão acontecer (o selo só sai quando a série termina). Meta
+     * Presenças sobre os domingos da série: os que já tiveram chamada mais um
+     * por lição que falta (o selo só sai quando a série é concluída). Meta
      * mínima de 4.
      *
      * @return array{current: int, target: int}|null
@@ -247,14 +246,17 @@ class AwardBadges
             ->pluck('id');
     }
 
-    /** Domingos da série ainda por acontecer (planejados, de hoje em diante). */
+    /**
+     * Lições da série que faltam: o selo de presença só sai quando o professor
+     * conclui a série (antes, ao menos uma ainda falta).
+     */
     private function upcomingMeetings(Series $series): int
     {
-        return ClassMeeting::query()
-            ->where('status', MeetingStatus::Planned)
-            ->whereDate('held_on', '>=', ChurchCalendar::today()->toDateString())
-            ->whereHas('lesson', fn ($q) => $q->whereBelongsTo($series))
-            ->count();
+        if ($series->concluded_at !== null) {
+            return 0;
+        }
+
+        return max(1, Lesson::query()->whereBelongsTo($series)->whereNull('studied_at')->count());
     }
 
     /**

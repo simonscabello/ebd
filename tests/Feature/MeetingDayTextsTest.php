@@ -48,13 +48,10 @@ class MeetingDayTextsTest extends TestCase
         $teacher = User::factory()->teacherOf($classroom)->create();
         $toasts = [];
 
-        foreach (['cancelar', 'restaurar', 'realizado', 'continuar'] as $action) {
+        foreach (['cancelar', 'restaurar', 'realizado'] as $action) {
             $meeting = ClassMeeting::factory()->for($classroom)->on($date)->create();
             if ($action === 'restaurar') {
                 $meeting->update(['status' => 'cancelled']);
-            }
-            if ($action === 'continuar') {
-                $meeting->update(['lesson_id' => Lesson::factory()->for($classroom)->create()->id]);
             }
 
             $this->actingAs($teacher)->post("/admin/encontros/{$meeting->id}/{$action}")
@@ -73,9 +70,8 @@ class MeetingDayTextsTest extends TestCase
     {
         $this->assertSame([
             'Domingo marcado como "sem EBD".',
-            'O domingo voltou para a agenda. Escolha a lição do dia.',
+            'O domingo voltou para a agenda.',
             'Domingo marcado como realizado.',
-            'A lição continua no próximo domingo.',
         ], $this->toastsFor($this->ebd, '2026-10-04'));
     }
 
@@ -83,9 +79,8 @@ class MeetingDayTextsTest extends TestCase
     {
         $this->assertSame([
             'Encontro marcado como "sem Discipulado".',
-            'O encontro voltou para a agenda. Escolha a lição do dia.',
+            'O encontro voltou para a agenda.',
             'Encontro marcado como realizado.',
-            'A lição continua na próxima quarta-feira.',
         ], $this->toastsFor($this->discipulado, '2026-10-07'));
     }
 

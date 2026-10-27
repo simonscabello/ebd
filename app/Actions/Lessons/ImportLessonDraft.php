@@ -49,7 +49,6 @@ class ImportLessonDraft
             } else {
                 $lesson = $this->create->handle($author, $classroom, $fields + [
                     'author_ids' => [$author->id],
-                    'meeting_on' => $data['meeting_on'] ?? null,
                 ]);
             }
 

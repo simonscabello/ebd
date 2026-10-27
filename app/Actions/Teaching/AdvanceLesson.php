@@ -5,6 +5,7 @@ namespace App\Actions\Teaching;
 use App\Actions\Meetings\SyncUpcomingMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
+use App\Queries\NextLessonsQuery;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -18,7 +19,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AdvanceLesson
 {
-    public function __construct(private readonly SyncUpcomingMeeting $syncMeeting) {}
+    public function __construct(
+        private readonly SyncUpcomingMeeting $syncMeeting,
+        private readonly NextLessonsQuery $nextLessons,
+    ) {}
 
     public function handle(Classroom $classroom, int $expectedLessonId): ?Lesson
     {
@@ -32,7 +36,7 @@ class AdvanceLesson
             $current = Lesson::query()->find($expectedLessonId);
             $current?->forceFill(['studied_at' => now()])->save();
 
-            $next = $this->next($locked, $current);
+            $next = $this->nextLessons->for($locked, $current)->first();
 
             $locked->forceFill([
                 'current_lesson_id' => $next?->id,
@@ -43,27 +47,5 @@ class AdvanceLesson
 
             return $next;
         });
-    }
-
-    private function next(Classroom $classroom, ?Lesson $current): ?Lesson
-    {
-        if ($classroom->current_series_id === null) {
-            return null;
-        }
-
-        $pending = Lesson::query()
-            ->where('series_id', $classroom->current_series_id)
-            ->whereNull('studied_at')
-            ->inSequence()
-            ->get();
-
-        if ($current?->series_id !== $classroom->current_series_id) {
-            return $pending->first();
-        }
-
-        // Mesma ordem de inSequence: número (sem número no fim), depois id.
-        $position = fn (Lesson $lesson) => [$lesson->number ?? PHP_INT_MAX, $lesson->id];
-
-        return $pending->first(fn (Lesson $lesson) => $position($lesson) > $position($current)) ?? $pending->first();
     }
 }

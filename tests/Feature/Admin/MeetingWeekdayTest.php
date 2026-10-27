@@ -8,7 +8,6 @@ use App\Mcp\Servers\EbdServer;
 use App\Mcp\Tools\SaveMeetingTool;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
-use App\Models\Lesson;
 use App\Models\User;
 use App\Support\ChurchCalendar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -65,15 +64,6 @@ class MeetingWeekdayTest extends TestCase
         }
     }
 
-    public function test_plan_meetings_uses_the_classroom_day(): void
-    {
-        $this->actingAs($this->teacher)
-            ->post('/admin/classes/quarta/domingos/planejar', ['from' => '2026-10-01', 'to' => '2026-10-31'])
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame(['2026-10-07', '2026-10-14', '2026-10-21', '2026-10-28'], $this->dates());
-    }
-
     public function test_meeting_on_another_day_is_rejected(): void
     {
         $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-10-07')->create();
@@ -81,15 +71,6 @@ class MeetingWeekdayTest extends TestCase
         $this->actingAs($this->teacher)
             ->put("/admin/encontros/{$meeting->id}", ['held_on' => '2026-10-04'])
             ->assertSessionHasErrors(['held_on' => 'Esta classe se reúne às quartas-feiras.']);
-
-        $this->actingAs($this->teacher)
-            ->post('/admin/licoes', [
-                'classroom_id' => $this->classroom->id,
-                'title' => 'Fora do dia',
-                'visibility' => 'public',
-                'meeting_on' => '2026-10-04',
-            ])
-            ->assertSessionHasErrors(['meeting_on' => 'Esta classe se reúne às quartas-feiras.']);
 
         $this->assertSame(['2026-10-07'], $this->dates());
     }
@@ -101,20 +82,6 @@ class MeetingWeekdayTest extends TestCase
         $this->assertSame('Esta classe se reúne às segundas-feiras.', Weekday::Monday->meetingDayMessage());
     }
 
-    public function test_continue_creates_the_next_meeting_on_the_classroom_day(): void
-    {
-        $lesson = Lesson::factory()->for($this->classroom)->published()->on('2026-09-30')->create();
-        $meeting = ClassMeeting::query()->where('lesson_id', $lesson->id)->sole();
-
-        $this->actingAs($this->teacher)
-            ->post("/admin/encontros/{$meeting->id}/encerrar", ['continues' => true])
-            ->assertRedirect()
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame(['2026-09-30', '2026-10-07'], $this->dates());
-        $this->assertSame($lesson->id, ClassMeeting::query()->whereDate('held_on', '2026-10-07')->value('lesson_id'));
-    }
-
     public function test_save_meeting_rejects_a_day_outside_the_classroom_day(): void
     {
         EbdServer::actingAs($this->teacher)
@@ -122,40 +89,5 @@ class MeetingWeekdayTest extends TestCase
             ->assertHasErrors(['Esta classe se reúne às quartas-feiras.']);
 
         $this->assertSame([], $this->dates());
-    }
-
-    public function test_plan_includes_a_last_day_that_is_a_meeting_day(): void
-    {
-        $this->actingAs($this->teacher)
-            ->post('/admin/classes/quarta/domingos/planejar', ['from' => '2026-10-01', 'to' => '2026-10-28'])
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame(['2026-10-07', '2026-10-14', '2026-10-21', '2026-10-28'], $this->dates());
-    }
-
-    public function test_plan_skips_a_week_that_already_has_a_meeting_on_the_old_day(): void
-    {
-        // A turma era de domingo e passou para quarta: o domingo 11/10 ficou.
-        ClassMeeting::factory()->for($this->classroom)->on('2026-10-11')->create();
-
-        $this->actingAs($this->teacher)
-            ->post('/admin/classes/quarta/domingos/planejar', ['from' => '2026-10-01', 'to' => '2026-10-28'])
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame(['2026-10-07', '2026-10-11', '2026-10-21', '2026-10-28'], $this->dates());
-    }
-
-    public function test_lesson_on_a_taken_meeting_names_the_meeting_not_sunday(): void
-    {
-        Lesson::factory()->for($this->classroom)->on('2026-10-07')->create();
-
-        $this->actingAs($this->teacher)
-            ->post('/admin/licoes', [
-                'classroom_id' => $this->classroom->id,
-                'title' => 'Outra',
-                'visibility' => 'public',
-                'meeting_on' => '2026-10-07',
-            ])
-            ->assertSessionHasErrors(['meeting_on' => 'Já existe uma lição neste encontro. Ajuste pela agenda da classe.']);
     }
 }

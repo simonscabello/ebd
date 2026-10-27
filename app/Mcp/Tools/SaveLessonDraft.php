@@ -26,7 +26,7 @@ class SaveLessonDraft extends EbdTool
 
     protected string $description = <<<'TEXT'
         Cria uma lição como rascunho ou edita um rascunho existente (lesson_id). Lições publicadas não podem ser alteradas por aqui.
-        Na criação informe classroom e title; series e meeting_on (data do encontro da aula) são opcionais.
+        Na criação informe classroom e title; series é opcional. A ordem na série vem do number; a classe chega nela pela lição atual (set_current_lesson / advance_lesson).
         Na edição, só os campos enviados mudam. As listas readings, blocks e materials, quando enviadas, SUBSTITUEM as atuais por inteiro;
         para mexer em um item só, use save_lesson_block, save_lesson_reading ou save_lesson_material.
         A lição fica como rascunho: a publicação é feita pela pessoa no app (link edit_url).
@@ -38,7 +38,6 @@ class SaveLessonDraft extends EbdTool
             'lesson_id' => $schema->integer()->description('Id do rascunho a editar. Omita para criar uma lição nova.'),
             'classroom' => $schema->string()->description('Slug, nome ou id da classe (obrigatório na criação).'),
             'series' => $schema->string()->description('Slug ou id da série da revista.'),
-            'meeting_on' => $schema->string()->format('date')->description('Dia da aula (AAAA-MM-DD), no dia de encontro da classe, só na criação. Ajustes depois pela agenda (save_meeting).'),
             'number' => $schema->integer()->description('Número da lição na revista (único na série).'),
             'title' => $schema->string()->description('Título da lição.'),
             'summary' => $schema->string()->description('Resumo curto.'),
@@ -125,7 +124,6 @@ class SaveLessonDraft extends EbdTool
             'lesson_id' => ['nullable', 'integer'],
             'classroom' => ['nullable'],
             'series' => ['nullable'],
-            'meeting_on' => $existing ? ['prohibited'] : ['nullable', 'date_format:Y-m-d'],
             ...$fields,
             'readings' => ['sometimes', 'array', 'max:14'],
             ...$this->lessonReadingRules('readings.*.'),

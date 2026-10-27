@@ -99,17 +99,33 @@ class AttendanceAndInsightsTest extends TestCase
         $this->assertNull($next->refresh()->scheduled_for);
     }
 
-    public function test_finishing_with_continue_without_a_lesson_changes_nothing(): void
+    public function test_finishing_a_lesson_passes_the_classroom_to_the_next_one(): void
+    {
+        $series = Series::factory()->for($this->classroom)->create();
+        $temor = Lesson::factory()->forSeries($series)->number(1)->published()->on('2026-09-27')->create(['title' => 'Temor']);
+        $next = Lesson::factory()->forSeries($series)->number(2)->published()->create(['title' => 'Próxima']);
+
+        $this->actingAs($this->teacher)
+            ->post("/admin/encontros/{$this->meetingFor($temor)->id}/encerrar", ['continues' => false])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($next->id, $this->classroom->refresh()->current_lesson_id);
+        $this->assertNotNull($temor->refresh()->studied_at);
+        $this->assertSame($temor->id, ClassMeeting::query()->whereDate('held_on', '2026-09-27')->value('lesson_id'));
+        $this->assertSame($next->id, ClassMeeting::query()->whereDate('held_on', '2026-10-04')->value('lesson_id'));
+    }
+
+    public function test_finishing_a_meeting_without_lesson_keeps_the_notes(): void
     {
         $meeting = ClassMeeting::factory()->for($this->classroom)->on('2026-09-27')->create();
 
         $this->actingAs($this->teacher)
             ->post("/admin/encontros/{$meeting->id}/encerrar", ['continues' => true, 'notes' => 'Anotação'])
-            ->assertSessionHasErrors('meeting');
+            ->assertSessionHasNoErrors();
 
         $meeting->refresh();
-        $this->assertNull($meeting->finished_at);
-        $this->assertNull($meeting->notes);
+        $this->assertNotNull($meeting->finished_at);
+        $this->assertSame('Anotação', $meeting->notes);
     }
 
     public function test_sunday_mode_gives_the_roster_only_to_teachers(): void
@@ -198,6 +214,10 @@ class AttendanceAndInsightsTest extends TestCase
                 'present' => $date === '2026-09-13' ? [$ana->id] : [$ana->id, $bia->id],
             ]);
         }
+
+        // O selo espera o professor concluir a série.
+        $this->assertDatabaseMissing('user_badges', ['user_id' => $ana->id, 'badge' => 'perfect_attendance']);
+        $this->actingAs($this->teacher)->post("/admin/series/{$series->id}/concluir")->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('user_badges', ['user_id' => $ana->id, 'badge' => 'perfect_attendance', 'series_id' => $series->id]);
         $this->assertDatabaseMissing('user_badges', ['user_id' => $bia->id, 'badge' => 'perfect_attendance']);

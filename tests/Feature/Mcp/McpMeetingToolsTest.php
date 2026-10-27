@@ -4,11 +4,12 @@ namespace Tests\Feature\Mcp;
 
 use App\Enums\MeetingStatus;
 use App\Mcp\Servers\EbdServer;
+use App\Mcp\Tools\AdvanceLessonTool;
 use App\Mcp\Tools\CancelMeetingTool;
 use App\Mcp\Tools\FinishMeetingTool;
-use App\Mcp\Tools\PlanMeetingsTool;
 use App\Mcp\Tools\RecordAttendanceTool;
 use App\Mcp\Tools\SaveMeetingTool;
+use App\Mcp\Tools\SetCurrentLessonTool;
 use App\Models\AuditLog;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
@@ -93,23 +94,6 @@ class McpMeetingToolsTest extends TestCase
             ->assertHasErrors(['só pode ser feita no dia do domingo']);
     }
 
-    public function test_plan_meetings_creates_sundays_and_distributes_the_series(): void
-    {
-        $series = Series::factory()->for($this->classroom)->create(['slug' => '4-tri']);
-        Lesson::factory()->for($this->classroom)->forSeries($series)->number(1)->create(['title' => 'Primeira']);
-        Lesson::factory()->for($this->classroom)->forSeries($series)->number(2)->create(['title' => 'Segunda']);
-
-        EbdServer::actingAs($this->teacher)->tool(PlanMeetingsTool::class, ['classroom' => 'jovens', 'from' => '2026-10-01', 'to' => '2026-10-31', 'series' => '4-tri'])
-            ->assertOk()
-            ->assertSee(['"created":4', '"lessons_assigned":2', 'Primeira']);
-
-        $this->assertSame(4, $this->classroom->meetings()->count());
-        $this->assertSame(['created' => 4, 'assigned' => 2], AuditLog::query()->sole()->changes['after']);
-
-        EbdServer::actingAs($this->teacher)->tool(PlanMeetingsTool::class, ['classroom' => 'jovens', 'from' => '2026-10-01', 'to' => '2028-01-01'])
-            ->assertHasErrors(['fim']);
-    }
-
     public function test_save_meeting_adds_and_edits_keeping_omitted_fields(): void
     {
         $lesson = Lesson::factory()->for($this->classroom)->create();
@@ -131,19 +115,45 @@ class McpMeetingToolsTest extends TestCase
     public function test_finish_and_cancel(): void
     {
         $today = Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create(['title' => 'Hoje']);
-        $next = Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create(['title' => 'Próxima']);
+        Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create(['title' => 'Próxima']);
 
         EbdServer::actingAs($this->teacher)->tool(FinishMeetingTool::class, ['classroom' => 'jovens', 'meeting' => '2026-09-27', 'continues' => true, 'notes' => 'Paramos no ponto 2'])
             ->assertOk()
-            ->assertSee(['"status":"held"', 'Paramos no ponto 2', 'Próxima', 'ficou sem data']);
+            ->assertSee(['"status":"held"', 'Paramos no ponto 2']);
 
+        // A lição continua: o próximo encontro passa a ser dela.
         $this->assertSame($today->id, ClassMeeting::query()->whereDate('held_on', '2026-10-04')->value('lesson_id'));
 
-        EbdServer::actingAs($this->teacher)->tool(CancelMeetingTool::class, ['classroom' => 'jovens', 'meeting' => '2026-10-04', 'reason' => 'Congresso', 'shift_lessons' => false])
+        EbdServer::actingAs($this->teacher)->tool(CancelMeetingTool::class, ['classroom' => 'jovens', 'meeting' => '2026-10-04', 'reason' => 'Congresso'])
             ->assertOk()
             ->assertSee(['"status":"cancelled"', 'Congresso']);
 
-        $this->assertNotNull($next->fresh());
+        $this->assertSame($today->id, ClassMeeting::query()->whereDate('held_on', '2026-10-11')->value('lesson_id'));
+    }
+
+    public function test_current_lesson_tools_choose_and_conclude(): void
+    {
+        $series = Series::factory()->for($this->classroom)->create();
+        $first = Lesson::factory()->forSeries($series)->number(1)->published()->create(['title' => 'Primeira']);
+        $second = Lesson::factory()->forSeries($series)->number(2)->published()->create(['title' => 'Segunda']);
+
+        EbdServer::actingAs($this->teacher)->tool(SetCurrentLessonTool::class, ['classroom' => 'jovens', 'lesson_id' => $first->id])
+            ->assertOk()
+            ->assertSee('Primeira');
+        $this->assertSame($first->id, $this->classroom->refresh()->current_lesson_id);
+
+        EbdServer::actingAs($this->teacher)->tool(AdvanceLessonTool::class, ['classroom' => 'jovens', 'lesson_id' => $first->id])
+            ->assertOk()
+            ->assertSee('Segunda');
+        $this->assertSame($second->id, $this->classroom->refresh()->current_lesson_id);
+
+        // Hoje é domingo: a chamada cria o encontro do dia, com a lição atual.
+        $student = User::factory()->studentOf($this->classroom)->create(['name' => 'Ana']);
+        EbdServer::actingAs($this->teacher)->tool(RecordAttendanceTool::class, ['classroom' => 'jovens', 'meeting' => '2026-09-27', 'mode' => 'add', 'present' => ['Ana']])
+            ->assertOk();
+        $meeting = ClassMeeting::query()->whereDate('held_on', '2026-09-27')->sole();
+        $this->assertSame($second->id, $meeting->lesson_id);
+        $this->assertSame([$student->id], $meeting->attendances()->pluck('user_id')->all());
     }
 
     public function test_teacher_of_another_classroom_cannot_touch_the_agenda(): void

@@ -165,10 +165,10 @@ class ChurchTimezoneTest extends TestCase
         $this->travelTo(CarbonImmutable::parse('2026-09-27 23:30', 'UTC'));
 
         $this->actingAs($admin)->get('/admin/classes/jovens-lx/domingos')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('nextSunday', '2026-10-04'));
+            ->assertInertia(fn (Assert $page) => $page->where('today', '2026-09-28'));
 
         $owner = User::factory()->admin()->create();
         $this->actingAs($owner)->get('/admin/classes/jovens-sp/domingos')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('nextSunday', '2026-09-27'));
+            ->assertInertia(fn (Assert $page) => $page->where('today', '2026-09-27'));
     }
 }

@@ -63,8 +63,9 @@ export function FinishMeetingDialog({
                 <DialogHeader>
                     <DialogTitle>Encerrar aula</DialogTitle>
                     <DialogDescription>
-                        A conversa rendeu? Se a lição não terminou, ela continua
-                        no próximo {words.one} e as seguintes são empurradas.
+                        A lição terminou hoje? Se sim, a classe passa para a
+                        próxima lição da série. Se a conversa rendeu, ela
+                        continua no próximo {words.one}.
                     </DialogDescription>
                 </DialogHeader>
                 <label htmlFor="finish-notes" className="text-sm font-medium">
@@ -83,7 +84,7 @@ export function FinishMeetingDialog({
                         disabled={processing}
                         onClick={() => submit(false)}
                     >
-                        <CheckCircle2 /> Lição concluída
+                        <CheckCircle2 /> Terminou: passar para a próxima
                     </Button>
                     <Button
                         size="lg"

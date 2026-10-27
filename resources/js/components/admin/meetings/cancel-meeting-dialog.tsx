@@ -2,7 +2,6 @@ import { useForm } from '@inertiajs/react';
 import { CalendarOff } from 'lucide-react';
 import { Field } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -17,8 +16,7 @@ import { cancel } from '@/routes/admin/meetings';
 import type { Classroom } from '@/types';
 
 /**
- * "Sem EBD": motivo (opcional) e, se houver lição marcada, a opção de
- * empurrar a lição e as seguintes para o próximo domingo.
+ * "Sem EBD": motivo (opcional). A lição atual segue para o próximo domingo.
  */
 export function CancelMeetingDialog({
     meeting,
@@ -35,7 +33,7 @@ export function CancelMeetingDialog({
     classroom?: Pick<Classroom, 'meeting_weekday' | 'program_short_name'>;
 }) {
     const words = meetingWords(classroom);
-    const form = useForm({ reason: '', shift: meeting.lesson_id !== null });
+    const form = useForm({ reason: '' });
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,7 +55,8 @@ export function CancelMeetingDialog({
                         </DialogTitle>
                         <DialogDescription className="first-letter:uppercase">
                             {dateLabel}. O aviso aparece para a classe no
-                            Início.
+                            Início, e a lição atual fica para o próximo{' '}
+                            {words.one}.
                         </DialogDescription>
                     </DialogHeader>
                     <Field
@@ -76,25 +75,6 @@ export function CancelMeetingDialog({
                             autoFocus
                         />
                     </Field>
-                    {meeting.lesson_id !== null && (
-                        <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-3.5 text-sm">
-                            <Checkbox
-                                checked={form.data.shift}
-                                onCheckedChange={(value) =>
-                                    form.setData('shift', value === true)
-                                }
-                                className="mt-0.5"
-                            />
-                            <span>
-                                Empurrar esta lição (e as seguintes) para o
-                                próximo {words.one}
-                                <span className="block text-muted-foreground">
-                                    Desmarque se a lição simplesmente não será
-                                    dada.
-                                </span>
-                            </span>
-                        </label>
-                    )}
                     <DialogFooter>
                         <Button
                             type="button"

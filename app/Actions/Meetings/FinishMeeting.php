@@ -2,33 +2,30 @@
 
 namespace App\Actions\Meetings;
 
+use App\Actions\Teaching\AdvanceLesson;
 use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
+use App\Models\Lesson;
 use App\Support\ChurchCalendar;
 use Illuminate\Validation\ValidationException;
 
 /**
  * "Encerrar aula" no Modo Domingo: registra onde a turma parou e se a lição
- * terminou ou continua no próximo encontro.
+ * terminou (a classe passa para a próxima) ou continua no próximo encontro.
  *
- * @return int|null id da lição que ficou sem data (quando continua)
+ * @return Lesson|null a nova lição atual, quando a lição terminou
  */
 class FinishMeeting
 {
     public function __construct(
-        private readonly ContinueLessonNextMeeting $continue,
+        private readonly AdvanceLesson $advance,
+        private readonly SyncUpcomingMeeting $syncMeeting,
     ) {}
 
-    public function handle(ClassMeeting $meeting, bool $continues, ?string $notes): ?int
+    public function handle(ClassMeeting $meeting, bool $continues, ?string $notes): ?Lesson
     {
         if ($meeting->isCancelled() || $meeting->held_on->toDateString() > ChurchCalendar::today()->toDateString()) {
             throw ValidationException::withMessages(['meeting' => 'Este encontro não pode ser encerrado.']);
-        }
-
-        // Conferido antes de gravar: sem isso o encerramento ficava salvo e só
-        // depois vinha o erro de ContinueLessonNextMeeting.
-        if ($continues && $meeting->lesson_id === null) {
-            throw ValidationException::withMessages(['meeting' => 'Só é possível continuar um encontro que tem lição.']);
         }
 
         $meeting->forceFill([
@@ -37,6 +34,13 @@ class FinishMeeting
             'finished_at' => now(),
         ])->save();
 
-        return $continues ? $this->continue->handle($meeting) : null;
+        // Só a lição atual avança: encerrar um encontro antigo não mexe na classe.
+        if (! $continues && $meeting->lesson_id !== null) {
+            return $this->advance->handle($meeting->classroom, $meeting->lesson_id);
+        }
+
+        $this->syncMeeting->handle($meeting->classroom);
+
+        return null;
     }
 }

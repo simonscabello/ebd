@@ -3,7 +3,8 @@ import { ChevronRight, GraduationCap, Search, Users } from 'lucide-react';
 import { useState } from 'react';
 import type { IssuedLink } from '@/components/admin/access-link-dialog';
 import { AccessLinkDialog } from '@/components/admin/access-link-dialog';
-import { ClassroomTabs } from '@/components/admin/classroom-header';
+import { ClassroomShell } from '@/components/admin/classroom-header';
+import type { ClassroomHeaderData } from '@/components/admin/classroom-header';
 import { AddByEmailDialog } from '@/components/admin/students/add-by-email-dialog';
 import { AddStudentDialog } from '@/components/admin/students/add-student-dialog';
 import { EmptyState, Page, Section } from '@/components/page';
@@ -52,6 +53,7 @@ const FILTERS: Record<
 
 type Props = {
     classroom: Classroom;
+    header: ClassroomHeaderData;
     today: string;
     period: StatsPeriod;
     students: StudentRow[];
@@ -65,6 +67,7 @@ type Props = {
  */
 export default function ClassroomStudents({
     classroom,
+    header,
     period,
     students,
     teachers,
@@ -85,25 +88,18 @@ export default function ClassroomStudents({
             <Head title={`Alunos · ${classroom.name}`} />
 
             <Page width="wide">
-                <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                        <h1 className="font-serif text-3xl font-semibold tracking-tight">
-                            {classroom.name}
-                        </h1>
-                        <ClassroomTabs
-                            classroom={classroom}
-                            active="alunos"
-                            students={students.length}
-                        />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <AddByEmailDialog classroom={classroom} />
-                        <AddStudentDialog
-                            classroom={classroom}
-                            onIssued={setIssued}
-                        />
-                    </div>
-                </header>
+                <ClassroomShell
+                    classroom={classroom}
+                    header={header}
+                    active="alunos"
+                />
+                <div className="mb-4 flex flex-wrap justify-end gap-2">
+                    <AddByEmailDialog classroom={classroom} />
+                    <AddStudentDialog
+                        classroom={classroom}
+                        onIssued={setIssued}
+                    />
+                </div>
 
                 {students.length === 0 ? (
                     <EmptyState icon={<Users />} title="Nenhum aluno ainda">

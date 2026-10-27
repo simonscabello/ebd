@@ -56,12 +56,11 @@ class McpLessonToolsTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_creates_a_complete_draft_and_schedules_it(): void
+    public function test_creates_a_complete_draft(): void
     {
         EbdServer::actingAs($this->teacher)->tool(SaveLessonDraft::class, [
             'classroom' => 'jovens',
             'series' => '4-tri-2026',
-            'meeting_on' => '2026-10-04',
             'number' => 1,
             'title' => 'O chamado de Abraão',
             'content' => "## Deus chama\nTexto",
@@ -77,7 +76,7 @@ class McpLessonToolsTest extends TestCase
         $this->assertSame([$this->teacher->id], $lesson->authors()->pluck('users.id')->all());
         $this->assertSame(1, $lesson->readings()->count());
         $this->assertNull($lesson->blocks()->sole()->drip_weekday, 'roteiro é do professor: nunca vai para "Para hoje"');
-        $this->assertSame('2026-10-04', ClassMeeting::query()->where('lesson_id', $lesson->id)->sole()->held_on->toDateString());
+        $this->assertSame(0, ClassMeeting::query()->where('lesson_id', $lesson->id)->count());
 
         $log = AuditLog::query()->sole();
         $this->assertSame(['save_lesson_draft', 'ok', $this->teacher->id], [$log->tool, $log->status, $log->user_id]);

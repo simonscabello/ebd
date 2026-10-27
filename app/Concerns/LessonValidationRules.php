@@ -102,7 +102,6 @@ trait LessonValidationRules
             'title' => 'título',
             'number' => 'número da lição',
             'summary' => 'resumo',
-            'meeting_on' => $classroom === null || $classroom->meeting_weekday === Weekday::Sunday ? 'domingo da aula' : 'dia da aula',
             'key_verse' => 'versículo-chave',
             'goal' => 'alvo da lição',
             'bible_reference' => 'texto bíblico',

@@ -1,547 +1,551 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
-    CalendarPlus,
-    ChevronDown,
-    Ellipsis,
+    BookOpen,
+    Check,
     MessageSquareText,
+    Pencil,
     Presentation,
 } from 'lucide-react';
-import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { ClassroomTabs } from '@/components/admin/classroom-header';
-import type { MeetingRowData } from '@/components/admin/meetings/meeting-row';
-import { PlanMeetingsDialog } from '@/components/admin/meetings/plan-meetings-dialog';
+import { ClassroomShell } from '@/components/admin/classroom-header';
+import type { ClassroomHeaderData } from '@/components/admin/classroom-header';
+import {
+    LessonMenu,
+    LessonNumber,
+    LessonStatusBadge,
+} from '@/components/admin/lesson-row';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { CopyWhatsAppButtons } from '@/components/copy-whatsapp-button';
-import { EmptyState, Page } from '@/components/page';
+import { Page } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { WhatsAppButton } from '@/components/whatsapp-button';
-import { dateTile, dayMonth, relativeDay } from '@/lib/dates';
+import { dayMonth, relativeDay } from '@/lib/dates';
 import { meetingWords } from '@/lib/meeting-words';
-import { cn, plural } from '@/lib/utils';
 import { missYouMessage } from '@/lib/whatsapp';
-import {
-    edit,
-    questions,
-    report,
-    show as classroomPage,
-} from '@/routes/admin/classrooms';
-import {
-    index as meetingsIndex,
-    show as meetingPage,
-} from '@/routes/admin/classrooms/meetings';
+import { lessons, show as classroomPage } from '@/routes/admin/classrooms';
+import { advance } from '@/routes/admin/classrooms/current-lesson';
+import { show as meetingPage } from '@/routes/admin/classrooms/meetings';
 import { show as studentPage } from '@/routes/admin/classrooms/students';
 import { edit as editLesson } from '@/routes/admin/lessons';
 import { sunday } from '@/routes/lessons';
-import type { Classroom, Series } from '@/types';
+import type { Classroom, LessonStatus } from '@/types';
 
-type Row = MeetingRowData & {
-    absent: {
-        id: number;
-        name: string;
-        phone: string | null;
-        missed_in_a_row: number;
-    }[];
+type LessonRow = {
+    id: number;
+    slug: string;
+    number: number | null;
+    display_title: string;
+    status: LessonStatus;
 };
 
-/** Só o que a agenda usa do resumo da classe (ClassroomOverviewQuery). */
+type Current = LessonRow & {
+    bible_reference: string | null;
+    series: { id: number; title: string } | null;
+    started_on: string | null;
+    meetings_held: number;
+};
+
+/** Só o que a Visão geral usa do resumo da classe (ClassroomOverviewQuery). */
 type Overview = {
     today: string;
     week: {
-        meeting: { id: number };
+        meeting: { id: number; held_on: string; is_today: boolean };
         weekly_message: string | null;
     } | null;
     home_study: { readers: number; expected: number } | null;
-    stats: { students: number };
+    attention: {
+        id: number;
+        name: string;
+        phone: string | null;
+        reasons: string[];
+        missed_in_a_row: number;
+    }[];
+    birthdays: {
+        id: number;
+        name: string;
+        day: number;
+        is_today: boolean;
+    }[];
+    recent: {
+        id: number;
+        held_on: string;
+        lesson: string | null;
+        title: string | null;
+        present: number;
+        expected: number;
+        visitors: number;
+    }[];
+    pending: { id: number; held_on: string; lesson: string | null }[];
 };
-
-type UpcomingLesson = { meeting_id: number; message: string | null };
 
 type Props = {
     classroom: Classroom;
+    header: ClassroomHeaderData;
     overview: Overview;
-    upcoming: { data: UpcomingLesson[] };
-    sundays: Row[];
-    past: Row[];
-    nextSunday: string;
-    series: Series[];
-    canEdit: boolean;
+    current: Current | null;
+    upNext: LessonRow[];
 };
 
 /**
- * Página da classe: a agenda. Cada data mostra a ação que falta (apresentar a
- * lição, terminar o rascunho, escolher a lição, fazer a chamada, falar com
- * quem faltou). O resto da classe fica em Alunos e no menu "⋯".
+ * Página da classe (Visão geral). A lição atual no topo: ela fica quantos
+ * domingos precisar e só sai quando o professor conclui. Embaixo, as próximas
+ * da série em sequência, sem datas. Ao lado, quem precisa de atenção e a
+ * última chamada.
  */
-export default function ClassroomAgenda({
+export default function ClassroomOverview({
     classroom,
+    header,
     overview,
-    upcoming,
-    sundays,
-    past,
-    nextSunday,
-    series,
-    canEdit,
+    current,
+    upNext,
 }: Props) {
     const words = meetingWords(classroom);
     const here = classroomPage.url(classroom.slug);
-
-    // Datas sem lição: duas bastam para lembrar de planejar; o resto é ruído.
-    let undefinedShown = 0;
-    const next = sundays.filter(
-        (row) =>
-            row.lesson !== null ||
-            row.status === 'cancelled' ||
-            undefinedShown++ < 2,
-    );
-    const highlightId = next.find((row) => row.status !== 'cancelled')?.id;
-
-    // Mensagem pronta para o grupo, no primeiro encontro de cada lição.
-    const messages = new Map<number, string>();
-    for (const item of upcoming.data) {
-        if (item.message) {
-            messages.set(item.meeting_id, item.message);
-        }
-    }
-    if (overview.week?.weekly_message) {
-        messages.set(overview.week.meeting.id, overview.week.weekly_message);
-    }
-
-    const plan = (
-        <PlanMeetingsDialog
-            classroom={classroom}
-            series={series}
-            nextSunday={nextSunday}
-        />
-    );
+    const lastAttendance = overview.recent[0] ?? null;
 
     return (
         <>
             <Head title={classroom.name} />
 
             <Page width="wide">
-                <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                        <h1 className="font-serif text-3xl font-semibold tracking-tight">
-                            {classroom.name}
-                        </h1>
-                        <ClassroomTabs
-                            classroom={classroom}
-                            active="agenda"
-                            students={overview.stats.students}
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        {plan}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    aria-label={`Mais da classe ${classroom.name}`}
-                                >
-                                    <Ellipsis />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <MenuLink
-                                    href={meetingsIndex.url(classroom.slug)}
-                                >
-                                    Todas as datas
-                                </MenuLink>
-                                <MenuLink href={report.url(classroom.slug)}>
-                                    Relatório
-                                </MenuLink>
-                                <MenuLink href={questions.url(classroom.slug)}>
-                                    Dúvidas dos alunos
-                                </MenuLink>
-                                {canEdit && (
-                                    <MenuLink href={edit.url(classroom.slug)}>
-                                        Editar classe
-                                    </MenuLink>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                </header>
+                <ClassroomShell
+                    classroom={classroom}
+                    header={header}
+                    active="geral"
+                />
 
-                {next.length === 0 && past.length === 0 ? (
-                    <EmptyState
-                        icon={<CalendarPlus />}
-                        title={`Nenhum ${words.one} na agenda`}
-                    >
-                        <p>
-                            Planeje a série para distribuir as lições da revista
-                            pelos {words.many}.
-                        </p>
-                        <div className="mt-4">{plan}</div>
-                    </EmptyState>
-                ) : (
-                    <div className="overflow-hidden rounded-2xl border bg-card">
-                        <GroupLabel>Próximos</GroupLabel>
-                        {next.length === 0 ? (
-                            <p className="px-4 pb-4 text-sm text-muted-foreground">
-                                Nada marcado daqui para frente.
-                            </p>
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                    <div className="space-y-6">
+                        {current ? (
+                            <CurrentLessonCard
+                                classroom={classroom}
+                                current={current}
+                                next={upNext[0] ?? null}
+                                overview={overview}
+                                canManage={header.can_manage}
+                                here={here}
+                            />
                         ) : (
-                            <ul className="divide-y">
-                                {next.map((row) => (
-                                    <AgendaRow
-                                        key={row.id}
-                                        classroom={classroom}
-                                        row={row}
-                                        today={overview.today}
-                                        here={here}
-                                        highlight={row.id === highlightId}
-                                        message={messages.get(row.id)}
-                                        readers={
-                                            row.id === overview.week?.meeting.id
-                                                ? overview.home_study
-                                                : null
-                                        }
-                                    />
-                                ))}
-                            </ul>
+                            <section className="rounded-2xl border border-dashed p-6">
+                                <h2 className="font-serif text-xl font-semibold">
+                                    Qual lição a classe estuda agora?
+                                </h2>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    Escolha na aba Lições: ela fica quantos{' '}
+                                    {words.many} precisar, até você concluir.
+                                </p>
+                                {header.can_manage && (
+                                    <Button asChild className="mt-4">
+                                        <Link
+                                            href={lessons.url(classroom.slug)}
+                                        >
+                                            <BookOpen /> Escolher a lição
+                                        </Link>
+                                    </Button>
+                                )}
+                            </section>
                         )}
 
-                        {past.length > 0 && (
-                            <>
-                                <GroupLabel className="border-t">
-                                    Já foram
-                                </GroupLabel>
+                        {upNext.length > 0 && (
+                            <Card
+                                title="A seguir na série"
+                                action={
+                                    header.can_manage && (
+                                        <Link
+                                            href={lessons.url(classroom.slug)}
+                                            className="text-sm text-primary hover:underline"
+                                        >
+                                            Ver a série inteira
+                                        </Link>
+                                    )
+                                }
+                            >
                                 <ul className="divide-y">
-                                    {past.map((row) => (
-                                        <AgendaRow
-                                            key={row.id}
-                                            classroom={classroom}
-                                            row={row}
-                                            today={overview.today}
-                                            here={here}
-                                        />
+                                    {upNext.map((lesson) => (
+                                        <li
+                                            key={lesson.id}
+                                            className="flex items-center gap-3 px-4 py-3"
+                                        >
+                                            <LessonNumber
+                                                number={lesson.number}
+                                            />
+                                            <span className="min-w-0 flex-1 truncate">
+                                                {lesson.display_title}
+                                            </span>
+                                            <LessonStatusBadge
+                                                status={lesson.status}
+                                            />
+                                            {header.can_manage && (
+                                                <LessonMenu
+                                                    classroom={classroom}
+                                                    lesson={lesson}
+                                                />
+                                            )}
+                                        </li>
                                     ))}
                                 </ul>
-                            </>
+                            </Card>
                         )}
                     </div>
-                )}
 
-                <Link
-                    href={meetingsIndex.url(classroom.slug)}
-                    className="mt-3 inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline"
-                >
-                    Datas anteriores e todos os {words.many}
-                </Link>
+                    <div className="space-y-6">
+                        {overview.pending.length > 0 && header.can_manage && (
+                            <Card title="Chamada pendente">
+                                <ul className="divide-y">
+                                    {overview.pending.map((meeting) => (
+                                        <li
+                                            key={meeting.id}
+                                            className="flex items-center gap-3 px-4 py-3 text-sm"
+                                        >
+                                            <span className="flex-1 first-letter:uppercase">
+                                                {dayMonth(meeting.held_on)}
+                                            </span>
+                                            <Button
+                                                asChild
+                                                size="sm"
+                                                variant="outline"
+                                            >
+                                                <Link
+                                                    href={meetingPage.url([
+                                                        classroom.slug,
+                                                        meeting.id,
+                                                    ])}
+                                                >
+                                                    Fazer chamada
+                                                </Link>
+                                            </Button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </Card>
+                        )}
+
+                        <Card
+                            title="Precisam de atenção"
+                            action={
+                                overview.attention.length > 0 && (
+                                    <span className="rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                                        {overview.attention.length}
+                                    </span>
+                                )
+                            }
+                        >
+                            {overview.attention.length === 0 &&
+                            overview.birthdays.length === 0 ? (
+                                <p className="px-4 py-3 text-sm text-muted-foreground">
+                                    Ninguém por enquanto.
+                                </p>
+                            ) : (
+                                <ul className="divide-y">
+                                    {overview.attention.map((student) => (
+                                        <li
+                                            key={student.id}
+                                            className="flex items-center gap-3 px-4 py-3"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <Link
+                                                    href={studentPage.url([
+                                                        classroom.slug,
+                                                        student.id,
+                                                    ])}
+                                                    className="block truncate font-medium hover:underline"
+                                                >
+                                                    {student.name}
+                                                </Link>
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {student.missed_in_a_row > 1
+                                                        ? `faltou os ${student.missed_in_a_row} últimos`
+                                                        : student.reasons[0]}
+                                                </span>
+                                            </div>
+                                            <WhatsAppButton
+                                                phone={student.phone}
+                                                text={missYouMessage(
+                                                    student.name,
+                                                    classroom.name,
+                                                    words.program,
+                                                )}
+                                            />
+                                        </li>
+                                    ))}
+                                    {overview.birthdays.map((student) => (
+                                        <li
+                                            key={`b${student.id}`}
+                                            className="flex items-center gap-3 px-4 py-3"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <Link
+                                                    href={studentPage.url([
+                                                        classroom.slug,
+                                                        student.id,
+                                                    ])}
+                                                    className="block truncate font-medium hover:underline"
+                                                >
+                                                    {student.name}
+                                                </Link>
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {student.is_today
+                                                        ? 'faz aniversário hoje'
+                                                        : `faz aniversário dia ${student.day}`}
+                                                </span>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </Card>
+
+                        {lastAttendance && (
+                            <Card
+                                title="Última chamada"
+                                action={
+                                    header.can_manage && (
+                                        <Link
+                                            href={meetingPage.url([
+                                                classroom.slug,
+                                                lastAttendance.id,
+                                            ])}
+                                            className="text-sm text-primary hover:underline"
+                                        >
+                                            Abrir
+                                        </Link>
+                                    )
+                                }
+                            >
+                                <div className="px-4 py-3 text-sm">
+                                    <div className="flex items-baseline justify-between gap-3">
+                                        <span className="first-letter:uppercase">
+                                            {dayMonth(lastAttendance.held_on)}
+                                        </span>
+                                        <span className="font-semibold">
+                                            {lastAttendance.present} de{' '}
+                                            {lastAttendance.expected}
+                                        </span>
+                                    </div>
+                                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                                        {lastAttendance.lesson ??
+                                            lastAttendance.title}
+                                        {lastAttendance.visitors > 0 &&
+                                            ` · ${lastAttendance.visitors} ${lastAttendance.visitors === 1 ? 'visitante' : 'visitantes'}`}
+                                    </p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                </div>
             </Page>
         </>
     );
 }
 
-function GroupLabel({
-    children,
-    className,
-}: {
-    children: ReactNode;
-    className?: string;
-}) {
-    return (
-        <h2
-            className={cn(
-                'px-4 pt-4 pb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase',
-                className,
-            )}
-        >
-            {children}
-        </h2>
-    );
-}
-
-function MenuLink({ href, children }: { href: string; children: ReactNode }) {
-    return (
-        <DropdownMenuItem asChild>
-            <Link href={href}>{children}</Link>
-        </DropdownMenuItem>
-    );
-}
-
 /**
- * Uma data da agenda: quando, qual lição, como está e a ação que falta.
- * Futuras: apresentar, mandar a mensagem, terminar ou escolher a lição.
- * Passadas: a chamada (ou "fazer a chamada", se ficou pendente) e quem faltou.
+ * A lição atual, em destaque: de que série, desde quando, quantos já leram e
+ * as ações (apresentar, mandar a mensagem, concluir e passar).
  */
-function AgendaRow({
+function CurrentLessonCard({
     classroom,
-    row,
-    today,
+    current,
+    next,
+    overview,
+    canManage,
     here,
-    highlight = false,
-    message,
-    readers = null,
 }: {
     classroom: Classroom;
-    row: Row;
-    today: string;
+    current: Current;
+    next: LessonRow | null;
+    overview: Overview;
+    canManage: boolean;
     here: string;
-    highlight?: boolean;
-    message?: string;
-    readers?: { readers: number; expected: number } | null;
 }) {
-    const [absentOpen, setAbsentOpen] = useState(false);
     const words = meetingWords(classroom);
-    const cancelled = row.status === 'cancelled';
-    const future = row.held_on > today;
-    const url = meetingPage.url({ classroom: classroom.slug, meeting: row.id });
-    const lesson = row.lesson;
-    const date = `${dateTile(row.held_on).weekday}, ${dayMonth(row.held_on)}`;
-    const when = row.is_today ? 'hoje' : relativeDay(row.held_on, today);
-    const title = cancelled
-        ? `Sem ${words.program}${row.title ? ` · ${row.title}` : ''}`
-        : (lesson?.display_title ?? row.title ?? 'Sem lição');
-    const needsAttendance =
-        !cancelled &&
-        !row.has_attendance &&
-        (row.is_today || row.awaiting_confirmation);
-
-    const details = [
-        row.position &&
-            row.position.total > 1 &&
-            `${words.one} ${row.position.index} de ${row.position.total}`,
-        readers && `${readers.readers} de ${readers.expected} já leram`,
-        row.summary &&
-            `${row.summary.present} de ${row.summary.expected} presentes${
-                row.summary.visitors > 0
-                    ? ` · ${plural(row.summary.visitors, 'visitante', 'visitantes')}`
-                    : ''
-            }`,
-        row.awaiting_confirmation && !row.has_attendance && 'chamada pendente',
-    ].filter(Boolean);
-
-    const actions: ReactNode[] = [];
-
-    if (needsAttendance) {
-        actions.push(
-            <Button key="chamada" asChild>
-                <Link href={url}>Fazer chamada</Link>
-            </Button>,
-        );
-    }
-
-    if (!cancelled && (future || row.is_today)) {
-        if (!lesson) {
-            actions.push(
-                <Button key="escolher" asChild variant="outline">
-                    <Link href={url}>Escolher lição</Link>
-                </Button>,
-            );
-        } else if (lesson.status === 'draft') {
-            actions.push(
-                <Button key="terminar" asChild variant="outline">
-                    <Link href={editLesson.url(lesson.id)}>Terminar lição</Link>
-                </Button>,
-            );
-        } else if (highlight) {
-            actions.push(
-                <Button
-                    key="apresentar"
-                    asChild
-                    variant={needsAttendance ? 'outline' : 'default'}
-                >
-                    <Link
-                        href={sunday.url(lesson.slug, {
-                            query: { voltar: here },
-                        })}
-                    >
-                        <Presentation /> Apresentar lição
-                    </Link>
-                </Button>,
-            );
-        }
-
-        if (lesson?.status === 'published' && message) {
-            actions.push(
-                <MessageDialog
-                    key="mensagem"
-                    title={lesson.display_title}
-                    text={message}
-                />,
-            );
-        }
-    }
-
-    if (!future && !row.is_today && row.has_attendance) {
-        actions.push(
-            row.absent.length > 0 ? (
-                <Button
-                    key="ausentes"
-                    variant="outline"
-                    aria-expanded={absentOpen}
-                    onClick={() => setAbsentOpen((open) => !open)}
-                    className="border-warning/50 text-warning-foreground"
-                >
-                    Ausentes ({row.absent.length})
-                    <ChevronDown
-                        className={cn(
-                            'transition-transform',
-                            absentOpen && 'rotate-180',
-                        )}
-                    />
-                </Button>
-            ) : (
-                <span
-                    key="todos"
-                    className="self-center px-1 text-sm text-muted-foreground"
-                >
-                    Todos vieram
-                </span>
-            ),
-            <Button key="ver" asChild variant="outline">
-                <Link href={url}>Chamada</Link>
-            </Button>,
-        );
-    }
+    const meeting = overview.week?.meeting ?? null;
+    const readers = overview.home_study;
+    const draft = current.status === 'draft';
+    const since = current.started_on
+        ? `em estudo desde ${dayMonth(current.started_on)}`
+        : null;
+    const held =
+        current.meetings_held > 1
+            ? `${current.meetings_held} ${words.many}`
+            : null;
 
     return (
-        <li
-            className={cn(
-                'px-4 py-3 sm:grid sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center sm:gap-4',
-                highlight && 'bg-accent/40',
-            )}
-        >
-            <p className="hidden text-sm font-semibold sm:block">
-                {date}
-                {(future || row.is_today) && (
-                    <span className="block text-xs font-normal text-muted-foreground">
-                        {when}
+        <section className="rounded-2xl border border-primary/40 bg-card p-5 sm:p-6">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="rounded-md bg-primary/15 px-2 py-0.5 font-medium text-primary">
+                    Lição atual
+                </span>
+                {current.series && (
+                    <span className="text-muted-foreground">
+                        {current.series.title}
                     </span>
                 )}
+                {draft && <StatusBadge status="draft" label="Rascunho" />}
+            </div>
+            <h2 className="mt-3 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">
+                {current.display_title}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+                {[current.bible_reference, since, held]
+                    .filter(Boolean)
+                    .join(' · ')}
             </p>
-            <div className="min-w-0">
-                <div className="flex items-baseline justify-between gap-3">
-                    <Link
-                        href={url}
-                        className={cn(
-                            'min-w-0 font-medium hover:underline',
-                            (cancelled || (!lesson && !row.title)) &&
-                                'text-muted-foreground',
-                        )}
-                    >
-                        {title}
-                        {lesson?.status === 'draft' && (
-                            <StatusBadge
-                                status="draft"
-                                label="Rascunho"
-                                className="ml-2 align-middle"
-                            />
-                        )}
-                    </Link>
-                    <span className="shrink-0 text-xs font-semibold text-muted-foreground sm:hidden">
-                        {row.is_today ? 'hoje' : date}
+
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                {meeting && (
+                    <span>
+                        Próximo {words.one}:{' '}
+                        <span className="text-foreground">
+                            {meeting.is_today
+                                ? 'hoje'
+                                : relativeDay(meeting.held_on, overview.today)}
+                        </span>
                     </span>
-                </div>
-                {details.length > 0 && (
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                        {details.join(' · ')}
-                    </p>
+                )}
+                {readers && readers.expected > 0 && (
+                    <span className="flex items-center gap-2">
+                        <span
+                            aria-hidden="true"
+                            className="h-1.5 w-24 overflow-hidden rounded-full bg-muted"
+                        >
+                            <span
+                                className="block h-full rounded-full bg-primary"
+                                style={{
+                                    width: `${Math.round((readers.readers / readers.expected) * 100)}%`,
+                                }}
+                            />
+                        </span>
+                        {readers.readers} de {readers.expected} já leram o
+                        estudo
+                    </span>
                 )}
             </div>
-            {(actions.length > 0 || future) && (
-                <div className="mt-3 flex gap-2 sm:mt-0 sm:flex-wrap sm:justify-end max-sm:[&_svg.lucide-message-square-text]:hidden max-sm:[&_svg.lucide-presentation]:hidden max-sm:[&>*:first-child]:flex-1">
-                    {actions}
-                    {future && (
-                        <RowMenu
-                            url={url}
-                            lessonId={lesson?.id ?? null}
-                            label={`Mais ações de ${date}`}
-                            words={words}
-                        />
-                    )}
-                </div>
-            )}
-            {absentOpen && (
-                <ul className="mt-3 space-y-2 sm:col-start-2 sm:col-end-4">
-                    {row.absent.map((student) => (
-                        <li
-                            key={student.id}
-                            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-warning-soft/60 px-3 py-2 text-sm"
-                        >
-                            <Link
-                                href={studentPage.url({
-                                    classroom: classroom.slug,
-                                    user: student.id,
-                                })}
-                                className="min-w-0 flex-1 hover:underline"
-                            >
-                                <span className="font-medium">
-                                    {student.name}
-                                </span>
-                                {student.missed_in_a_row > 1 && (
-                                    <span className="text-muted-foreground">
-                                        {' '}
-                                        · faltou os {
-                                            student.missed_in_a_row
-                                        }{' '}
-                                        últimos
-                                    </span>
-                                )}
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {draft ? (
+                    canManage && (
+                        <Button asChild>
+                            <Link href={editLesson.url(current.id)}>
+                                <Pencil /> Terminar lição
                             </Link>
-                            <WhatsAppButton
-                                phone={student.phone}
-                                text={missYouMessage(
-                                    student.name,
-                                    classroom.name,
-                                    words.program,
-                                )}
-                            />
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </li>
+                        </Button>
+                    )
+                ) : (
+                    <Button asChild>
+                        <Link
+                            href={sunday.url(current.slug, {
+                                query: { voltar: here },
+                            })}
+                        >
+                            <Presentation /> Apresentar lição
+                        </Link>
+                    </Button>
+                )}
+                {overview.week?.weekly_message && (
+                    <MessageDialog
+                        title={current.display_title}
+                        text={overview.week.weekly_message}
+                    />
+                )}
+                {canManage && !draft && (
+                    <Button asChild variant="outline">
+                        <Link href={editLesson.url(current.id)}>
+                            <Pencil /> Editar
+                        </Link>
+                    </Button>
+                )}
+                {canManage && (
+                    <AdvanceDialog
+                        classroom={classroom}
+                        current={current}
+                        next={next}
+                    />
+                )}
+            </div>
+        </section>
     );
 }
 
-function RowMenu({
-    url,
-    lessonId,
-    label,
-    words,
+/** "Concluir e passar": confirma antes, porque a lição sai do destaque. */
+function AdvanceDialog({
+    classroom,
+    current,
+    next,
 }: {
-    url: string;
-    lessonId: number | null;
-    label: string;
-    words: ReturnType<typeof meetingWords>;
+    classroom: Classroom;
+    current: Current;
+    next: LessonRow | null;
+}) {
+    const label = next
+        ? `Concluir e passar para a ${next.number ?? 'próxima'}`
+        : 'Concluir a lição';
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="sm:ml-auto">
+                    <Check /> {label}
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>
+                        Concluir “{current.display_title}”?
+                    </DialogTitle>
+                    <DialogDescription>
+                        {next
+                            ? `A lição vira estudada e a classe passa para “${next.display_title}”.`
+                            : 'A lição vira estudada. A série não tem próxima lição: escreva a próxima ou conclua a série na aba Lições.'}
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Voltar</Button>
+                    </DialogClose>
+                    <Button
+                        onClick={() =>
+                            router.post(
+                                advance.url(classroom.slug),
+                                { lesson_id: current.id },
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        <Check /> Concluir
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function Card({
+    title,
+    action,
+    children,
+}: {
+    title: string;
+    action?: ReactNode;
+    children: ReactNode;
 }) {
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label={label}>
-                    <Ellipsis />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <MenuLink href={url}>
-                    Abrir o {words.one} (trocar lição, sem {words.program})
-                </MenuLink>
-                {lessonId !== null && (
-                    <MenuLink href={editLesson.url(lessonId)}>
-                        Editar lição
-                    </MenuLink>
-                )}
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <section className="overflow-hidden rounded-2xl border bg-card">
+            <div className="flex items-center gap-3 border-b px-4 py-3">
+                <h2 className="flex-1 text-sm font-semibold">{title}</h2>
+                {action}
+            </div>
+            {children}
+        </section>
     );
 }
 
@@ -551,11 +555,7 @@ function MessageDialog({ title, text }: { title: string; text: string }) {
         <Dialog>
             <DialogTrigger asChild>
                 <Button variant="outline">
-                    <MessageSquareText />
-                    <span>
-                        Mensagem
-                        <span className="hidden sm:inline"> do grupo</span>
-                    </span>
+                    <MessageSquareText /> Mensagem do grupo
                 </Button>
             </DialogTrigger>
             <DialogContent>

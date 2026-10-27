@@ -10,11 +10,6 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
-import {
-    onOrAfterWeekday,
-    onOrBeforeWeekday,
-    todayOnDevice,
-} from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { store, update } from '@/routes/admin/lessons';
 import type { Classroom, Option, Series } from '@/types';
@@ -25,7 +20,6 @@ export type LessonFormData = {
     number: string;
     title: string;
     slug: string;
-    meeting_on?: string;
     bible_reference: string;
     key_verse: string;
     goal: string;
@@ -44,20 +38,6 @@ type Props = {
     authors?: { id: number; name: string }[];
     slugLocked?: boolean;
 };
-
-/**
- * A data da aula levada para o dia da outra classe ao trocar de classe: o
- * dia dela na mesma semana (os seis dias antes da data até ela) ou, se já
- * passou, o seguinte. A sugestão do próximo encontro continua sendo o
- * próximo encontro; uma data já no dia certo fica como está.
- */
-function meetingDayFor(date: string, weekday: number): string {
-    const sameWeek = onOrBeforeWeekday(date, weekday);
-
-    return sameWeek >= todayOnDevice()
-        ? sameWeek
-        : onOrAfterWeekday(date, weekday);
-}
 
 /**
  * Formulário dos dados da lição (criação e edição).
@@ -91,7 +71,6 @@ export function LessonForm({
 
             if (editing) {
                 delete payload.classroom_id;
-                delete payload.meeting_on;
             } else {
                 delete payload.slug;
                 delete payload.author_ids;
@@ -106,16 +85,6 @@ export function LessonForm({
             form.submit(store());
         }
     };
-
-    // "Domingo da aula" para quem se reúne no domingo; "Dia da aula" nos outros.
-    const chosenClassroom = classrooms?.find(
-        (item) => item.id === data.classroom_id,
-    );
-    const meetingName =
-        chosenClassroom?.meeting_weekday !== undefined &&
-        chosenClassroom.meeting_weekday !== 7
-            ? 'Dia'
-            : 'Domingo';
 
     return (
         <form noValidate onSubmit={submit} className="space-y-6">
@@ -132,21 +101,10 @@ export function LessonForm({
                             const classroomId = event.target.value
                                 ? Number(event.target.value)
                                 : null;
-                            const weekday = classrooms.find(
-                                (item) => item.id === classroomId,
-                            )?.meeting_weekday;
-
                             setData((current) => ({
                                 ...current,
                                 classroom_id: classroomId,
                                 series_id: null,
-                                meeting_on:
-                                    current.meeting_on && weekday
-                                        ? meetingDayFor(
-                                              current.meeting_on,
-                                              weekday,
-                                          )
-                                        : current.meeting_on,
                             }));
                         }}
                         required
@@ -244,23 +202,6 @@ export function LessonForm({
             )}
 
             <div className="grid items-start gap-6 sm:grid-cols-2">
-                {!editing && (
-                    <Field
-                        label={`${meetingName} da aula`}
-                        htmlFor="meeting_on"
-                        error={errors.meeting_on}
-                        hint="Opcional. Depois é só ajustar pela agenda da classe."
-                    >
-                        <Input
-                            id="meeting_on"
-                            type="date"
-                            value={data.meeting_on ?? ''}
-                            onChange={(event) =>
-                                setData('meeting_on', event.target.value)
-                            }
-                        />
-                    </Field>
-                )}
                 <Field
                     label="Texto bíblico principal"
                     htmlFor="bible_reference"

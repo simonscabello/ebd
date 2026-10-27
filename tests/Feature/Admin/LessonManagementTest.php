@@ -169,23 +169,13 @@ class LessonManagementTest extends TestCase
         $this->assertNull($lesson->scheduled_for);
     }
 
-    public function test_creating_with_a_sunday_schedules_the_lesson_in_the_agenda(): void
+    /** A data não vem mais na lição: a classe chega nela pela lição atual. */
+    public function test_creating_a_lesson_does_not_touch_the_agenda(): void
     {
         $this->actingAs($this->teacher)->post('/admin/licoes', $this->payload(['meeting_on' => '2026-09-27']))->assertSessionHasNoErrors();
 
-        $lesson = Lesson::query()->sole();
-        $this->assertSame('2026-09-27', $lesson->scheduled_for?->toDateString());
-        $this->assertDatabaseHas('class_meetings', [
-            'classroom_id' => $this->classroom->id,
-            'lesson_id' => $lesson->id,
-            'held_on' => '2026-09-27',
-            'status' => 'planned',
-        ]);
-
-        // O mesmo domingo já tem lição: a nova precisa ser ajustada pela agenda.
-        $this->actingAs($this->teacher)
-            ->post('/admin/licoes', $this->payload(['title' => 'Outra', 'meeting_on' => '2026-09-27']))
-            ->assertSessionHasErrors('meeting_on');
+        $this->assertNull(Lesson::query()->sole()->scheduled_for);
+        $this->assertDatabaseCount('class_meetings', 0);
     }
 
     public function test_revista_number_is_unique_within_the_series(): void

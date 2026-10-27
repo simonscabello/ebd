@@ -54,7 +54,6 @@ class LessonRequest extends FormRequest
                     ->when(! $this->filled('series_id'), fn ($rule) => $rule->whereNull('id')),
             ],
             // A data vem da agenda (encontros). Na criação, pode-se já escolher o domingo.
-            'meeting_on' => $lesson ? ['prohibited'] : ['nullable', 'date'],
             'author_ids' => ['nullable', 'array', 'max:10'],
             'author_ids.*' => ['integer', Rule::in($this->eligibleAuthorIds($classroom))],
         ];

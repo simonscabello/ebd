@@ -11,7 +11,6 @@ type Props = {
     defaults: {
         classroom_id: number | null;
         series_id: number | null;
-        meeting_on: string;
     };
     visibilities: Option[];
 };
@@ -45,7 +44,6 @@ export default function CreateLesson({
                         number: '',
                         title: '',
                         slug: '',
-                        meeting_on: defaults.meeting_on,
                         bible_reference: '',
                         key_verse: '',
                         goal: '',
