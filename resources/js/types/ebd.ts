@@ -255,6 +255,8 @@ export type StudyWeekDay = {
     done: boolean;
     readings: LessonReading[];
     blocks_count: number;
+    /** Curiosidades e conceitos do dia (não bloqueados: a lição mostra tudo). */
+    blocks: LessonBlock[];
 };
 
 /** A semana de estudo da lição atual (Início e "Leituras da semana"). */

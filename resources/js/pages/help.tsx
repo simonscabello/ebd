@@ -131,10 +131,10 @@ function ForStudents() {
                 Uma leitura curta por dia, de segunda a sábado, preparando a
                 lição de domingo. Ela aparece no <strong>Início</strong>: toque
                 em <strong>Ler o texto</strong> e depois em{' '}
-                <strong>Marcar como lido</strong>. Para adiantar ou pôr em dia,
-                abra <strong>Leituras da semana</strong>. Alguns dias trazem uma
-                curiosidade ou um conceito da lição em{' '}
-                <strong>Para hoje</strong>.
+                <strong>Marcar como lido</strong>. Em{' '}
+                <strong>Minha semana</strong>, no menu, ficam todos os dias até
+                a aula: dá para adiantar ou pôr em dia, e cada dia mostra a
+                curiosidade ou o conceito da lição que chega nele.
             </Topic>
             <Topic icon={<NotebookPen />} title="Anotações">
                 No fim de cada lição há um espaço para anotar o que Deus falou

@@ -39,7 +39,7 @@ export function WeekSummary({
                     href={href}
                     className="inline-flex min-h-9 items-center gap-0.5 rounded-lg text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
-                    Todas as leituras <ChevronRight className="size-4" />
+                    Ver a semana <ChevronRight className="size-4" />
                 </Link>
             </div>
             <WeekBar days={days} />
