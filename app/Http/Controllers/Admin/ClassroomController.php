@@ -12,6 +12,7 @@ use App\Models\Church;
 use App\Models\Classroom;
 use App\Models\Program;
 use App\Models\User;
+use App\Queries\ClassroomHeaderQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -79,11 +80,12 @@ class ClassroomController extends Controller
         return to_route('admin.classrooms.show', $classroom);
     }
 
-    public function edit(Classroom $classroom): Response
+    public function edit(Request $request, Classroom $classroom, ClassroomHeaderQuery $header): Response
     {
         Gate::authorize('update', $classroom);
 
         return Inertia::render('admin/classrooms/form', [
+            'header' => $header->for($classroom, $request->user()),
             'classroom' => [
                 ...ClassroomResource::make($classroom)->resolve(),
                 'position' => $classroom->position,

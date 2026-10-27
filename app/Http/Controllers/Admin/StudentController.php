@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ClassroomResource;
 use App\Models\Church;
 use App\Models\Classroom;
+use App\Models\ReadingCheckin;
 use App\Models\StudentNote;
 use App\Models\User;
 use App\Queries\AttendanceBookQuery;
@@ -22,6 +23,7 @@ use App\Queries\Data\Period;
 use App\Queries\StudentProgressQuery;
 use App\Queries\StudentsNeedingAttention;
 use App\Support\ChurchCalendar;
+use App\Support\ReadingWeeks;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -35,6 +37,9 @@ use Inertia\Response;
 class StudentController extends Controller
 {
     use ProfileValidationRules, StudentValidationRules;
+
+    /** Quantos domingos aparecem em quadradinhos na lista de alunos. */
+    private const RECENT_SUNDAYS = 8;
 
     /** Aniversário "chegando": nos próximos dias. */
     private const BIRTHDAY_SOON_DAYS = 7;
@@ -56,6 +61,13 @@ class StudentController extends Controller
         $period = Period::current($series);
         $attention = collect($overview->attention($classroom, $book, $overview->currentStudy($week, $book)))->keyBy('id');
 
+        // Quem já marcou leitura da lição atual nesta semana de leitura dela.
+        $readers = $classroom->current_lesson_id === null ? null : array_map('intval', ReadingWeeks::constrain(
+            ReadingCheckin::query()->where('lesson_id', $classroom->current_lesson_id)->toBase(),
+            $classroom->current_lesson_id,
+            $today,
+        )->distinct()->pluck('user_id')->all());
+
         $users = User::query()
             ->whereKey($book->students->pluck('id'))
             ->with(['accessLinks' => fn ($query) => $query->usable()])
@@ -67,7 +79,7 @@ class StudentController extends Controller
             'header' => $header->for($classroom, $request->user()),
             'today' => $today,
             'period' => ['label' => $period->label, 'series_id' => $period->seriesId, 'previous' => $period->isPreviousTo($series)],
-            'students' => $book->students->map(function (object $row) use ($book, $period, $attention, $users, $today) {
+            'students' => $book->students->map(function (object $row) use ($book, $period, $attention, $users, $today, $readers) {
                 /** @var User $user */
                 $user = $users->get($row->id);
                 $link = $user->accessLinks->first();
@@ -79,6 +91,9 @@ class StudentController extends Controller
                     'phone' => $row->phone,
                     'frequency' => $book->student($row->id, $period),
                     'last_present_on' => $all['last_present_on'],
+                    // Últimos domingos com chamada desde que entrou, do mais antigo ao mais recente.
+                    'recent' => array_reverse(array_column(array_slice($book->history($row->id), 0, self::RECENT_SUNDAYS), 'present')),
+                    'read_current' => $readers === null ? null : in_array($row->id, $readers, true),
                     'needs_attention' => $attention->has($row->id),
                     'reasons' => ($attention->get($row->id) ?? ['reasons' => []])['reasons'],
                     'is_new' => ChurchCalendar::daysBetween($row->joined_on, $today) < StudentsNeedingAttention::NEW_STUDENT_DAYS,
@@ -90,9 +105,6 @@ class StudentController extends Controller
                     },
                 ];
             })->values(),
-            'teachers' => $classroom->teachers()->orderBy('name')->get(['users.id', 'users.name'])
-                ->map(fn (User $teacher) => ['id' => $teacher->id, 'name' => $teacher->name]),
-            'canAssignTeachers' => $request->user()->can('assignTeachers', $classroom),
         ]);
     }
 

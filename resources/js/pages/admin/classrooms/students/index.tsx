@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ChevronRight, GraduationCap, Search, Users } from 'lucide-react';
+import { ChevronRight, Search, Users } from 'lucide-react';
 import { useState } from 'react';
 import type { IssuedLink } from '@/components/admin/access-link-dialog';
 import { AccessLinkDialog } from '@/components/admin/access-link-dialog';
@@ -7,13 +7,9 @@ import { ClassroomShell } from '@/components/admin/classroom-header';
 import type { ClassroomHeaderData } from '@/components/admin/classroom-header';
 import { AddByEmailDialog } from '@/components/admin/students/add-by-email-dialog';
 import { AddStudentDialog } from '@/components/admin/students/add-student-dialog';
-import { EmptyState, Page, Section } from '@/components/page';
+import { EmptyState, Page } from '@/components/page';
 import { Input } from '@/components/ui/input';
-import { dayMonth } from '@/lib/dates';
-import { periodPhrase } from '@/lib/period';
-import type { StatsPeriod } from '@/lib/period';
 import { cn } from '@/lib/utils';
-import { edit } from '@/routes/admin/classrooms';
 import { show } from '@/routes/admin/classrooms/students';
 import type { Classroom } from '@/types';
 
@@ -27,6 +23,10 @@ type StudentRow = {
         rate: number | null;
     };
     last_present_on: string | null;
+    /** Presença nos últimos domingos com chamada, do mais antigo ao mais recente. */
+    recent: boolean[];
+    /** Já marcou leitura da lição atual; null sem lição atual. */
+    read_current: boolean | null;
     needs_attention: boolean;
     reasons: string[];
     is_new: boolean;
@@ -43,7 +43,8 @@ const FILTERS: Record<
     all: { label: 'Todos', test: () => true },
     attention: {
         label: 'Precisam de atenção',
-        test: (student) => student.needs_attention,
+        // A mesma regra do selo: só leitura atrasada já aparece na coluna "Lição atual".
+        test: (student) => situationOf(student).tone === 'warning',
     },
     birthday: {
         label: 'Aniversário',
@@ -54,24 +55,18 @@ const FILTERS: Record<
 type Props = {
     classroom: Classroom;
     header: ClassroomHeaderData;
-    today: string;
-    period: StatsPeriod;
     students: StudentRow[];
-    teachers: { id: number; name: string }[];
-    canAssignTeachers: boolean;
 };
 
 /**
- * Alunos da classe com a frequência do período e os avisos de cada um. Cada
- * linha abre a ficha do aluno.
+ * Alunos da classe numa lista simples: a situação de cada um, os últimos
+ * domingos e se já leu a lição atual. Clicou no nome, abre a página do
+ * aluno com tudo.
  */
 export default function ClassroomStudents({
     classroom,
     header,
-    period,
     students,
-    teachers,
-    canAssignTeachers,
 }: Props) {
     const [issued, setIssued] = useState<IssuedLink | null>(null);
     const [query, setQuery] = useState('');
@@ -93,107 +88,112 @@ export default function ClassroomStudents({
                     header={header}
                     active="alunos"
                 />
-                <div className="mb-4 flex flex-wrap justify-end gap-2">
-                    <AddByEmailDialog classroom={classroom} />
-                    <AddStudentDialog
-                        classroom={classroom}
-                        onIssued={setIssued}
-                    />
-                </div>
-
                 {students.length === 0 ? (
                     <EmptyState icon={<Users />} title="Nenhum aluno ainda">
-                        Adicione os alunos com nome e WhatsApp e envie o link de
-                        acesso de cada um.
+                        <p>
+                            Adicione os alunos com nome e WhatsApp e envie o
+                            link de acesso de cada um.
+                        </p>
+                        <div className="mt-4 flex flex-wrap justify-center gap-2">
+                            <AddByEmailDialog classroom={classroom} />
+                            <AddStudentDialog
+                                classroom={classroom}
+                                onIssued={setIssued}
+                            />
+                        </div>
                     </EmptyState>
                 ) : (
                     <>
-                        <div className="relative mb-4">
-                            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                type="search"
-                                value={query}
-                                onChange={(event) =>
-                                    setQuery(event.target.value)
-                                }
-                                placeholder="Buscar pelo nome"
-                                aria-label="Buscar aluno pelo nome"
-                                className="pl-9"
-                            />
-                        </div>
-                        <div
-                            className="mb-4 flex flex-wrap gap-2"
-                            role="group"
-                            aria-label="Filtrar alunos"
-                        >
-                            {(Object.keys(FILTERS) as Filter[]).map((key) => {
-                                const count = students.filter(
-                                    FILTERS[key].test,
-                                ).length;
+                        <div className="mb-4 flex flex-col gap-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                <div
+                                    className="flex flex-wrap gap-2"
+                                    role="group"
+                                    aria-label="Filtrar alunos"
+                                >
+                                    {(Object.keys(FILTERS) as Filter[]).map(
+                                        (key) => {
+                                            const count = students.filter(
+                                                FILTERS[key].test,
+                                            ).length;
 
-                                return (
-                                    (key === 'all' || count > 0) && (
-                                        <button
-                                            key={key}
-                                            type="button"
-                                            aria-pressed={filter === key}
-                                            onClick={() => setFilter(key)}
-                                            className={cn(
-                                                'min-h-10 rounded-full border px-4 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                                                filter === key &&
-                                                    'border-transparent bg-accent font-medium text-accent-foreground',
-                                            )}
-                                        >
-                                            {FILTERS[key].label}
-                                            {key !== 'all' && ` · ${count}`}
-                                        </button>
-                                    )
-                                );
-                            })}
-                            <span className="self-center text-sm text-muted-foreground">
-                                Frequência {periodPhrase(period)}
-                            </span>
-                        </div>
-                        <ul className="divide-y rounded-2xl border bg-card">
-                            {visible.map((student) => (
-                                <li key={student.id}>
-                                    <StudentLine
+                                            return (
+                                                (key === 'all' ||
+                                                    count > 0) && (
+                                                    <button
+                                                        key={key}
+                                                        type="button"
+                                                        aria-pressed={
+                                                            filter === key
+                                                        }
+                                                        onClick={() =>
+                                                            setFilter(key)
+                                                        }
+                                                        className={cn(
+                                                            'min-h-10 rounded-lg border px-3.5 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                                            filter === key &&
+                                                                'border-transparent bg-accent font-medium text-accent-foreground',
+                                                        )}
+                                                    >
+                                                        {FILTERS[key].label}{' '}
+                                                        <span className="text-xs">
+                                                            {count}
+                                                        </span>
+                                                    </button>
+                                                )
+                                            );
+                                        },
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap gap-2 sm:ml-auto">
+                                    <AddByEmailDialog classroom={classroom} />
+                                    <AddStudentDialog
                                         classroom={classroom}
-                                        student={student}
+                                        onIssued={setIssued}
                                     />
-                                </li>
-                            ))}
-                            {visible.length === 0 && (
-                                <li className="px-4 py-6 text-center text-sm text-muted-foreground">
-                                    Ninguém aqui.
-                                </li>
-                            )}
-                        </ul>
+                                </div>
+                            </div>
+                            <div className="relative sm:w-72">
+                                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    type="search"
+                                    value={query}
+                                    onChange={(event) =>
+                                        setQuery(event.target.value)
+                                    }
+                                    placeholder="Buscar pelo nome"
+                                    aria-label="Buscar aluno pelo nome"
+                                    className="pl-9"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="overflow-hidden rounded-2xl border bg-card">
+                            <div className="hidden grid-cols-[minmax(0,1fr)_12rem_13rem_7rem_1rem] gap-4 border-b px-4 py-2.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase lg:grid">
+                                <span>Aluno</span>
+                                <span>Situação</span>
+                                <span>Últimos domingos</span>
+                                <span>Lição atual</span>
+                                <span />
+                            </div>
+                            <ul className="divide-y">
+                                {visible.map((student) => (
+                                    <li key={student.id}>
+                                        <StudentLine
+                                            classroom={classroom}
+                                            student={student}
+                                        />
+                                    </li>
+                                ))}
+                                {visible.length === 0 && (
+                                    <li className="px-4 py-6 text-center text-sm text-muted-foreground">
+                                        Ninguém aqui.
+                                    </li>
+                                )}
+                            </ul>
+                        </div>
                     </>
                 )}
-
-                <Section
-                    title="Professores"
-                    icon={<GraduationCap />}
-                    className="mt-10"
-                >
-                    <p className="text-sm text-muted-foreground">
-                        {teachers.length > 0
-                            ? teachers.map((t) => t.name).join(', ')
-                            : 'Nenhum professor na classe.'}
-                        {canAssignTeachers && (
-                            <>
-                                {' · '}
-                                <Link
-                                    href={edit(classroom.slug)}
-                                    className="font-medium text-primary hover:underline"
-                                >
-                                    Gerenciar professores
-                                </Link>
-                            </>
-                        )}
-                    </p>
-                </Section>
             </Page>
 
             <AccessLinkDialog link={issued} onClose={() => setIssued(null)} />
@@ -208,64 +208,136 @@ function StudentLine({
     classroom: Classroom;
     student: StudentRow;
 }) {
-    const { frequency } = student;
+    const situation = situationOf(student);
+    const present = student.recent.filter(Boolean).length;
+    const initials = student.name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('');
 
     return (
         <Link
             href={show({ classroom: classroom.slug, user: student.id })}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+            className="grid grid-cols-[minmax(0,1fr)_1rem] items-center gap-x-4 gap-y-2 px-4 py-3 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none lg:grid-cols-[minmax(0,1fr)_12rem_13rem_7rem_1rem]"
         >
-            <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-medium">{student.name}</span>
-                    {student.birthday && (
-                        <Chip tone="highlight">
-                            🎂{' '}
-                            {student.birthday === 'today'
-                                ? 'hoje'
-                                : 'esta semana'}
-                        </Chip>
+            <span className="flex min-w-0 items-center gap-3">
+                <span
+                    aria-hidden="true"
+                    className={cn(
+                        'flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary',
+                        situation.tone === 'warning' &&
+                            'bg-warning-soft text-warning-foreground',
                     )}
-                    {student.needs_attention && (
-                        <Chip tone="warning">precisa de atenção</Chip>
+                >
+                    {initials}
+                </span>
+                <span className="truncate font-medium">{student.name}</span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground lg:order-last" />
+            <span className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2 pl-12 lg:contents">
+                <span>
+                    <Chip tone={situation.tone}>{situation.label}</Chip>
+                </span>
+                <span className="flex items-center gap-2">
+                    {student.recent.length > 0 ? (
+                        <>
+                            <span
+                                className="flex gap-1"
+                                aria-label={`Veio a ${present} dos últimos ${student.recent.length} domingos`}
+                            >
+                                {student.recent.map((wasPresent, index) => (
+                                    <span
+                                        key={index}
+                                        className={cn(
+                                            'size-2.5 rounded-[3px]',
+                                            wasPresent
+                                                ? 'bg-primary'
+                                                : 'bg-warning-foreground/40',
+                                        )}
+                                    />
+                                ))}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                                {present} de {student.recent.length}
+                            </span>
+                        </>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">
+                            Sem chamada ainda
+                        </span>
                     )}
-                    {student.is_new && <Chip tone="info">novo</Chip>}
-                    {student.access === 'never_entered' && (
-                        <Chip>nunca entrou</Chip>
-                    )}
-                    {student.access === 'pending_profile' && (
-                        <Chip>cadastro pendente</Chip>
-                    )}
-                </p>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                    {frequency.expected > 0
-                        ? `Frequência ${frequency.present} de ${frequency.expected}${frequency.rate !== null ? ` (${frequency.rate}%)` : ''}`
-                        : 'Sem chamada desde que entrou'}
-                    {student.last_present_on &&
-                        ` · última presença ${dayMonth(student.last_present_on)}`}
-                </p>
-                {student.reasons.length > 0 && (
-                    <p className="text-xs text-warning-foreground">
-                        {student.reasons.join(' · ')}
-                    </p>
-                )}
-            </div>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                </span>
+                <span className="text-sm text-muted-foreground">
+                    {student.read_current === null
+                        ? '—'
+                        : student.read_current
+                          ? 'Leu'
+                          : 'Não leu'}
+                </span>
+            </span>
         </Link>
     );
+}
+
+/** A situação que mais pede atenção vira o selo da linha. */
+function situationOf(student: StudentRow): {
+    label: string;
+    tone: 'success' | 'warning' | 'info' | 'highlight' | 'muted';
+} {
+    // "Não leu" já tem coluna própria: o selo fica para o que a coluna não mostra.
+    const reasons = student.reasons.filter(
+        (reason) =>
+            student.read_current === null || !/leitura|l[eê]/i.test(reason),
+    );
+
+    if (student.needs_attention && reasons.length > 0) {
+        const reason = reasons[0];
+
+        return {
+            label: reason.charAt(0).toUpperCase() + reason.slice(1),
+            tone: 'warning',
+        };
+    }
+
+    if (student.birthday) {
+        return {
+            label:
+                student.birthday === 'today'
+                    ? 'Aniversário hoje'
+                    : 'Aniversário na semana',
+            tone: 'highlight',
+        };
+    }
+
+    if (student.access === 'never_entered') {
+        return { label: 'Nunca entrou no app', tone: 'muted' };
+    }
+
+    if (student.access === 'pending_profile') {
+        return { label: 'Cadastro pendente', tone: 'muted' };
+    }
+
+    if (student.is_new) {
+        return { label: 'Novo', tone: 'info' };
+    }
+
+    return { label: 'Em dia', tone: 'success' };
 }
 
 function Chip({
     tone = 'muted',
     children,
 }: {
-    tone?: 'muted' | 'warning' | 'info' | 'highlight';
+    tone?: 'success' | 'muted' | 'warning' | 'info' | 'highlight';
     children: React.ReactNode;
 }) {
     return (
         <span
             className={cn(
-                'rounded-full px-2 py-0.5 text-xs font-medium',
+                'inline-flex max-w-full truncate rounded-md px-2 py-0.5 text-xs font-medium',
+                tone === 'success' && 'bg-success-soft text-success-foreground',
                 tone === 'muted' && 'bg-muted text-muted-foreground',
                 tone === 'warning' && 'bg-warning-soft text-warning-foreground',
                 tone === 'info' &&

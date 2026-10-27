@@ -87,7 +87,7 @@ export default function AdminDashboard({
                     title={`Olá, ${auth.user?.first_name ?? ''}`}
                     description={
                         classrooms.length
-                            ? 'O que vem por aí nas suas classes.'
+                            ? 'A lição de cada classe e o que falta fazer.'
                             : 'Nenhuma classe atribuída a você ainda.'
                     }
                     actions={
@@ -202,7 +202,7 @@ export default function AdminDashboard({
                         </section>
                     )}
 
-                    <Section title="Próximas lições" icon={<CalendarDays />}>
+                    <Section title="Lições atuais" icon={<CalendarDays />}>
                         {!hasLessons && classrooms.length > 0 ? (
                             <EmptyState
                                 icon={<CalendarDays />}
@@ -318,7 +318,7 @@ function ClassroomCardView({ classroom }: { classroom: ClassroomCard }) {
                         <p className="font-medium text-primary">
                             {week.is_today
                                 ? 'Hoje'
-                                : `Próximo ${words.one} · ${dayMonth(week.held_on)}`}
+                                : `Lição atual · ${words.one} ${dayMonth(week.held_on)}`}
                         </p>
                         <p className="mt-0.5 line-clamp-2">
                             {week.lesson?.display_title ??

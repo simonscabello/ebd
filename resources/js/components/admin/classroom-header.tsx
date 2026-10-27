@@ -113,7 +113,7 @@ export function ClassroomShell({
 }: {
     classroom: Classroom;
     header: ClassroomHeaderData;
-    active: 'geral' | 'licoes' | 'alunos';
+    active: 'geral' | 'licoes' | 'alunos' | 'ajustes';
 }) {
     const tabs = [
         { key: 'geral', title: 'Visão geral', href: show.url(classroom.slug) },

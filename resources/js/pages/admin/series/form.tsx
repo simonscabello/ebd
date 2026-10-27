@@ -1,3 +1,7 @@
+import {
+    lessons as classroomLessons,
+    show as classroomPage,
+} from '@/routes/admin/classrooms';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Save, Trash2 } from 'lucide-react';
 import { useConfirm } from '@/components/confirm-dialog';
@@ -67,11 +71,32 @@ export default function SeriesForm({
             <Head title={series ? 'Editar série' : 'Nova série'} />
             <Page>
                 <PageHeader
-                    breadcrumbs={[
-                        { title: 'Visão geral', href: dashboard.url() },
-                        { title: 'Séries', href: seriesIndex.url() },
-                        { title: series ? 'Editar' : 'Nova' },
-                    ]}
+                    breadcrumbs={
+                        series?.classroom
+                            ? [
+                                  {
+                                      title: series.classroom.name,
+                                      href: classroomPage.url(
+                                          series.classroom.slug,
+                                      ),
+                                  },
+                                  {
+                                      title: 'Lições',
+                                      href: classroomLessons.url(
+                                          series.classroom.slug,
+                                      ),
+                                  },
+                                  { title: 'Editar série' },
+                              ]
+                            : [
+                                  {
+                                      title: 'Visão geral',
+                                      href: dashboard.url(),
+                                  },
+                                  { title: 'Séries', href: seriesIndex.url() },
+                                  { title: series ? 'Editar' : 'Nova' },
+                              ]
+                    }
                     title={series ? 'Editar série' : 'Nova série'}
                     description={
                         series

@@ -3,6 +3,8 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { GraduationCap, Save, UserMinus, UserPlus } from 'lucide-react';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
+import { ClassroomShell } from '@/components/admin/classroom-header';
+import type { ClassroomHeaderData } from '@/components/admin/classroom-header';
 import { Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,11 +39,14 @@ const WEEKDAYS: [number, string][] = [
 
 export default function ClassroomForm({
     classroom,
+    header,
     teachers = [],
     programs = [],
     defaultProgramId = null,
 }: {
     classroom: (Classroom & { position: number; program_id: number }) | null;
+    /** Na edição: o cartão da classe, com a aba Ajustes. */
+    header?: ClassroomHeaderData;
     teachers?: Teacher[];
     programs?: ProgramOption[];
     defaultProgramId?: number | null;
@@ -60,135 +65,150 @@ export default function ClassroomForm({
     return (
         <>
             <Head title={classroom ? 'Editar classe' : 'Nova classe'} />
-            <Page>
-                <PageHeader
-                    breadcrumbs={[
-                        { title: 'Visão geral', href: dashboard.url() },
-                        { title: 'Classes', href: classroomsIndex.url() },
-                        { title: classroom ? classroom.name : 'Nova' },
-                    ]}
-                    title={classroom ? 'Editar classe' : 'Nova classe'}
-                />
-                <form
-                    noValidate
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        form.submit(
-                            classroom ? update(classroom.slug) : store(),
-                        );
-                    }}
-                    className="space-y-6"
-                >
-                    <Field label="Nome" htmlFor="name" error={errors.name}>
-                        <Input
-                            id="name"
-                            value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
-                            required
-                            maxLength={100}
-                        />
-                    </Field>
-                    <Field
-                        label="Descrição"
-                        htmlFor="description"
-                        error={errors.description}
-                        hint="Ex.: horário e local da classe."
+            <Page width={classroom && header ? 'wide' : undefined}>
+                {classroom && header ? (
+                    <ClassroomShell
+                        classroom={classroom}
+                        header={header}
+                        active="ajustes"
+                    />
+                ) : (
+                    <PageHeader
+                        breadcrumbs={[
+                            { title: 'Visão geral', href: dashboard.url() },
+                            { title: 'Classes', href: classroomsIndex.url() },
+                            { title: classroom ? classroom.name : 'Nova' },
+                        ]}
+                        title={classroom ? 'Editar classe' : 'Nova classe'}
+                    />
+                )}
+                <div className="max-w-2xl">
+                    <form
+                        noValidate
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            form.submit(
+                                classroom ? update(classroom.slug) : store(),
+                            );
+                        }}
+                        className="space-y-6"
                     >
-                        <Textarea
-                            id="description"
-                            value={data.description}
-                            onChange={(e) =>
-                                setData('description', e.target.value)
-                            }
-                            rows={3}
-                        />
-                    </Field>
-                    {programs.length > 1 && (
+                        <Field label="Nome" htmlFor="name" error={errors.name}>
+                            <Input
+                                id="name"
+                                value={data.name}
+                                onChange={(e) =>
+                                    setData('name', e.target.value)
+                                }
+                                required
+                                maxLength={100}
+                            />
+                        </Field>
                         <Field
-                            label="Programa"
-                            htmlFor="program_id"
-                            error={errors.program_id}
+                            label="Descrição"
+                            htmlFor="description"
+                            error={errors.description}
+                            hint="Ex.: horário e local da classe."
+                        >
+                            <Textarea
+                                id="description"
+                                value={data.description}
+                                onChange={(e) =>
+                                    setData('description', e.target.value)
+                                }
+                                rows={3}
+                            />
+                        </Field>
+                        {programs.length > 1 && (
+                            <Field
+                                label="Programa"
+                                htmlFor="program_id"
+                                error={errors.program_id}
+                            >
+                                <NativeSelect
+                                    id="program_id"
+                                    value={data.program_id}
+                                    onChange={(e) =>
+                                        setData(
+                                            'program_id',
+                                            Number(e.target.value),
+                                        )
+                                    }
+                                    className="w-full sm:w-72"
+                                >
+                                    {programs.map((program) => (
+                                        <option
+                                            key={program.id}
+                                            value={program.id}
+                                        >
+                                            {program.name}
+                                        </option>
+                                    ))}
+                                </NativeSelect>
+                            </Field>
+                        )}
+                        <Field
+                            label="Dia do encontro"
+                            htmlFor="meeting_weekday"
+                            error={errors.meeting_weekday}
                         >
                             <NativeSelect
-                                id="program_id"
-                                value={data.program_id}
+                                id="meeting_weekday"
+                                value={data.meeting_weekday}
                                 onChange={(e) =>
                                     setData(
-                                        'program_id',
+                                        'meeting_weekday',
                                         Number(e.target.value),
                                     )
                                 }
-                                className="w-full sm:w-72"
+                                className="w-56"
                             >
-                                {programs.map((program) => (
-                                    <option key={program.id} value={program.id}>
-                                        {program.name}
+                                {WEEKDAYS.map(([value, label]) => (
+                                    <option key={value} value={value}>
+                                        {label}
                                     </option>
                                 ))}
                             </NativeSelect>
                         </Field>
-                    )}
-                    <Field
-                        label="Dia do encontro"
-                        htmlFor="meeting_weekday"
-                        error={errors.meeting_weekday}
-                    >
-                        <NativeSelect
-                            id="meeting_weekday"
-                            value={data.meeting_weekday}
-                            onChange={(e) =>
-                                setData(
-                                    'meeting_weekday',
-                                    Number(e.target.value),
-                                )
-                            }
-                            className="w-56"
+                        <Field
+                            label="Ordem de exibição"
+                            htmlFor="position"
+                            error={errors.position}
                         >
-                            {WEEKDAYS.map(([value, label]) => (
-                                <option key={value} value={value}>
-                                    {label}
-                                </option>
-                            ))}
-                        </NativeSelect>
-                    </Field>
-                    <Field
-                        label="Ordem de exibição"
-                        htmlFor="position"
-                        error={errors.position}
-                    >
-                        <Input
-                            id="position"
-                            type="number"
-                            min={0}
-                            value={data.position}
-                            onChange={(e) =>
-                                setData('position', Number(e.target.value))
-                            }
-                            className="w-32"
-                        />
-                    </Field>
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id="is_active"
-                            checked={data.is_active}
-                            onCheckedChange={(v) =>
-                                setData('is_active', v === true)
-                            }
-                        />
-                        <Label htmlFor="is_active" className="font-normal">
-                            Classe ativa
-                        </Label>
-                    </div>
-                    <div className="flex justify-end">
-                        <Button type="submit" disabled={processing}>
-                            <Save /> Salvar
-                        </Button>
-                    </div>
-                </form>
+                            <Input
+                                id="position"
+                                type="number"
+                                min={0}
+                                value={data.position}
+                                onChange={(e) =>
+                                    setData('position', Number(e.target.value))
+                                }
+                                className="w-32"
+                            />
+                        </Field>
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="is_active"
+                                checked={data.is_active}
+                                onCheckedChange={(v) =>
+                                    setData('is_active', v === true)
+                                }
+                            />
+                            <Label htmlFor="is_active" className="font-normal">
+                                Classe ativa
+                            </Label>
+                        </div>
+                        <div className="flex justify-end">
+                            <Button type="submit" disabled={processing}>
+                                <Save /> Salvar
+                            </Button>
+                        </div>
+                    </form>
 
-                {classroom && (
-                    <Teachers classroom={classroom} teachers={teachers} />
-                )}
+                    {classroom && (
+                        <Teachers classroom={classroom} teachers={teachers} />
+                    )}
+                </div>
             </Page>
         </>
     );

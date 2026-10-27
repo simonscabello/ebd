@@ -24,7 +24,7 @@ class SeriesManagementTest extends TestCase
             'description' => 'Estudo do quarto evangelho',
             'starts_on' => '2026-10-04',
             'ends_on' => '2026-12-20',
-        ])->assertRedirect(route('admin.series.index'));
+        ])->assertRedirect(route('admin.classrooms.lessons', $classroom));
 
         $this->assertDatabaseHas('series', [
             'classroom_id' => $classroom->id,

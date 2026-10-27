@@ -222,7 +222,7 @@ class LessonController extends Controller
 
         $this->toast('Lição excluída.');
 
-        return to_route('admin.lessons.index');
+        return to_route('admin.classrooms.lessons', $classroom);
     }
 
     /**
