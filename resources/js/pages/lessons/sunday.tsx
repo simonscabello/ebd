@@ -193,8 +193,8 @@ export default function SundayMode({
                     {meeting && (
                         <p className="mt-1 text-[0.85em] text-muted-foreground first-letter:uppercase">
                             {meeting.date_label}
-                            {meetings.length > 1 &&
-                                ` · encontro ${meetings.indexOf(meeting) + 1} de ${meetings.length}`}
+                            {meetings.indexOf(meeting) > 0 &&
+                                ` · ${meetings.indexOf(meeting) + 1}º encontro`}
                         </p>
                     )}
                 </header>

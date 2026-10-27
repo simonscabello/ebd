@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\Meetings\FillSundays;
+use App\Actions\Meetings\SyncUpcomingMeeting;
 use App\Models\AuditLog;
 use App\Models\Classroom;
 use App\Support\ChurchCalendar;
@@ -43,9 +43,11 @@ foreach ([
 Schedule::command('model:prune', ['--model' => [AuditLog::class]])->dailyAt('03:30')->timezone($timezone)->onOneServer();
 Schedule::command('passport:purge')->dailyAt('03:40')->timezone($timezone)->onOneServer();
 
-// Todo domingo existe na agenda de cada classe ativa, algumas semanas à frente.
+// O próximo encontro de cada classe ativa leva a lição atual (o domingo que
+// passou abre espaço para o seguinte). De hora em hora: cada igreja vira o dia
+// no seu fuso, e os lembretes da manhã precisam do encontro já projetado.
 Schedule::call(function () {
     foreach (Classroom::query()->active()->get() as $classroom) {
-        ChurchCalendar::using($classroom->church, fn () => app(FillSundays::class)->handle($classroom));
+        ChurchCalendar::using($classroom->church, fn () => app(SyncUpcomingMeeting::class)->handle($classroom));
     }
-})->name('ebd:fill-sundays')->dailyAt('03:50')->timezone($timezone)->onOneServer();
+})->name('ebd:sync-upcoming-meeting')->hourlyAt(50)->onOneServer();

@@ -62,7 +62,6 @@ export default function Home({
     week,
     meeting,
     meetingIndex,
-    meetingTotal,
     preparing,
     cancelledBefore,
     currentSeries,
@@ -157,8 +156,8 @@ export default function Home({
                         classroom={classroom}
                         meeting={meeting}
                         position={
-                            meetingTotal > 1
-                                ? `Encontro ${meetingIndex} de ${meetingTotal}`
+                            meetingIndex > 1
+                                ? `${meetingIndex}º encontro desta lição`
                                 : null
                         }
                     />

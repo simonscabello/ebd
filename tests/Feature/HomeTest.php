@@ -104,6 +104,7 @@ class HomeTest extends TestCase
         $classroom = Classroom::factory()->create();
         $lesson = Lesson::factory()->for($classroom)->published()->on('2026-09-20')->create(['title' => 'Temor Inquestionável']);
         ClassMeeting::factory()->forLesson($lesson)->on('2026-09-27')->create();
+        $classroom->forceFill(['current_lesson_id' => $lesson->id])->save();
 
         $this->get('/')->assertInertia(fn (Assert $page) => $page
             ->where('nextLesson.title', 'Temor Inquestionável')
@@ -124,7 +125,8 @@ class HomeTest extends TestCase
             ->where('meeting.held_on', '2026-09-27'));
     }
 
-    public function test_without_future_meetings_falls_back_to_the_last_held_lesson(): void
+    /** Sem lição atual, a última estudada não volta para o destaque: fica entre as recentes. */
+    public function test_without_a_current_lesson_the_studied_ones_are_recent(): void
     {
         $this->actingAs($this->churchReader());
         $classroom = Classroom::factory()->create();
@@ -132,9 +134,9 @@ class HomeTest extends TestCase
         Lesson::factory()->for($classroom)->completed()->on('2026-09-20')->create(['title' => 'Última']);
 
         $this->get('/')->assertInertia(fn (Assert $page) => $page
-            ->where('nextLesson.title', 'Última')
+            ->where('nextLesson', null)
             ->where('meeting', null)
-            ->has('recentLessons', 1)
-            ->where('recentLessons.0.title', 'Antiga'));
+            ->has('recentLessons', 2)
+            ->where('recentLessons.0.title', 'Última'));
     }
 }

@@ -5,7 +5,6 @@ namespace App\Mcp\Tools;
 use App\Actions\Meetings\CancelMeeting;
 use App\Concerns\MeetingValidationRules;
 use App\Mcp\Presenter;
-use App\Models\Lesson;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -20,7 +19,7 @@ class CancelMeetingTool extends EbdTool
 
     protected string $title = 'Marcar "sem aula"';
 
-    protected string $description = 'Marca um encontro como sem aula ("sem EBD", "sem Discipulado"): feriado, evento da igreja. Com shift_lessons (padrão), a lição do dia e as seguintes são empurradas para os próximos encontros. Não vale para encontro que já tem chamada. Confirme com a pessoa antes.';
+    protected string $description = 'Marca um encontro como sem aula ("sem EBD", "sem Discipulado"): feriado, evento da igreja. A lição atual da classe segue para o próximo encontro. Não vale para encontro que já tem chamada. Confirme com a pessoa antes.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -28,7 +27,6 @@ class CancelMeetingTool extends EbdTool
             'classroom' => $schema->string()->description('Slug, nome ou id da classe.')->required(),
             'meeting' => $schema->string()->description('Id do encontro ou a data (AAAA-MM-DD).')->required(),
             'reason' => $schema->string()->description('Motivo, ex.: "Feriado", "Congresso".'),
-            'shift_lessons' => $schema->boolean()->description('Empurrar as lições para os próximos encontros (padrão: true).'),
         ];
     }
 
@@ -39,21 +37,17 @@ class CancelMeetingTool extends EbdTool
         $meeting = $this->resolveMeeting($user, $request->get('meeting'), $classroom);
         $this->authorize($request, 'update', $meeting);
 
-        $request->merge(['shift' => $request->get('shift_lessons', true)]);
         $data = $request->validate($this->cancelMeetingRules(), [], $this->meetingAttributes());
 
-        $leftover = $this->audited(
+        $this->audited(
             $request,
             $meeting,
             $classroom->id,
-            fn () => $cancel->handle($meeting, $data['reason'] ?? null, (bool) $data['shift']),
+            fn () => $cancel->handle($meeting, $data['reason'] ?? null),
         );
-
-        $lesson = $leftover !== null ? Lesson::query()->find($leftover) : null;
 
         return $this->json([
             'meeting' => Presenter::meeting($meeting->refresh()->load('lesson')),
-            'warning' => $lesson ? "\"{$lesson->displayTitle()}\" ficou sem data. Adicione um encontro na agenda (save_meeting)." : null,
         ]);
     }
 }

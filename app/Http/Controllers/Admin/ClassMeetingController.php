@@ -2,24 +2,19 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Meetings\FillSundays;
-use App\Actions\Meetings\PlanMeetings;
 use App\Actions\Meetings\SaveMeeting;
-use App\Concerns\MeetingValidationRules;
+use App\Actions\Meetings\SyncUpcomingMeeting;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MeetingRequest;
 use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\ClassroomResource;
-use App\Http\Resources\SeriesResource;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
-use App\Models\Series;
 use App\Queries\AttendanceBookQuery;
 use App\Queries\Data\Period;
 use App\Queries\MeetingRows;
 use App\Support\ChurchCalendar;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -28,22 +23,21 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Domingos da classe: a lista (próximos e anteriores) e a página de cada
- * domingo, com a lição, a chamada e "onde paramos". Todo domingo já existe
- * (FillSundays); domingo sem aula é marcado como "sem EBD", não removido.
+ * Domingos da classe: a lista (próximo e anteriores) e a página de cada
+ * domingo, com a lição, a chamada e "onde paramos". Só o próximo encontro
+ * existe adiantado (SyncUpcomingMeeting); domingo sem aula é marcado como
+ * "sem EBD", não removido.
  */
 class ClassMeetingController extends Controller
 {
-    use MeetingValidationRules;
-
     /** Quantas semanas para trás a lista mostra antes de "ver todos". */
     private const PAST_WEEKS = 12;
 
-    public function index(Request $request, Classroom $classroom, AttendanceBookQuery $books, FillSundays $fill, MeetingRows $rows): Response
+    public function index(Request $request, Classroom $classroom, AttendanceBookQuery $books, SyncUpcomingMeeting $sync, MeetingRows $rows): Response
     {
         Gate::authorize('manageContent', $classroom);
 
-        $fill->handle($classroom);
+        $sync->handle($classroom);
 
         $today = ChurchCalendar::today();
         $todayString = $today->toDateString();
@@ -63,12 +57,10 @@ class ClassMeetingController extends Controller
         return Inertia::render('admin/classrooms/meetings/index', [
             'classroom' => ClassroomResource::make($classroom),
             'today' => $todayString,
-            'nextSunday' => ChurchCalendar::nextMeetingDay($classroom->meeting_weekday)->toDateString(),
             'upcoming' => $rows->for($classroom, $upcoming, $book, $todayString),
             'past' => $rows->for($classroom, $past->reverse(), $book, $todayString),
             'showingAll' => $showAll,
             'hasOlder' => ! $showAll && $classroom->meetings()->whereDate('held_on', '<', (string) $from)->exists(),
-            'series' => SeriesResource::collection($classroom->series()->orderByDesc('starts_on')->get()),
         ]);
     }
 
@@ -129,23 +121,37 @@ class ClassMeetingController extends Controller
         return back();
     }
 
-    public function plan(Request $request, Classroom $classroom, PlanMeetings $plan): RedirectResponse
+    /**
+     * "Fazer chamada": abre o encontro de hoje (criado com a lição atual, se
+     * faltar) ou, fora do dia de encontro, o último que já aconteceu.
+     */
+    public function today(Classroom $classroom, SyncUpcomingMeeting $sync): RedirectResponse
     {
         Gate::authorize('manageContent', $classroom);
+        $classroom->ensureHoldsMeetings('meeting');
 
-        $data = $request->validate($this->meetingPlanRules($classroom, $request->input('from')), [], $this->meetingAttributes());
+        $today = ChurchCalendar::today();
 
-        $result = $plan->handle(
-            $classroom,
-            CarbonImmutable::parse($data['from']),
-            CarbonImmutable::parse($data['to']),
-            isset($data['series_id']) ? Series::query()->findOrFail((int) $data['series_id']) : null,
-        );
+        if ($today->dayOfWeekIso === $classroom->meeting_weekday->value) {
+            $meeting = ClassMeeting::query()->firstOrCreate(
+                ['classroom_id' => $classroom->id, 'held_on' => $today->toDateString()],
+                ['lesson_id' => $classroom->current_lesson_id],
+            );
+            $sync->handle($classroom);
+        } else {
+            $meeting = $classroom->meetings()->active()
+                ->whereDate('held_on', '<=', $today->toDateString())
+                ->orderByDesc('held_on')
+                ->first();
+        }
 
-        $noun = $classroom->meeting_weekday->meetingNoun();
-        $this->toast("{$result['created']} {$noun}(s) adicionados; {$result['assigned']} lição(ões) distribuídas.");
+        if ($meeting === null) {
+            $this->toast("A chamada abre no dia do {$classroom->meeting_weekday->meetingNoun()}.", 'error');
 
-        return back();
+            return back();
+        }
+
+        return redirect()->route('admin.classrooms.meetings.show', [$classroom, $meeting]);
     }
 
     /**

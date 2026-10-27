@@ -2,76 +2,74 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Meetings\FillSundays;
+use App\Actions\Meetings\SyncUpcomingMeeting;
+use App\Enums\MeetingStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ClassroomResource;
-use App\Http\Resources\SeriesResource;
+use App\Models\ClassMeeting;
 use App\Models\Classroom;
-use App\Queries\AttendanceBookQuery;
+use App\Models\Lesson;
+use App\Queries\ClassroomHeaderQuery;
 use App\Queries\ClassroomOverviewQuery;
-use App\Queries\Data\Period;
-use App\Queries\MeetingRows;
-use App\Support\ChurchCalendar;
+use App\Queries\NextLessonsQuery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Página da classe: a agenda. Os próximos domingos e os que já foram, cada um
- * com a ação que falta (apresentar, terminar a lição, fazer a chamada, falar
- * com quem faltou).
+ * Página da classe (Visão geral): a lição atual no topo, as próximas da
+ * série em sequência e, ao lado, quem precisa de atenção e a última chamada.
+ * O domingo é só quando a lição acontece.
  */
 class ClassroomOverviewController extends Controller
 {
-    /** Quantos domingos à frente a linha do tempo mostra. */
-    private const NEXT_SUNDAYS = 8;
-
-    /** Quantas semanas para trás a agenda mostra; o resto fica em "Datas anteriores". */
-    private const PAST_WEEKS = 6;
+    /** Quantas próximas lições da série aparecem em "A seguir". */
+    private const UP_NEXT = 3;
 
     public function __invoke(
         Request $request,
         Classroom $classroom,
         ClassroomOverviewQuery $overview,
-        AttendanceBookQuery $books,
-        MeetingRows $rows,
-        FillSundays $fill,
+        ClassroomHeaderQuery $header,
+        NextLessonsQuery $nextLessons,
+        SyncUpcomingMeeting $sync,
     ): Response {
         Gate::authorize('viewInsights', $classroom);
 
+        $sync->handle($classroom);
+        $classroom->refresh();
+        $user = $request->user();
+        $lesson = $classroom->currentLesson?->load('series');
+        $upNext = $nextLessons->for($classroom, $lesson, self::UP_NEXT);
+
         return Inertia::render('admin/classrooms/show', [
             'classroom' => ClassroomResource::make($classroom),
-            'overview' => $overview->for($classroom, $request->user()),
-            // Lições marcadas, com a mensagem pronta para o grupo.
-            'upcoming' => fn () => $overview->upcoming($classroom, $request->user(), self::NEXT_SUNDAYS),
-            'sundays' => function () use ($classroom, $books, $rows, $fill) {
-                $fill->handle($classroom);
-                $today = ChurchCalendar::todayString();
-                $meetings = $classroom->meetings()
-                    ->whereDate('held_on', '>=', $today)
-                    ->chronological()
-                    ->with('lesson')
-                    ->limit(self::NEXT_SUNDAYS)
-                    ->get();
-
-                return $rows->for($classroom, $meetings, $books->for($classroom, new Period($today, $today, '')), $today);
-            },
-            'past' => function () use ($classroom, $books, $rows) {
-                $today = ChurchCalendar::today();
-                $from = $today->subWeeks(self::PAST_WEEKS)->toDateString();
-                $meetings = $classroom->meetings()
-                    ->whereDate('held_on', '<', $today->toDateString())
-                    ->whereDate('held_on', '>=', $from)
-                    ->orderByDesc('held_on')
-                    ->with('lesson')
-                    ->get();
-
-                return $rows->for($classroom, $meetings, $books->for($classroom, new Period($from, $today->toDateString(), '')), $today->toDateString());
-            },
-            'nextSunday' => ChurchCalendar::nextMeetingDay($classroom->meeting_weekday)->toDateString(),
-            'series' => fn () => SeriesResource::collection($classroom->series()->orderByDesc('starts_on')->get()),
-            'canEdit' => $request->user()->can('update', $classroom),
+            'header' => $header->for($classroom, $user),
+            'overview' => $overview->for($classroom, $user),
+            'current' => $lesson === null ? null : [
+                ...$this->lesson($lesson),
+                'bible_reference' => $lesson->bible_reference,
+                'series' => $lesson->series === null ? null : ['id' => $lesson->series->id, 'title' => $lesson->series->title],
+                'started_on' => $classroom->current_lesson_started_at?->toDateString(),
+                'meetings_held' => ClassMeeting::query()->whereBelongsTo($classroom)->where('lesson_id', $lesson->id)
+                    ->where('status', MeetingStatus::Held)->count(),
+            ],
+            'upNext' => $upNext->map(fn (Lesson $l) => $this->lesson($l))->all(),
         ]);
+    }
+
+    /**
+     * @return array{id: int, slug: string, number: int|null, display_title: string, status: string}
+     */
+    private function lesson(Lesson $lesson): array
+    {
+        return [
+            'id' => $lesson->id,
+            'slug' => $lesson->slug,
+            'number' => $lesson->number,
+            'display_title' => $lesson->displayTitle(),
+            'status' => $lesson->status->value,
+        ];
     }
 }

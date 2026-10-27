@@ -96,10 +96,9 @@ export function MeetingRow({
                             Chamada pendente
                         </span>
                     )}
-                    {row.position && row.position.total > 1 && (
+                    {row.position && row.position.index > 1 && (
                         <span>
-                            {words.one} {row.position.index} de{' '}
-                            {row.position.total}
+                            {row.position.index}º {words.one} da lição
                         </span>
                     )}
                     {row.lesson?.status === 'draft' && (

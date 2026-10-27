@@ -34,6 +34,11 @@ class UpdateLesson
 
             $lesson->save();
 
+            // A lição atual que muda de série leva junto a série atual (avulsa não muda).
+            if ($lesson->wasChanged('series_id') && $lesson->series_id !== null && $lesson->classroom->current_lesson_id === $lesson->id) {
+                $lesson->classroom->forceFill(['current_series_id' => $lesson->series_id])->save();
+            }
+
             if (array_key_exists('author_ids', $data) && is_array($data['author_ids'])) {
                 $lesson->authors()->sync($data['author_ids']);
             }

@@ -41,6 +41,8 @@ class GetClassroomOverview extends EbdTool
 
         return $this->json([
             'classroom' => Presenter::classroom($classroom),
+            'current_lesson' => $classroom->currentLesson ? Presenter::lessonSummary($classroom->currentLesson) : null,
+            'current_series' => $classroom->currentSeries ? Presenter::series($classroom->currentSeries) : null,
             'lesson_of_the_week' => $week->meeting ? [
                 'meeting' => Presenter::meeting($week->meeting),
                 'lesson' => $week->lesson ? Presenter::lessonSummary($week->lesson) : null,

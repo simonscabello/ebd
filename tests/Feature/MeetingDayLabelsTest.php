@@ -56,22 +56,6 @@ class MeetingDayLabelsTest extends TestCase
         $this->assertSame('Todos os encontros', app(AttendanceBookQuery::class)->for($wednesday)->period->label);
     }
 
-    public function test_lesson_date_field_name_follows_the_meeting_day(): void
-    {
-        $sunday = Classroom::factory()->create();
-        $wednesday = Classroom::factory()->create(['meeting_weekday' => Weekday::Wednesday]);
-        $admin = User::factory()->admin()->create();
-
-        foreach ([[$sunday, 'domingo da aula'], [$wednesday, 'dia da aula']] as [$classroom, $name]) {
-            $this->actingAs($admin)->post('/admin/licoes', [
-                'classroom_id' => $classroom->id,
-                'title' => 'Data inválida',
-                'visibility' => 'public',
-                'meeting_on' => 'não é data',
-            ])->assertInvalid(['meeting_on' => $name]);
-        }
-    }
-
     public function test_opening_programs_twice_at_once_does_not_break_on_the_default_program(): void
     {
         $church = Church::factory()->create();

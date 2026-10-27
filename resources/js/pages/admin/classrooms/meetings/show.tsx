@@ -7,7 +7,6 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
-    ChevronsRight,
     ExternalLink,
     Pencil,
     Presentation,
@@ -37,12 +36,7 @@ import { meetingWords } from '@/lib/meeting-words';
 import { show as classroomPage } from '@/routes/admin/classrooms';
 import { show } from '@/routes/admin/classrooms/meetings';
 import { edit as editLesson } from '@/routes/admin/lessons';
-import {
-    continueMethod as continueMeeting,
-    held,
-    restore,
-    update,
-} from '@/routes/admin/meetings';
+import { held, restore, update } from '@/routes/admin/meetings';
 import { update as updateNotes } from '@/routes/admin/meetings/notes';
 import { sunday } from '@/routes/lessons';
 import type {
@@ -120,8 +114,8 @@ export default function MeetingPage({
                                 {meeting.is_today && 'Hoje · '}
                                 {date.charAt(0).toUpperCase() + date.slice(1)}
                                 {meeting.position &&
-                                    meeting.position.total > 1 &&
-                                    ` · ${words.one} ${meeting.position.index} de ${meeting.position.total} da lição`}
+                                    meeting.position.index > 1 &&
+                                    ` · ${meeting.position.index}º ${words.one} da lição`}
                                 {cancelled && (
                                     <MeetingStatusBadge
                                         status={meeting.status}
@@ -180,22 +174,6 @@ export default function MeetingPage({
                                                 </Link>
                                             </DropdownMenuItem>
                                         )}
-                                        {!cancelled &&
-                                            past &&
-                                            meeting.lesson_id && (
-                                                <DropdownMenuItem
-                                                    onSelect={() =>
-                                                        post(
-                                                            continueMeeting.url(
-                                                                meeting.id,
-                                                            ),
-                                                        )
-                                                    }
-                                                >
-                                                    <ChevronsRight /> Repetir a
-                                                    lição no próximo
-                                                </DropdownMenuItem>
-                                            )}
                                         {meeting.status === 'planned' &&
                                             past &&
                                             !meeting.has_attendance && (

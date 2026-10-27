@@ -23,9 +23,9 @@ use Illuminate\Support\Facades\Validator;
  *
  * Formato: os campos do formulário da lição no primeiro nível (number, title,
  * summary, bible_reference, key_verse, goal, content, visibility), mais
- * `classroom` (slug), `series` (slug, opcional), `author` (e-mail de quem cria),
- * `meeting_on` (domingo da aula, opcional) e as listas `readings`, `blocks` e
- * `materials`. Materiais com arquivo continuam sendo enviados pelo app.
+ * `classroom` (slug), `series` (slug, opcional), `author` (e-mail de quem cria)
+ * e as listas `readings`, `blocks` e `materials` (`meeting_on`, de antes da
+ * lição atual, é ignorado). Materiais com arquivo continuam sendo enviados pelo app.
  *
  * Com o caminho "-", lê o JSON da entrada padrão, para rodar em produção num
  * comando só: `railway ssh -- php artisan lesson:import - --force < licao.json`.
@@ -140,15 +140,15 @@ class ImportLesson extends Command
         }
 
         // Na substituição, as três listas são trocadas mesmo quando vêm vazias no arquivo.
-        $lesson = $import->handle($author, $classroom, Arr::only($data, [...ImportLessonDraft::LESSON_FIELDS, 'meeting_on']) + [
+        $lesson = $import->handle($author, $classroom, Arr::only($data, ImportLessonDraft::LESSON_FIELDS) + [
             'series_id' => $series?->id,
             'readings' => $data['readings'] ?? [],
             'blocks' => $data['blocks'] ?? [],
             'materials' => $data['materials'] ?? [],
         ], $existing);
 
-        if ($existing !== null && filled($data['meeting_on'] ?? null)) {
-            $this->components->warn('O dia da aula não muda na substituição. Ajuste pela agenda da classe.');
+        if (filled($data['meeting_on'] ?? null)) {
+            $this->components->warn('meeting_on foi ignorado: a classe chega na lição pela lição atual, não por data.');
         }
 
         $this->components->info("Pronto: {$lesson->displayTitle()} (rascunho). Revise e publique em ".route('admin.lessons.edit', $lesson));

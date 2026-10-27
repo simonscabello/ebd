@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\Notifications\SendLessonReminder;
 use App\Actions\Notifications\SendReadingReminders;
+use App\Actions\Teaching\SetCurrentLesson;
 use App\Enums\MeetingStatus;
 use App\Enums\ReminderSlot;
 use App\Models\ClassMeeting;
@@ -147,14 +148,15 @@ class NotificationsTest extends TestCase
 
     public function test_the_next_lesson_reading_only_starts_on_monday(): void
     {
-        // Domingo 27/09 sem EBD: a lição da vez passa a ser a de 04/10, mas a
-        // semana de leitura dela começa na segunda. A leitura de domingo dela
-        // é para o próximo domingo, não para hoje.
+        // Domingo 27/09 sem EBD e a classe já na lição de 04/10: a semana de
+        // leitura dela começa na segunda. A leitura de domingo dela é para o
+        // próximo domingo, não para hoje.
         Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create();
         ClassMeeting::query()->whereDate('held_on', '2026-09-27')->update(['status' => MeetingStatus::Cancelled]);
         $next = Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create();
         LessonReading::factory()->for($next)->create(['weekday' => 7, 'reference' => 'Mc 16.14-20']);
         LessonReading::factory()->for($next)->create(['weekday' => 1, 'reference' => 'Mt 12.38-42']);
+        app(SetCurrentLesson::class)->handle($this->classroom, $next);
 
         $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 27)->setTime(9, 0));
         app(SendReadingReminders::class)->handle(ReminderSlot::Morning);

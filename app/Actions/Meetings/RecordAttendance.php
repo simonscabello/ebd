@@ -22,6 +22,7 @@ class RecordAttendance
 {
     public function __construct(
         private readonly AwardBadges $awardBadges,
+        private readonly SyncUpcomingMeeting $syncMeeting,
     ) {}
 
     /**
@@ -80,6 +81,10 @@ class RecordAttendance
                 'status' => MeetingStatus::Held,
             ])->save();
         });
+
+        // Com a chamada, o encontro deixa de estar em aberto: a lição atual
+        // ganha o próximo (fora da transação, que trava só o encontro).
+        $this->syncMeeting->handle($meeting->classroom);
 
         // A chamada salva a cada toque: os selos só são conferidos para quem
         // acabou de ser marcado, não para a classe inteira toda vez.

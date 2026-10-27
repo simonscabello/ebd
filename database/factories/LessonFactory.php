@@ -74,18 +74,46 @@ class LessonFactory extends Factory
 
     /**
      * Coloca a lição no encontro (domingo) da data. Se a classe já tiver um
-     * encontro nesse dia, ele é mantido. Encontros no passado nascem realizados.
+     * encontro nesse dia, ele é mantido. Encontros no passado nascem realizados
+     * e a lição fica estudada; a do encontro futuro mais próximo vira a lição
+     * atual da classe (como a migração que trouxe a lição atual fez).
      */
     public function on(string $date): static
     {
         return $this->state(['scheduled_for' => $date])->afterCreating(function (Lesson $lesson) use ($date) {
+            $today = ChurchCalendar::today()->toDateString();
+
             ClassMeeting::query()->firstOrCreate(
                 ['classroom_id' => $lesson->classroom_id, 'held_on' => $date],
                 [
                     'lesson_id' => $lesson->id,
-                    'status' => $date < ChurchCalendar::today()->toDateString() ? MeetingStatus::Held : MeetingStatus::Planned,
+                    'status' => $date < $today ? MeetingStatus::Held : MeetingStatus::Planned,
                 ],
             );
+
+            $classroom = $lesson->classroom->refresh();
+
+            if ($date < $today) {
+                if ($classroom->current_lesson_id !== $lesson->id) {
+                    $lesson->forceFill(['studied_at' => $lesson->studied_at ?? $date])->save();
+                }
+
+                return;
+            }
+
+            $currentOn = ClassMeeting::query()
+                ->where('lesson_id', $classroom->current_lesson_id)
+                ->whereDate('held_on', '>=', $today)
+                ->min('held_on');
+
+            if ($classroom->current_lesson_id === null || ($currentOn !== null && $date < substr((string) $currentOn, 0, 10))) {
+                $lesson->forceFill(['studied_at' => null])->save();
+                $classroom->forceFill([
+                    'current_lesson_id' => $lesson->id,
+                    'current_series_id' => $lesson->series_id ?? $classroom->current_series_id,
+                    'current_lesson_started_at' => now(),
+                ])->save();
+            }
         });
     }
 

@@ -3,23 +3,20 @@ import { CalendarPlus } from 'lucide-react';
 import { ClassroomHeader } from '@/components/admin/classroom-header';
 import { MeetingRow } from '@/components/admin/meetings/meeting-row';
 import type { MeetingRowData as Row } from '@/components/admin/meetings/meeting-row';
-import { PlanMeetingsDialog } from '@/components/admin/meetings/plan-meetings-dialog';
 import { EmptyState, Page, PageHeader, Section } from '@/components/page';
 import { monthYear } from '@/lib/dates';
 import { meetingWords } from '@/lib/meeting-words';
 import { cn } from '@/lib/utils';
 import { index } from '@/routes/admin/classrooms/meetings';
-import type { Classroom, Series } from '@/types';
+import type { Classroom } from '@/types';
 
 type Props = {
     classroom: Classroom;
     today: string;
-    nextSunday: string;
     upcoming: Row[];
     past: Row[];
     showingAll: boolean;
     hasOlder: boolean;
-    series: Series[];
 };
 
 /**
@@ -28,12 +25,10 @@ type Props = {
  */
 export default function ClassroomMeetings({
     classroom,
-    nextSunday,
     upcoming,
     past,
     showingAll,
     hasOlder,
-    series,
 }: Props) {
     const words = meetingWords(classroom);
 
@@ -45,14 +40,7 @@ export default function ClassroomMeetings({
                 <ClassroomHeader classroom={classroom} active="domingos" />
                 <PageHeader
                     title={words.Many}
-                    description={`Todo ${words.one} já está na agenda: escolha a lição de cada um ou marque “Sem ${words.program}”. Uma lição pode ocupar mais de um ${words.one}.`}
-                    actions={
-                        <PlanMeetingsDialog
-                            classroom={classroom}
-                            series={series}
-                            nextSunday={nextSunday}
-                        />
-                    }
+                    description={`A chamada de cada ${words.one}. O próximo já está marcado com a lição atual; marque “Sem ${words.program}” quando não houver aula.`}
                 />
 
                 {upcoming.length === 0 && past.length === 0 ? (
@@ -60,8 +48,8 @@ export default function ClassroomMeetings({
                         icon={<CalendarPlus />}
                         title={`Nenhum ${words.one} na agenda`}
                     >
-                        Use “Planejar série” para distribuir as lições da
-                        revista pelos {words.many}.
+                        Escolha a lição atual da classe: o próximo {words.one}{' '}
+                        entra na agenda com ela.
                     </EmptyState>
                 ) : (
                     <div className="space-y-10">

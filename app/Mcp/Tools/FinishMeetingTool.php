@@ -18,14 +18,14 @@ class FinishMeetingTool extends EbdTool
 
     protected string $title = 'Encerrar aula';
 
-    protected string $description = 'Encerra a aula de um encontro (hoje ou passado): marca como realizado, guarda onde a turma parou (notes) e diz se a lição terminou ou continua no próximo encontro (continues). Continuar empurra as lições seguintes na agenda.';
+    protected string $description = 'Encerra a aula de um encontro (hoje ou passado): marca como realizado, guarda onde a turma parou (notes) e diz se a lição continua no próximo encontro (continues=true) ou terminou (continues=false: a classe passa para a próxima lição da série, como advance_lesson). Confirme com a pessoa se a lição terminou.';
 
     public function schema(JsonSchema $schema): array
     {
         return [
             'classroom' => $schema->string()->description('Slug, nome ou id da classe.')->required(),
             'meeting' => $schema->string()->description('Id do encontro ou a data (AAAA-MM-DD).')->required(),
-            'continues' => $schema->boolean()->description('true se a lição continua no próximo encontro.')->required(),
+            'continues' => $schema->boolean()->description('true se a lição continua no próximo encontro; false se terminou (passa para a próxima).')->required(),
             'notes' => $schema->string()->description('Onde a turma parou, observações da aula.'),
         ];
     }
@@ -39,18 +39,17 @@ class FinishMeetingTool extends EbdTool
 
         $data = $request->validate($this->finishMeetingRules(), [], $this->meetingAttributes());
 
-        $leftover = $this->audited(
+        /** @var Lesson|null $next */
+        $next = $this->audited(
             $request,
             $meeting,
             $classroom->id,
             fn () => $finish->handle($meeting, (bool) $data['continues'], $data['notes'] ?? null),
         );
 
-        $lesson = $leftover !== null ? Lesson::query()->find($leftover) : null;
-
         return $this->json([
             'meeting' => Presenter::meeting($meeting->refresh()->load('lesson')),
-            'warning' => $lesson ? "\"{$lesson->displayTitle()}\" ficou sem data. Adicione um encontro na agenda (save_meeting)." : null,
+            'current_lesson' => $next !== null ? Presenter::lessonSummary($next) : null,
         ]);
     }
 }

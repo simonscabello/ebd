@@ -7,6 +7,7 @@ use App\Concerns\MeetingValidationRules;
 use App\Mcp\Presenter;
 use App\Models\ClassMeeting;
 use App\Models\User;
+use App\Support\ChurchCalendar;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -20,7 +21,8 @@ class RecordAttendanceTool extends EbdTool
     protected string $title = 'Registrar presença';
 
     protected string $description = <<<'TEXT'
-        Registra a chamada de um encontro (hoje ou já passado) e o número de visitantes.
+        Registra a chamada de um encontro (hoje ou já passado) e o número de visitantes. A chamada de hoje
+        cria o encontro do dia, com a lição atual, se ele ainda não existir.
         mode "add" soma os nomes informados aos que já estão presentes; mode "set" troca a lista inteira
         (quem não estiver na lista fica como ausente). Na dúvida use "add".
         Alunos podem ser informados pelo nome (ou parte dele) ou pelo id. A resposta traz presentes e ausentes:
@@ -42,7 +44,20 @@ class RecordAttendanceTool extends EbdTool
     {
         $user = $this->actor($request);
         $classroom = $this->resolveClassroom($user, $request->get('classroom'));
-        $meeting = $this->resolveMeeting($user, $request->get('meeting'), $classroom);
+        $reference = (string) $request->get('meeting');
+
+        // Chamada de hoje sem encontro criado ainda: cria, com a lição atual.
+        $today = ChurchCalendar::using($classroom->church, fn () => ChurchCalendar::today());
+
+        if ($reference === $today->toDateString() && $today->dayOfWeekIso === $classroom->meeting_weekday->value) {
+            $this->authorize($request, 'manageContent', $classroom);
+            ClassMeeting::query()->firstOrCreate(
+                ['classroom_id' => $classroom->id, 'held_on' => $reference],
+                ['lesson_id' => $classroom->current_lesson_id],
+            );
+        }
+
+        $meeting = $this->resolveMeeting($user, $reference, $classroom);
         $this->authorize($request, 'takeAttendance', $meeting);
 
         $data = $request->validate([

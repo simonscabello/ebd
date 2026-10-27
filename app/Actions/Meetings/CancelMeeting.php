@@ -2,27 +2,23 @@
 
 namespace App\Actions\Meetings;
 
-use App\Actions\Lessons\SyncLessonSchedule;
 use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
+use App\Models\Classroom;
 use App\Support\ProgramNames;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * "Não teve EBD neste domingo". Opcionalmente empurra a lição do dia (e as
- * seguintes) para os próximos encontros.
- *
- * @return int|null id da lição que ficou sem data depois do empurrão
+ * "Não teve EBD neste domingo". A lição atual segue para o próximo encontro.
  */
 class CancelMeeting
 {
     public function __construct(
-        private readonly ShiftPlannedLessons $shift,
-        private readonly SyncLessonSchedule $syncSchedule,
+        private readonly SyncUpcomingMeeting $syncMeeting,
     ) {}
 
-    public function handle(ClassMeeting $meeting, ?string $reason, bool $shiftLessons): ?int
+    public function handle(ClassMeeting $meeting, ?string $reason): void
     {
         if ($meeting->hasAttendance()) {
             throw ValidationException::withMessages([
@@ -30,24 +26,16 @@ class CancelMeeting
             ]);
         }
 
-        return DB::transaction(function () use ($meeting, $reason, $shiftLessons) {
-            $lessonId = $meeting->lesson_id;
-
+        DB::transaction(function () use ($meeting, $reason) {
+            // A classe antes do encontro: a mesma ordem de trava da projeção.
+            Classroom::query()->lockForUpdate()->findOrFail($meeting->classroom_id);
             $meeting->update([
                 'status' => MeetingStatus::Cancelled,
                 'lesson_id' => null,
                 'title' => filled($reason) ? $reason : $meeting->title,
             ]);
 
-            $leftover = null;
-
-            if ($shiftLessons && $lessonId !== null) {
-                $leftover = $this->shift->handle($meeting->classroom, $meeting->held_on->addDay(), $lessonId);
-            }
-
-            $this->syncSchedule->handle($meeting->classroom_id);
-
-            return $leftover;
+            $this->syncMeeting->handle($meeting->classroom);
         });
     }
 }

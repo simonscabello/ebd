@@ -12,6 +12,7 @@ use App\Models\ClassMeeting;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
+use App\Queries\CurrentLessonQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -256,6 +257,11 @@ class CurrentLessonTest extends TestCase
         app(SetCurrentLesson::class)->handle($this->classroom, $l1);
 
         $this->assertSame(['2026-11-01' => 'L3', '2026-11-08' => 'L1'], $this->agenda());
+
+        // Para o aluno, a aula especial vem antes: é ela que acontece no domingo.
+        $week = app(CurrentLessonQuery::class)->for($this->classroom->refresh(), null);
+        $this->assertSame('2026-11-01', $week->meeting?->held_on->toDateString());
+        $this->assertSame($l3->id, $week->meeting->lesson_id);
     }
 
     public function test_the_next_free_day_is_found_even_after_a_long_break(): void

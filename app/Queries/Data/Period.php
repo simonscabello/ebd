@@ -35,7 +35,8 @@ final readonly class Period
 
     /**
      * Uma série (revista). Sem datas cadastradas, vale do primeiro ao último
-     * domingo das lições dela; entram todos os domingos da classe no intervalo.
+     * domingo das lições dela; com data de fim, vai até ela ou até o último
+     * domingo, o que vier depois. Entram todos os domingos da classe no intervalo.
      */
     public static function forSeries(Series $series): self
     {
@@ -49,8 +50,12 @@ final readonly class Period
             ->toBase()
             ->first();
 
-        $from = $series->starts_on?->toDateString() ?? ($range?->first !== null ? substr($range->first, 0, 10) : $today);
-        $to = $series->ends_on?->toDateString() ?? ($range?->last !== null ? substr($range->last, 0, 10) : $today);
+        $first = $range?->first !== null ? substr($range->first, 0, 10) : null;
+        $last = $range?->last !== null ? substr($range->last, 0, 10) : null;
+
+        $from = $series->starts_on?->toDateString() ?? $first ?? $today;
+        // Lição que rendeu mais domingos passa do fim cadastrado: o último encontro vale.
+        $to = max($series->ends_on?->toDateString() ?? $last ?? $today, $last ?? '');
 
         return new self($from, min($to, $today), $series->title, $series->id);
     }

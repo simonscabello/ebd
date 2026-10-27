@@ -96,7 +96,6 @@ trait MeetingValidationRules
     {
         return [
             'reason' => ['nullable', 'string', 'max:120'],
-            'shift' => ['boolean'],
         ];
     }
 

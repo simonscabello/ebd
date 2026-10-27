@@ -177,8 +177,8 @@ export default function LessonShow({
     const nextMeeting = meetings.find((m) => m.days_until >= 0);
     const shownMeeting = nextMeeting ?? meetings[meetings.length - 1];
     const meetingPosition =
-        shownMeeting && meetings.length > 1
-            ? `encontro ${meetings.indexOf(shownMeeting) + 1} de ${meetings.length}`
+        shownMeeting && meetings.indexOf(shownMeeting) > 0
+            ? `${meetings.indexOf(shownMeeting) + 1}º encontro`
             : null;
     const countdown = nextMeeting
         ? countdownLabel(

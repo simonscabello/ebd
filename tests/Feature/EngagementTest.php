@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Teaching\SetCurrentLesson;
 use App\Enums\Badge;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
@@ -162,8 +163,9 @@ class EngagementTest extends TestCase
                 ->where('lesson.readings.0.is_today', false)
                 ->where('lesson.readings.1.is_today', false));
 
-        // Segunda-feira: começa a semana de leitura da próxima lição.
+        // Segunda-feira, com a classe já na próxima lição: começa a semana de leitura dela.
         $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 28)->setTime(10, 0));
+        app(SetCurrentLesson::class)->handle($this->classroom, $next);
 
         $this->actingAs($this->student)->get('/licoes/proxima')
             ->assertInertia(fn (Assert $page) => $page

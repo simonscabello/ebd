@@ -15,6 +15,7 @@ use App\Models\Classroom;
 use App\Models\StudentNote;
 use App\Models\User;
 use App\Queries\AttendanceBookQuery;
+use App\Queries\ClassroomHeaderQuery;
 use App\Queries\ClassroomOverviewQuery;
 use App\Queries\CurrentLessonQuery;
 use App\Queries\Data\Period;
@@ -44,6 +45,7 @@ class StudentController extends Controller
         AttendanceBookQuery $books,
         CurrentLessonQuery $current,
         ClassroomOverviewQuery $overview,
+        ClassroomHeaderQuery $header,
     ): Response {
         Gate::authorize('manageMembers', $classroom);
 
@@ -62,6 +64,7 @@ class StudentController extends Controller
 
         return Inertia::render('admin/classrooms/students/index', [
             'classroom' => ClassroomResource::make($classroom),
+            'header' => $header->for($classroom, $request->user()),
             'today' => $today,
             'period' => ['label' => $period->label, 'series_id' => $period->seriesId, 'previous' => $period->isPreviousTo($series)],
             'students' => $book->students->map(function (object $row) use ($book, $period, $attention, $users, $today) {
