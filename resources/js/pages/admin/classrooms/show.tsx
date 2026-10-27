@@ -458,7 +458,7 @@ function AgendaRow({
                 )}
             </div>
             {(actions.length > 0 || future) && (
-                <div className="mt-3 flex gap-2 sm:mt-0 sm:flex-wrap sm:justify-end max-sm:[&>*:first-child]:flex-1 max-sm:[&_svg.lucide-presentation]:hidden max-sm:[&_svg.lucide-message-square-text]:hidden">
+                <div className="mt-3 flex gap-2 sm:mt-0 sm:flex-wrap sm:justify-end max-sm:[&_svg.lucide-message-square-text]:hidden max-sm:[&_svg.lucide-presentation]:hidden max-sm:[&>*:first-child]:flex-1">
                     {actions}
                     {future && (
                         <RowMenu
