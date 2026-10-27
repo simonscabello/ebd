@@ -45,7 +45,7 @@ export default function SeriesUpdate({
             <Page>
                 <PageHeader
                     breadcrumbs={[
-                        { title: 'Painel', href: dashboard.url() },
+                        { title: 'Visão geral', href: dashboard.url() },
                         { title: 'Séries', href: seriesIndex.url() },
                         { title: series.title, href: edit.url(series.id) },
                         { title: 'Versão nova' },

@@ -24,7 +24,7 @@ export default function LibraryIndex({ studies }: { studies: Study[] }) {
             <Page width="wide">
                 <PageHeader
                     breadcrumbs={[
-                        { title: 'Painel', href: dashboard.url() },
+                        { title: 'Visão geral', href: dashboard.url() },
                         { title: 'Séries', href: seriesIndex.url() },
                         { title: 'Biblioteca oficial' },
                     ]}

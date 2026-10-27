@@ -49,7 +49,7 @@ export default function ProgramsIndex({ programs }: { programs: Program[] }) {
             <Page>
                 <PageHeader
                     breadcrumbs={[
-                        { title: 'Painel', href: dashboard.url() },
+                        { title: 'Visão geral', href: dashboard.url() },
                         { title: 'Classes', href: classroomsIndex.url() },
                         { title: 'Programas' },
                     ]}

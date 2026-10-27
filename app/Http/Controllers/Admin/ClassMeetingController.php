@@ -16,10 +16,9 @@ use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
 use App\Queries\AttendanceBookQuery;
-use App\Queries\Data\AttendanceBook;
 use App\Queries\Data\Period;
+use App\Queries\MeetingRows;
 use App\Support\ChurchCalendar;
-use App\Support\ProgramNames;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,7 +39,7 @@ class ClassMeetingController extends Controller
     /** Quantas semanas para trás a lista mostra antes de "ver todos". */
     private const PAST_WEEKS = 12;
 
-    public function index(Request $request, Classroom $classroom, AttendanceBookQuery $books, FillSundays $fill): Response
+    public function index(Request $request, Classroom $classroom, AttendanceBookQuery $books, FillSundays $fill, MeetingRows $rows): Response
     {
         Gate::authorize('manageContent', $classroom);
 
@@ -58,8 +57,6 @@ class ClassMeetingController extends Controller
             ->get();
 
         $book = $books->for($classroom, new Period($from, $todayString, ''));
-        $positions = $this->positions($classroom, $meetings);
-        $row = fn (ClassMeeting $m) => $this->row($m, $book, $positions, $todayString);
 
         [$upcoming, $past] = $meetings->partition(fn (ClassMeeting $m) => $m->held_on->toDateString() >= $todayString);
 
@@ -67,8 +64,8 @@ class ClassMeetingController extends Controller
             'classroom' => ClassroomResource::make($classroom),
             'today' => $todayString,
             'nextSunday' => ChurchCalendar::nextMeetingDay($classroom->meeting_weekday)->toDateString(),
-            'upcoming' => $upcoming->map($row)->values(),
-            'past' => $past->reverse()->map($row)->values(),
+            'upcoming' => $rows->for($classroom, $upcoming, $book, $todayString),
+            'past' => $rows->for($classroom, $past->reverse(), $book, $todayString),
             'showingAll' => $showAll,
             'hasOlder' => ! $showAll && $classroom->meetings()->whereDate('held_on', '<', (string) $from)->exists(),
             'series' => SeriesResource::collection($classroom->series()->orderByDesc('starts_on')->get()),
@@ -84,7 +81,7 @@ class ClassMeetingController extends Controller
         $meeting->load('lesson');
         $canTake = ! $meeting->isCancelled() && $date <= $today;
         $book = $books->for($classroom, new Period($date, $date, ''));
-        $position = $this->positions($classroom, collect([$meeting]))[$meeting->id] ?? null;
+        $position = app(MeetingRows::class)->positions($classroom, collect([$meeting]))[$meeting->id] ?? null;
 
         $previousId = $classroom->meetings()->whereDate('held_on', '<', $date)->orderByDesc('held_on')->value('id');
         $nextId = $classroom->meetings()->whereDate('held_on', '>', $date)->orderBy('held_on')->value('id');
@@ -149,66 +146,6 @@ class ClassMeetingController extends Controller
         $this->toast("{$result['created']} {$noun}(s) adicionados; {$result['assigned']} lição(ões) distribuídas.");
 
         return back();
-    }
-
-    /**
-     * @param  array<int, array{index: int, total: int}>  $positions
-     * @return array<string, mixed>
-     */
-    private function row(ClassMeeting $meeting, AttendanceBook $book, array $positions, string $today): array
-    {
-        $date = $meeting->held_on->toDateString();
-
-        return [
-            'id' => $meeting->id,
-            'held_on' => $date,
-            'status' => $meeting->status->value,
-            'status_label' => app(ProgramNames::class)->statusLabel($meeting->status, $meeting->classroom_id),
-            'title' => $meeting->title,
-            'lesson' => $meeting->lesson ? [
-                'id' => $meeting->lesson->id,
-                'display_title' => $meeting->lesson->displayTitle(),
-                'status' => $meeting->lesson->status->value,
-            ] : null,
-            'has_attendance' => $meeting->hasAttendance(),
-            'summary' => $meeting->hasAttendance() ? $book->sunday($meeting) : null,
-            'position' => $positions[$meeting->id] ?? null,
-            'is_today' => $date === $today,
-            'awaiting_confirmation' => $meeting->status->value === 'planned' && $date < $today,
-            'has_notes' => filled($meeting->notes),
-        ];
-    }
-
-    /**
-     * "Domingo 2 de 2": posição de cada encontro entre os da mesma lição.
-     *
-     * @param  Collection<int, ClassMeeting>  $meetings
-     * @return array<int, array{index: int, total: int}>
-     */
-    private function positions(Classroom $classroom, Collection $meetings): array
-    {
-        $lessonIds = $meetings->pluck('lesson_id')->filter()->unique()->values();
-
-        if ($lessonIds->isEmpty()) {
-            return [];
-        }
-
-        $positions = [];
-
-        ClassMeeting::query()
-            ->whereBelongsTo($classroom)
-            ->whereIn('lesson_id', $lessonIds)
-            ->active()
-            ->chronological()
-            ->get(['id', 'lesson_id'])
-            ->groupBy('lesson_id')
-            ->each(function (Collection $sameLesson) use (&$positions) {
-                foreach ($sameLesson->values() as $index => $meeting) {
-                    $positions[$meeting->id] = ['index' => $index + 1, 'total' => $sameLesson->count()];
-                }
-            });
-
-        return $positions;
     }
 
     /**

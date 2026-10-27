@@ -151,7 +151,7 @@ export default function EditLesson({
             <Page>
                 <Breadcrumbs
                     items={[
-                        { title: 'Painel', href: dashboard.url() },
+                        { title: 'Visão geral', href: dashboard.url() },
                         { title: 'Lições', href: lessonsIndex.url() },
                         { title: lesson.title },
                     ]}

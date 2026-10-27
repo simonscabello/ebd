@@ -48,7 +48,7 @@ export default function LibraryShow({
             <Page>
                 <PageHeader
                     breadcrumbs={[
-                        { title: 'Painel', href: dashboard.url() },
+                        { title: 'Visão geral', href: dashboard.url() },
                         { title: 'Biblioteca oficial', href: index.url() },
                         { title: study.title },
                     ]}

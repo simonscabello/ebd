@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Church;
+use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -73,6 +74,13 @@ class HandleInertiaRequests extends Middleware
                     'is_member' => $user->memberClassroomIds() !== [],
                 ] : null,
             ],
+            // Menu lateral da gestão: as classes que a pessoa gerencia.
+            'adminClassrooms' => fn () => $user !== null && $request->routeIs('admin.*', 'owner.*')
+                ? Classroom::query()->whereIn('id', $user->listedClassroomIds())->active()->ordered()
+                    ->get(['id', 'slug', 'name'])
+                    ->map(fn (Classroom $classroom) => ['slug' => $classroom->slug, 'name' => $classroom->name])
+                    ->all()
+                : [],
             'features' => [
                 'registration' => Features::enabled(Features::registration()),
             ],

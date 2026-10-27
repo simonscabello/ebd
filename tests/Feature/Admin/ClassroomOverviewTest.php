@@ -17,7 +17,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
- * Resumo da classe (primeira aba da gestão), no fuso de São Paulo.
+ * Página da classe na gestão (linha do tempo), no fuso de São Paulo.
  */
 class ClassroomOverviewTest extends TestCase
 {
@@ -115,7 +115,7 @@ class ClassroomOverviewTest extends TestCase
                 ->where('overview.week.meeting.held_on', '2026-10-04'));
     }
 
-    public function test_upcoming_lessons_are_listed_once_each_paginated_with_the_message(): void
+    public function test_upcoming_lessons_are_listed_once_each_with_the_message(): void
     {
         $held = Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create(['title' => 'De hoje']);
         $held->meetings()->update(['status' => MeetingStatus::Held, 'finished_at' => now()]);
@@ -134,17 +134,27 @@ class ClassroomOverviewTest extends TestCase
                 // "Dois domingos" está no card principal: não se repete na lista.
                 ->where('overview.week.lesson.id', $two->id)
                 ->where('upcoming.total', 6)
-                ->where('upcoming.last_page', 2)
-                ->has('upcoming.data', 4)
+                ->has('upcoming.data', 6)
                 ->where('upcoming.data.0.held_on', '2026-10-18')
                 ->where('upcoming.data.0.meetings_count', 1)
-                ->where('upcoming.data.0.message', fn (string $text) => str_contains($text, 'Seguinte 0')));
+                ->where('upcoming.data.0.message', fn (string $text) => str_contains($text, 'Seguinte 0'))
+                ->where('upcoming.data.5.held_on', '2026-11-22'));
+    }
 
-        $this->actingAs($this->teacher)->get('/admin/classes/jovens?proximas=2')
+    public function test_timeline_lists_the_next_sundays_and_the_menu_only_the_classes_of_the_teacher(): void
+    {
+        $lesson = Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create(['title' => 'Próxima']);
+        Classroom::factory()->create(['name' => 'Outra classe']);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
             ->assertInertia(fn (Assert $page) => $page
-                ->where('upcoming.current_page', 2)
-                ->has('upcoming.data', 2)
-                ->where('upcoming.data.1.held_on', '2026-11-22'));
+                // Os próximos domingos, já preenchidos na agenda.
+                ->has('sundays', 8)
+                ->where('sundays.0.held_on', '2026-10-04')
+                ->where('sundays.0.lesson.id', $lesson->id)
+                ->where('sundays.1.held_on', '2026-10-11')
+                ->where('sundays.1.lesson', null)
+                ->where('adminClassrooms', [['slug' => 'jovens', 'name' => 'Jovens']]));
     }
 
     public function test_pending_sundays_are_past_ones_still_planned(): void

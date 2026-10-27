@@ -183,8 +183,9 @@ function ForTeachers() {
             <Topic icon={<LayoutDashboard />} title="Estudo e gestão">
                 O app tem duas partes. No <strong>estudo</strong> (Início, Minha
                 semana, Biblioteca) você se prepara como qualquer aluno. O botão{' '}
-                <strong>Gestão</strong>, no topo, abre a área do professor:
-                painel, classes, lições e séries. Para voltar, toque em{' '}
+                <strong>Gestão</strong>, no topo, abre a área do professor. No
+                menu (à esquerda no computador, ☰ no celular) ficam as suas
+                classes, as lições e as séries. Para voltar, toque em{' '}
                 <strong>Voltar ao app</strong>.
             </Topic>
             <Topic icon={<Layers />} title="Séries e lições">
@@ -227,9 +228,9 @@ function ForTeachers() {
                 publicada.
             </Topic>
             <Topic icon={<CalendarRange />} title="Domingos">
-                Na aba <strong>Domingos</strong> da classe,{' '}
-                <strong>Planejar série</strong> cria um domingo por semana e
-                distribui as lições pela numeração da revista. Não houve aula?
+                Na página da classe, toque em <strong>Planejar domingos</strong>
+                . Lá, <strong>Planejar série</strong> cria um domingo por semana
+                e distribui as lições pela numeração da revista. Não houve aula?
                 Use <strong>Sem EBD</strong>. A lição não terminou? Use{' '}
                 <strong>Repetir a lição no próximo</strong>.
             </Topic>
@@ -240,7 +241,7 @@ function ForTeachers() {
                 <strong>Onde paramos</strong>, anote até onde a turma chegou.
             </Topic>
             <Topic icon={<TriangleAlert />} title="Precisam de atenção">
-                O Resumo da classe lista quem tem 2 faltas seguidas ou está há
+                A página da classe lista quem tem 2 faltas seguidas ou está há
                 10 dias sem leitura, com um atalho para o WhatsApp. Quem entrou
                 há menos de 14 dias fica de fora.
             </Topic>
