@@ -60,7 +60,7 @@ class StudyWeekQuery
             'today' => $today->toDateString(),
             'weekday' => $today->dayOfWeekIso,
             'streak' => $this->streak->for($user, $today),
-            'meeting' => $current->meeting && ! $current->isFallback ? [
+            'meeting' => $current->meeting ? [
                 'held_on' => $current->meeting->held_on->toDateString(),
                 'date_label' => ChurchCalendar::formatLong($current->meeting->held_on),
                 'day' => Weekday::from($current->meeting->held_on->dayOfWeekIso)->lowerLabel(),

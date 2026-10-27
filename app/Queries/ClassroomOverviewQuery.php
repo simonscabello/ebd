@@ -13,7 +13,6 @@ use App\Queries\Data\Period;
 use App\Support\ChurchCalendar;
 use App\Support\ProgramNames;
 use App\Support\WeeklyMessage;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Resumo da classe para o professor (tela Resumo e ferramenta
@@ -47,7 +46,7 @@ class ClassroomOverviewQuery
 
         // Sem domingo pela frente, a "lição da semana" é a do último domingo:
         // no Resumo ela aparece como último domingo, não como o próximo.
-        $meeting = $week->isFallback ? null : $week->meeting;
+        $meeting = $week->meeting;
         $lesson = $meeting !== null ? $week->lesson : null;
 
         $study = $this->currentStudy($week, $book);
@@ -127,61 +126,13 @@ class ClassroomOverviewQuery
     }
 
     /**
-     * Próximas lições da classe depois da do card principal (uma por lição, no
-     * primeiro domingo ainda por acontecer), com a mensagem pronta para o grupo.
-     *
-     * @return LengthAwarePaginator<int, array{meeting_id: int, held_on: string, is_today: bool, meetings_count: int, lesson: array{id: int, slug: string, display_title: string, bible_reference: string|null, status: string}, message: string|null}>
-     */
-    public function upcoming(Classroom $classroom, User $user, int $perPage = 4): LengthAwarePaginator
-    {
-        $today = ChurchCalendar::todayString();
-        // A lição do card principal não se repete na lista.
-        $week = $this->week($classroom, $user);
-        $weekLessonId = $week->isFallback ? null : $week->lesson?->id;
-        $upcoming = fn ($q) => $q->whereBelongsTo($classroom)
-            ->where('status', MeetingStatus::Planned)
-            ->whereDate('held_on', '>=', $today);
-
-        $page = Lesson::query()
-            ->when($weekLessonId, fn ($q, int $id) => $q->whereKeyNot($id))
-            ->whereHas('meetings', $upcoming)
-            ->withMin(['meetings as next_on' => $upcoming], 'held_on')
-            ->with(['readings', 'meetings' => fn ($q) => $upcoming($q)->chronological()])
-            ->orderBy('next_on')
-            ->orderBy('id')
-            ->paginate($perPage, pageName: 'proximas')
-            ->withQueryString();
-
-        return $page->through(function (Lesson $lesson) use ($today) {
-            /** @var ClassMeeting $meeting */
-            $meeting = $lesson->meetings->first();
-            $meeting->setRelation('lesson', $lesson);
-
-            return [
-                'meeting_id' => $meeting->id,
-                'held_on' => $meeting->held_on->toDateString(),
-                'is_today' => $meeting->held_on->toDateString() === $today,
-                'meetings_count' => $lesson->meetings->count(),
-                'lesson' => [
-                    'id' => $lesson->id,
-                    'slug' => $lesson->slug,
-                    'display_title' => $lesson->displayTitle(),
-                    'bible_reference' => $lesson->bible_reference,
-                    'status' => $lesson->status->value,
-                ],
-                'message' => $this->weeklyMessage->for($meeting),
-            ];
-        });
-    }
-
-    /**
      * Estudo em casa da lição da semana (null sem domingo pela frente).
      *
      * @return array{lesson_id: int, lesson_title: string, readings_total: int, readers: int, expected: int, rate: int|null, avg_days: float, days: array<int, int>}|null
      */
     public function currentStudy(CurrentLesson $week, AttendanceBook $book): ?array
     {
-        $lesson = $week->isFallback ? null : $week->lesson;
+        $lesson = $week->lesson;
 
         if ($lesson === null) {
             return null;
@@ -234,13 +185,13 @@ class ClassroomOverviewQuery
         $week = $this->current->for($classroom, $user, $today);
         $meeting = $week->meeting;
 
-        if ($week->isFallback || $meeting === null || $meeting->finished_at === null || $meeting->held_on->toDateString() !== $today->toDateString()) {
+        if ($meeting === null || $meeting->finished_at === null || $meeting->held_on->toDateString() !== $today->toDateString()) {
             return $week;
         }
 
         $next = $this->current->for($classroom, $user, $today->addDay());
 
-        return $next->meeting !== null && ! $next->isFallback ? $next : $week;
+        return $next->meeting !== null ? $next : $week;
     }
 
     /**

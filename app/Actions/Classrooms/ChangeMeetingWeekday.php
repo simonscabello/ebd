@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Ficam como estão: passados, realizados, com chamada, os "sem EBD" (o
  * cancelamento foi para aquela data; a semana do novo dia que contém a data
- * não ganha outro encontro em FillSundays) e o que cairia numa data já
+ * não ganha outro encontro na projeção, SyncUpcomingMeeting) e o que cairia numa data já
  * ocupada.
  *
  * O plano de leitura das lições que mudaram de dia (e das que ainda não têm

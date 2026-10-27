@@ -2,12 +2,13 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Actions\Meetings\FillSundays;
+use App\Actions\Meetings\SyncUpcomingMeeting;
 use App\Enums\Weekday;
 use App\Mcp\Servers\EbdServer;
 use App\Mcp\Tools\SaveMeetingTool;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
+use App\Models\Lesson;
 use App\Models\User;
 use App\Support\ChurchCalendar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,16 +53,14 @@ class MeetingWeekdayTest extends TestCase
         $this->assertSame('2026-10-04', ChurchCalendar::nextMeetingDay(Weekday::Sunday)->toDateString());
     }
 
-    public function test_fill_creates_meetings_on_the_classroom_day(): void
+    public function test_the_next_meeting_goes_to_the_classroom_day(): void
     {
-        app(FillSundays::class)->handle($this->classroom);
+        $this->classroom->forceFill(['current_lesson_id' => Lesson::factory()->for($this->classroom)->create()->id])->save();
 
-        $dates = $this->dates();
-        $this->assertSame('2026-09-30', $dates[0]);
-        $this->assertCount(FillSundays::WEEKS_AHEAD + 1, $dates);
-        foreach ($dates as $date) {
-            $this->assertSame(3, now()->parse($date)->dayOfWeekIso, $date);
-        }
+        app(SyncUpcomingMeeting::class)->handle($this->classroom);
+
+        // Quinta: a quarta desta semana já passou, então é a da semana que vem.
+        $this->assertSame(['2026-10-07'], $this->dates());
     }
 
     public function test_meeting_on_another_day_is_rejected(): void

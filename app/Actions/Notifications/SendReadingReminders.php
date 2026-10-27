@@ -69,7 +69,7 @@ final class SendReadingReminders
             $current = $this->current->for($classroom, $recipients->first(), $today);
             $lesson = $current->lesson;
 
-            if ($lesson === null || $current->isFallback || $lesson->status !== LessonStatus::Published) {
+            if ($lesson === null || $lesson->status !== LessonStatus::Published) {
                 continue;
             }
 

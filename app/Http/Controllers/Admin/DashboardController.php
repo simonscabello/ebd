@@ -67,7 +67,7 @@ class DashboardController extends Controller
         return Inertia::render('admin/dashboard', [
             'classrooms' => $classrooms->map(function (Classroom $classroom) use ($current, $user, $today) {
                 $week = $current->for($classroom, $user);
-                $meeting = $week->isFallback ? null : $week->meeting;
+                $meeting = $week->meeting;
 
                 return [
                     ...ClassroomResource::make($classroom)->resolve(),

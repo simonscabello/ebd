@@ -21,11 +21,10 @@ final readonly class CurrentLesson
         public int $meetingIndex,
         public int $meetingTotal,
         public Collection $cancelledBefore,
-        public bool $isFallback,
     ) {}
 
     public static function none(): self
     {
-        return new self(null, null, false, 0, 0, collect(), false);
+        return new self(null, null, false, 0, 0, collect());
     }
 }

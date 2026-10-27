@@ -69,7 +69,6 @@ class CurrentLessonQuery
             meetingIndex: $index,
             meetingTotal: $total,
             cancelledBefore: $cancelled,
-            isFallback: false,
         );
     }
 
