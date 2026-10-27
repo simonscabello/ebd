@@ -1,10 +1,10 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     BookOpen,
-    CalendarCheck,
     CalendarClock,
     CalendarOff,
     CheckCircle2,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     ChevronsRight,
@@ -13,10 +13,8 @@ import {
     Presentation,
     RotateCcw,
     StickyNote,
-    Users,
 } from 'lucide-react';
 import { useState } from 'react';
-import { ClassroomHeader } from '@/components/admin/classroom-header';
 import { CancelMeetingDialog } from '@/components/admin/meetings/cancel-meeting-dialog';
 import { EditMeetingDialog } from '@/components/admin/meetings/edit-meeting-dialog';
 import { MeetingStatusBadge } from '@/components/admin/meeting-status-badge';
@@ -25,11 +23,18 @@ import type { Roster } from '@/components/lesson/attendance-sheet';
 import { AttendanceSheet } from '@/components/lesson/attendance-sheet';
 import { Page, PageHeader, Section } from '@/components/page';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAutosave } from '@/hooks/use-autosave';
 import { dayMonth, longDate } from '@/lib/dates';
 import { meetingWords } from '@/lib/meeting-words';
+import { show as classroomPage } from '@/routes/admin/classrooms';
 import { show } from '@/routes/admin/classrooms/meetings';
 import { edit as editLesson } from '@/routes/admin/lessons';
 import {
@@ -70,23 +75,28 @@ type Props = {
 };
 
 /**
- * Um domingo da classe: a lição do dia, a chamada (pode ser feita ou corrigida
- * depois do dia), onde a turma parou e as ações do domingo.
+ * Um domingo da classe. No dia (ou depois), abre direto na chamada; antes,
+ * na escolha da lição. "Onde paramos" fica recolhido e as ações raras
+ * (trocar a lição, repetir, editar a data, sem EBD) ficam em "Mais".
  */
 export default function MeetingPage({
     classroom,
     meeting,
-    summary,
     attendance,
     lessons,
 }: Props) {
     const [cancelOpen, setCancelOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const cancelled = meeting.status === 'cancelled';
+    // Antes do dia (ou sem lição), escolher a lição é o que falta: aparece aberto.
+    const [pickerOpen, setPickerOpen] = useState(
+        !attendance || !meeting.lesson_id,
+    );
     const words = meetingWords(classroom);
     const past = !meeting.is_future;
-    const title = longDate(meeting.held_on);
+    const date = longDate(meeting.held_on);
     const here = show.url({ classroom: classroom.slug, meeting: meeting.id });
+    const lessonTitle = meeting.lesson?.display_title ?? 'Sem lição';
 
     const post = (url: string) =>
         router.post(url, {}, { preserveScroll: true });
@@ -96,220 +106,210 @@ export default function MeetingPage({
             <Head title={`${dayMonth(meeting.held_on)} · ${classroom.name}`} />
 
             <Page width="wide">
-                <ClassroomHeader
-                    classroom={classroom}
-                    active="domingos"
-                    crumbs={[{ title: dayMonth(meeting.held_on) }]}
-                />
-                {/* Abas na largura das outras páginas da classe; conteúdo na de leitura. */}
-                <div className="max-w-2xl">
+                <div className="max-w-3xl">
+                    <Link
+                        href={classroomPage.url(classroom.slug)}
+                        className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-primary hover:underline print:hidden"
+                    >
+                        <ChevronLeft className="size-4" /> Agenda de{' '}
+                        {classroom.name}
+                    </Link>
                     <PageHeader
-                        title={title.charAt(0).toUpperCase() + title.slice(1)}
-                        description={
+                        eyebrow={
                             <span className="flex flex-wrap items-center gap-2">
-                                <MeetingStatusBadge
-                                    status={meeting.status}
-                                    label={meeting.status_label}
-                                />
-                                {meeting.is_today && (
-                                    <span className="font-medium text-primary">
-                                        Hoje
-                                    </span>
-                                )}
+                                {meeting.is_today && 'Hoje · '}
+                                {date.charAt(0).toUpperCase() + date.slice(1)}
                                 {meeting.position &&
-                                    meeting.position.total > 1 && (
-                                        <span>
-                                            {words.one} {meeting.position.index}{' '}
-                                            de {meeting.position.total} da lição
-                                        </span>
-                                    )}
-                                {meeting.title && !cancelled && (
-                                    <span>{meeting.title}</span>
+                                    meeting.position.total > 1 &&
+                                    ` · ${words.one} ${meeting.position.index} de ${meeting.position.total} da lição`}
+                                {cancelled && (
+                                    <MeetingStatusBadge
+                                        status={meeting.status}
+                                        label={meeting.status_label}
+                                    />
                                 )}
                             </span>
                         }
+                        title={
+                            cancelled
+                                ? `Sem ${words.program}${meeting.title ? ` · ${meeting.title}` : ''}`
+                                : attendance
+                                  ? `Chamada · ${lessonTitle}`
+                                  : lessonTitle
+                        }
                         actions={
-                            <div className="flex gap-1">
-                                <NeighborLink
-                                    classroom={classroom}
-                                    id={meeting.previous_id}
-                                    direction="previous"
-                                />
-                                <NeighborLink
-                                    classroom={classroom}
-                                    id={meeting.next_id}
-                                    direction="next"
-                                />
-                            </div>
+                            <>
+                                {meeting.lesson && !cancelled && (
+                                    <Button asChild>
+                                        <Link
+                                            href={sunday.url(
+                                                meeting.lesson.slug,
+                                                { query: { voltar: here } },
+                                            )}
+                                        >
+                                            <Presentation /> Apresentar lição
+                                        </Link>
+                                    </Button>
+                                )}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline">
+                                            Mais <ChevronDown />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {!cancelled && (
+                                            <DropdownMenuItem
+                                                onSelect={() =>
+                                                    setPickerOpen(true)
+                                                }
+                                            >
+                                                <BookOpen /> Trocar a lição do
+                                                dia
+                                            </DropdownMenuItem>
+                                        )}
+                                        {meeting.lesson && (
+                                            <DropdownMenuItem asChild>
+                                                <Link
+                                                    href={editLesson(
+                                                        meeting.lesson.id,
+                                                    )}
+                                                >
+                                                    <ExternalLink /> Editar
+                                                    lição
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        )}
+                                        {!cancelled &&
+                                            past &&
+                                            meeting.lesson_id && (
+                                                <DropdownMenuItem
+                                                    onSelect={() =>
+                                                        post(
+                                                            continueMeeting.url(
+                                                                meeting.id,
+                                                            ),
+                                                        )
+                                                    }
+                                                >
+                                                    <ChevronsRight /> Repetir a
+                                                    lição no próximo
+                                                </DropdownMenuItem>
+                                            )}
+                                        {meeting.status === 'planned' &&
+                                            past &&
+                                            !meeting.has_attendance && (
+                                                <DropdownMenuItem
+                                                    onSelect={() =>
+                                                        post(
+                                                            held.url(
+                                                                meeting.id,
+                                                            ),
+                                                        )
+                                                    }
+                                                >
+                                                    <CheckCircle2 /> Teve aula,
+                                                    sem chamada
+                                                </DropdownMenuItem>
+                                            )}
+                                        <DropdownMenuItem
+                                            onSelect={() => setEditOpen(true)}
+                                        >
+                                            <Pencil /> Editar data e título
+                                        </DropdownMenuItem>
+                                        {!cancelled &&
+                                            !meeting.has_attendance && (
+                                                <DropdownMenuItem
+                                                    variant="destructive"
+                                                    onSelect={() =>
+                                                        setCancelOpen(true)
+                                                    }
+                                                >
+                                                    <CalendarOff /> Sem{' '}
+                                                    {words.program} neste dia
+                                                </DropdownMenuItem>
+                                            )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </>
                         }
                     />
 
-                    <div className="space-y-10">
-                        {!cancelled && (
+                    <div className="space-y-8">
+                        {!cancelled && pickerOpen && (
                             <Section title="Lição do dia" icon={<BookOpen />}>
                                 <LessonPicker
                                     key={meeting.lesson_id ?? 'none'}
                                     meeting={meeting}
                                     lessons={lessons}
                                 />
-                                {meeting.lesson && (
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        <Button
-                                            asChild
-                                            size="sm"
-                                            variant="outline"
-                                        >
-                                            <Link
-                                                href={sunday.url(
-                                                    meeting.lesson.slug,
-                                                    { query: { voltar: here } },
-                                                )}
-                                            >
-                                                <Presentation /> Modo Domingo
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            asChild
-                                            size="sm"
-                                            variant="outline"
-                                        >
-                                            <Link
-                                                href={editLesson(
-                                                    meeting.lesson.id,
-                                                )}
-                                            >
-                                                <ExternalLink /> Editar lição
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                )}
                             </Section>
                         )}
 
-                        <Section
-                            title="Chamada"
-                            icon={<Users />}
-                            description={
-                                attendance
-                                    ? 'Toque no nome de quem estava. Salva sozinha e pode ser corrigida depois.'
-                                    : undefined
-                            }
-                        >
-                            {cancelled ? (
-                                <div className="rounded-2xl border border-dashed p-4 text-sm">
-                                    <p className="text-muted-foreground">
-                                        Não teve {words.program} neste{' '}
-                                        {words.one}
-                                        {meeting.title
-                                            ? ` (${meeting.title})`
-                                            : ''}
-                                        .
-                                    </p>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="mt-3"
-                                        onClick={() =>
-                                            post(restore.url(meeting.id))
-                                        }
-                                    >
-                                        <RotateCcw /> Voltar a ter{' '}
-                                        {words.program}
-                                    </Button>
-                                </div>
-                            ) : attendance ? (
-                                <>
-                                    {summary && (
-                                        <p className="mb-4 flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-sm text-success-foreground">
-                                            <CalendarCheck className="size-4 shrink-0" />
-                                            {summary.present} de{' '}
-                                            {summary.expected} presentes
-                                            {summary.rate !== null &&
-                                                ` (${summary.rate}%)`}
-                                            {summary.visitors > 0 &&
-                                                ` · ${summary.visitors} visitante${summary.visitors > 1 ? 's' : ''}`}
-                                        </p>
-                                    )}
-                                    <AttendanceSheet
-                                        key={meeting.id}
-                                        meetingId={meeting.id}
-                                        roster={attendance.roster}
-                                        initialPresent={attendance.present}
-                                        initialVisitors={attendance.visitors}
-                                        reloadOnly={['summary', 'meeting']}
-                                        classroom={classroom}
-                                    />
-                                </>
-                            ) : (
-                                <p className="flex items-center gap-2 rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                    <CalendarClock className="size-4 shrink-0" />
-                                    A chamada abre no dia do {words.one}.
+                        {cancelled ? (
+                            <div className="rounded-2xl border border-dashed p-4 text-sm">
+                                <p className="text-muted-foreground">
+                                    Não teve {words.program} neste {words.one}
+                                    {meeting.title ? ` (${meeting.title})` : ''}
+                                    .
                                 </p>
-                            )}
-                        </Section>
-
-                        {!cancelled && (
-                            <Section
-                                title="Onde paramos"
-                                icon={<StickyNote />}
-                                description={`Só professores veem. Ajuda a preparar o próximo ${words.one}.`}
-                            >
-                                {/* Pelo id, não pelo texto: o salvamento automático
-                                    recarrega o domingo e não pode remontar o campo. */}
-                                <NotesForm key={meeting.id} meeting={meeting} />
-                            </Section>
-                        )}
-
-                        <Section title="Outras ações">
-                            <div className="grid gap-2 *:justify-start sm:flex sm:flex-wrap">
-                                {!cancelled && past && meeting.lesson_id && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() =>
-                                            post(
-                                                continueMeeting.url(meeting.id),
-                                            )
-                                        }
-                                    >
-                                        <ChevronsRight /> Repetir a lição no
-                                        próximo
-                                    </Button>
-                                )}
-                                {meeting.status === 'planned' &&
-                                    past &&
-                                    !meeting.has_attendance && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() =>
-                                                post(held.url(meeting.id))
-                                            }
-                                        >
-                                            <CheckCircle2 /> Teve aula, sem
-                                            chamada
-                                        </Button>
-                                    )}
-                                {!cancelled && !meeting.has_attendance && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setCancelOpen(true)}
-                                    >
-                                        <CalendarOff /> Sem {words.program}
-                                    </Button>
-                                )}
                                 <Button
+                                    size="sm"
                                     variant="outline"
-                                    onClick={() => setEditOpen(true)}
+                                    className="mt-3"
+                                    onClick={() =>
+                                        post(restore.url(meeting.id))
+                                    }
                                 >
-                                    <Pencil /> Editar data e título
+                                    <RotateCcw /> Voltar a ter {words.program}
                                 </Button>
                             </div>
-                        </Section>
+                        ) : attendance ? (
+                            <AttendanceSheet
+                                key={meeting.id}
+                                meetingId={meeting.id}
+                                roster={attendance.roster}
+                                initialPresent={attendance.present}
+                                initialVisitors={attendance.visitors}
+                                reloadOnly={['summary', 'meeting']}
+                                classroom={classroom}
+                            />
+                        ) : (
+                            <p className="flex items-center gap-2 rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
+                                <CalendarClock className="size-4 shrink-0" />A
+                                chamada abre no dia do {words.one}.
+                            </p>
+                        )}
+
+                        {!cancelled && (
+                            <details
+                                className="group border-t pt-4"
+                                open={Boolean(meeting.notes)}
+                            >
+                                <summary className="flex min-h-10 cursor-pointer items-center gap-2 text-sm font-medium marker:content-none [&::-webkit-details-marker]:hidden">
+                                    <ChevronRight className="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
+                                    <StickyNote className="size-4 text-muted-foreground" />
+                                    Onde paramos
+                                    <span className="font-normal text-muted-foreground">
+                                        · só professores veem
+                                    </span>
+                                </summary>
+                                <div className="mt-3">
+                                    {/* Pelo id, não pelo texto: o salvamento automático
+                                        recarrega o domingo e não pode remontar o campo. */}
+                                    <NotesForm
+                                        key={meeting.id}
+                                        meeting={meeting}
+                                    />
+                                </div>
+                            </details>
+                        )}
                     </div>
 
                     <CancelMeetingDialog
                         classroom={classroom}
                         meeting={meeting}
-                        dateLabel={title}
+                        dateLabel={date}
                         open={cancelOpen}
                         onOpenChange={setCancelOpen}
                     />
@@ -323,42 +323,6 @@ export default function MeetingPage({
                 </div>
             </Page>
         </>
-    );
-}
-
-function NeighborLink({
-    classroom,
-    id,
-    direction,
-}: {
-    classroom: Classroom;
-    id: number | null;
-    direction: 'previous' | 'next';
-}) {
-    const words = meetingWords(classroom);
-    const label =
-        direction === 'previous'
-            ? `${words.One} anterior`
-            : `Próximo ${words.one}`;
-    const Icon = direction === 'previous' ? ChevronLeft : ChevronRight;
-
-    if (id === null) {
-        return (
-            <Button variant="outline" size="icon" disabled aria-label={label}>
-                <Icon />
-            </Button>
-        );
-    }
-
-    return (
-        <Button asChild variant="outline" size="icon">
-            <Link
-                href={show({ classroom: classroom.slug, meeting: id })}
-                aria-label={label}
-            >
-                <Icon />
-            </Link>
-        </Button>
     );
 }
 

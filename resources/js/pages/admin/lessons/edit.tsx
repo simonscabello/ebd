@@ -197,7 +197,7 @@ export default function EditLesson({
                         </Button>
                         <Button asChild variant="outline">
                             <Link href={lesson.sunday_url}>
-                                <Presentation /> Modo Domingo
+                                <Presentation /> Apresentar lição
                             </Link>
                         </Button>
                     </div>

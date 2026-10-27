@@ -391,7 +391,7 @@ function ClassroomCardView({ classroom }: { classroom: ClassroomCard }) {
                                 query: { voltar: hub.url },
                             })}
                         >
-                            <Presentation /> Modo Domingo
+                            <Presentation /> Apresentar lição
                         </Link>
                     </Button>
                 )}

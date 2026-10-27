@@ -1,34 +1,39 @@
 import { Head, Link } from '@inertiajs/react';
 import {
-    AlertTriangle,
-    CalendarCheck,
-    CalendarClock,
-    Cake,
-    ChevronRight,
-    FileText,
-    Flag,
-    MessageCircleQuestion,
+    CalendarPlus,
+    ChevronDown,
+    Ellipsis,
     MessageSquareText,
-    Pencil,
     Presentation,
-    StickyNote,
-    Users,
 } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { MeetingRow } from '@/components/admin/meetings/meeting-row';
+import { ClassroomTabs } from '@/components/admin/classroom-header';
 import type { MeetingRowData } from '@/components/admin/meetings/meeting-row';
+import { PlanMeetingsDialog } from '@/components/admin/meetings/plan-meetings-dialog';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { CopyWhatsAppButtons } from '@/components/copy-whatsapp-button';
-import { FinishMeetingDialog } from '@/components/lesson/finish-meeting-dialog';
-import { EmptyState, Page, PageHeader, Section } from '@/components/page';
+import { EmptyState, Page } from '@/components/page';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { WhatsAppButton } from '@/components/whatsapp-button';
-import { dateTile, dayMonth, longDate, relativeDay } from '@/lib/dates';
+import { dateTile, dayMonth, relativeDay } from '@/lib/dates';
 import { meetingWords } from '@/lib/meeting-words';
-import { periodPhrase } from '@/lib/period';
-import type { StatsPeriod } from '@/lib/period';
-import { plural } from '@/lib/utils';
-import { birthdayMessage, missYouMessage } from '@/lib/whatsapp';
+import { cn, plural } from '@/lib/utils';
+import { missYouMessage } from '@/lib/whatsapp';
 import {
     edit,
     questions,
@@ -39,744 +44,530 @@ import {
     index as meetingsIndex,
     show as meetingPage,
 } from '@/routes/admin/classrooms/meetings';
-import {
-    index as studentsIndex,
-    show as studentPage,
-} from '@/routes/admin/classrooms/students';
+import { show as studentPage } from '@/routes/admin/classrooms/students';
 import { edit as editLesson } from '@/routes/admin/lessons';
 import { sunday } from '@/routes/lessons';
-import type {
-    Classroom,
-    LessonStatus,
-    MeetingStatus,
-    SundaySummary,
-} from '@/types';
+import type { Classroom, Series } from '@/types';
 
-type SundayRow = SundaySummary & {
-    id: number;
-    held_on: string;
-    lesson: string | null;
-    title: string | null;
+type Row = MeetingRowData & {
+    absent: {
+        id: number;
+        name: string;
+        phone: string | null;
+        missed_in_a_row: number;
+    }[];
 };
 
+/** Só o que a agenda usa do resumo da classe (ClassroomOverviewQuery). */
 type Overview = {
     today: string;
     week: {
-        meeting: {
-            id: number;
-            held_on: string;
-            status: MeetingStatus;
-            status_label: string;
-            title: string | null;
-            has_attendance: boolean;
-            is_today: boolean;
-            notes: string | null;
-            is_finished: boolean;
-        };
-        lesson: {
-            id: number;
-            slug: string;
-            display_title: string;
-            status: LessonStatus;
-        } | null;
-        meeting_index: number;
-        meeting_total: number;
-        cancelled_before: { held_on: string; title: string | null }[];
-        can_take_attendance: boolean;
-        summary: SundaySummary | null;
+        meeting: { id: number };
         weekly_message: string | null;
     } | null;
-    last_sunday: (SundayRow & { notes: string | null }) | null;
-    recent: SundayRow[];
-    pending: {
-        id: number;
-        held_on: string;
-        lesson: string | null;
-        title: string | null;
-    }[];
-    attention: {
-        id: number;
-        name: string;
-        phone: string | null;
-        reasons: string[];
-        last_present_on: string | null;
-    }[];
-    home_study: {
-        lesson_title: string;
-        readings_total: number;
-        readers: number;
-        expected: number;
-        rate: number | null;
-        avg_days: number;
-    } | null;
-    birthdays: {
-        id: number;
-        name: string;
-        phone: string | null;
-        day: number;
-        is_today: boolean;
-        turning: number;
-    }[];
-    stats: {
-        students: number;
-        frequency: {
-            sundays: number;
-            present: number;
-            expected: number;
-            visitors: number;
-            rate: number | null;
-        };
-        period: StatsPeriod;
-    };
-    thresholds: {
-        missed_meetings: number;
-        inactive_days: number;
-        new_student_days: number;
-    };
+    home_study: { readers: number; expected: number } | null;
+    stats: { students: number };
 };
 
-type UpcomingLesson = {
-    meeting_id: number;
-    held_on: string;
-    is_today: boolean;
-    meetings_count: number;
-    lesson: {
-        id: number;
-        slug: string;
-        display_title: string;
-        bible_reference: string | null;
-        status: LessonStatus;
-    };
-    message: string | null;
-};
-
-/** Paginador do Laravel serializado direto (sem API Resource). */
-type Upcoming = {
-    data: UpcomingLesson[];
-    current_page: number;
-    last_page: number;
-    total: number;
-};
+type UpcomingLesson = { meeting_id: number; message: string | null };
 
 type Props = {
     classroom: Classroom;
     overview: Overview;
-    upcoming: Upcoming;
-    sundays: MeetingRowData[];
+    upcoming: { data: UpcomingLesson[] };
+    sundays: Row[];
+    past: Row[];
+    nextSunday: string;
+    series: Series[];
     canEdit: boolean;
 };
 
 /**
- * Página da classe: a linha do tempo. O próximo domingo em destaque, os
- * seguintes com o que falta em cada um, os que já foram e, ao lado, os alunos
- * que pedem atenção. Domingos, alunos, dúvidas e relatório completos abrem
- * a partir daqui.
+ * Página da classe: a agenda. Cada data mostra a ação que falta (apresentar a
+ * lição, terminar o rascunho, escolher a lição, fazer a chamada, falar com
+ * quem faltou). O resto da classe fica em Alunos e no menu "⋯".
  */
-export default function ClassroomOverview({
+export default function ClassroomAgenda({
     classroom,
     overview,
     upcoming,
     sundays,
+    past,
+    nextSunday,
+    series,
     canEdit,
 }: Props) {
-    const { week, stats } = overview;
-    const here = classroomPage.url(classroom.slug);
     const words = meetingWords(classroom);
-    // Domingos sem lição: dois bastam para lembrar de planejar; o resto é ruído.
+    const here = classroomPage.url(classroom.slug);
+
+    // Datas sem lição: duas bastam para lembrar de planejar; o resto é ruído.
     let undefinedShown = 0;
-    const later = sundays.filter(
+    const next = sundays.filter(
         (row) =>
-            row.id !== week?.meeting.id &&
-            (row.lesson !== null ||
-                row.status === 'cancelled' ||
-                undefinedShown++ < 2),
+            row.lesson !== null ||
+            row.status === 'cancelled' ||
+            undefinedShown++ < 2,
     );
-    const frequency = stats.frequency.rate;
+    const highlightId = next.find((row) => row.status !== 'cancelled')?.id;
+
+    // Mensagem pronta para o grupo, no primeiro encontro de cada lição.
+    const messages = new Map<number, string>();
+    for (const item of upcoming.data) {
+        if (item.message) {
+            messages.set(item.meeting_id, item.message);
+        }
+    }
+    if (overview.week?.weekly_message) {
+        messages.set(overview.week.meeting.id, overview.week.weekly_message);
+    }
+
+    const plan = (
+        <PlanMeetingsDialog
+            classroom={classroom}
+            series={series}
+            nextSunday={nextSunday}
+        />
+    );
 
     return (
         <>
             <Head title={classroom.name} />
 
             <Page width="wide">
-                <PageHeader
-                    title={classroom.name}
-                    description={[
-                        plural(stats.students, 'aluno', 'alunos'),
-                        frequency !== null &&
-                            `${frequency}% de frequência ${periodPhrase(stats.period)}`,
-                    ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    actions={
-                        <>
-                            <Button asChild variant="outline">
-                                <Link href={meetingsIndex(classroom.slug)}>
-                                    <CalendarClock /> Planejar {words.many}
-                                </Link>
-                            </Button>
-                            {canEdit && (
-                                <Button asChild variant="outline">
-                                    <Link href={edit(classroom.slug)}>
-                                        <Pencil /> Editar classe
-                                    </Link>
+                <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                        <h1 className="font-serif text-3xl font-semibold tracking-tight">
+                            {classroom.name}
+                        </h1>
+                        <ClassroomTabs
+                            classroom={classroom}
+                            active="agenda"
+                            students={overview.stats.students}
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        {plan}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    aria-label={`Mais da classe ${classroom.name}`}
+                                >
+                                    <Ellipsis />
                                 </Button>
-                            )}
-                        </>
-                    }
-                />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <MenuLink
+                                    href={meetingsIndex.url(classroom.slug)}
+                                >
+                                    Todas as datas
+                                </MenuLink>
+                                <MenuLink href={report.url(classroom.slug)}>
+                                    Relatório
+                                </MenuLink>
+                                <MenuLink href={questions.url(classroom.slug)}>
+                                    Dúvidas dos alunos
+                                </MenuLink>
+                                {canEdit && (
+                                    <MenuLink href={edit.url(classroom.slug)}>
+                                        Editar classe
+                                    </MenuLink>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </header>
 
-                {week ? (
-                    <WeekCard classroom={classroom} week={week} here={here} />
-                ) : (
+                {next.length === 0 && past.length === 0 ? (
                     <EmptyState
-                        icon={<CalendarClock />}
-                        title={`Nenhum ${words.one} planejado`}
+                        icon={<CalendarPlus />}
+                        title={`Nenhum ${words.one} na agenda`}
                     >
                         <p>
-                            Planeje os próximos {words.many} para a classe saber
-                            o que estudar.
+                            Planeje a série para distribuir as lições da revista
+                            pelos {words.many}.
                         </p>
-                        <Button asChild className="mt-4">
-                            <Link href={meetingsIndex(classroom.slug)}>
-                                Abrir {words.Many}
-                            </Link>
-                        </Button>
+                        <div className="mt-4">{plan}</div>
                     </EmptyState>
-                )}
-
-                <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                    <div className="min-w-0 space-y-8">
-                        {overview.pending.length > 0 && (
-                            <Pending
-                                classroom={classroom}
-                                items={overview.pending}
-                            />
+                ) : (
+                    <div className="overflow-hidden rounded-2xl border bg-card">
+                        <GroupLabel>Próximos</GroupLabel>
+                        {next.length === 0 ? (
+                            <p className="px-4 pb-4 text-sm text-muted-foreground">
+                                Nada marcado daqui para frente.
+                            </p>
+                        ) : (
+                            <ul className="divide-y">
+                                {next.map((row) => (
+                                    <AgendaRow
+                                        key={row.id}
+                                        classroom={classroom}
+                                        row={row}
+                                        today={overview.today}
+                                        here={here}
+                                        highlight={row.id === highlightId}
+                                        message={messages.get(row.id)}
+                                        readers={
+                                            row.id === overview.week?.meeting.id
+                                                ? overview.home_study
+                                                : null
+                                        }
+                                    />
+                                ))}
+                            </ul>
                         )}
 
-                        <Section
-                            title={`Próximos ${words.many}`}
-                            icon={<CalendarClock />}
-                        >
-                            {later.length > 0 ? (
-                                <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
-                                    {later.map((row) => (
-                                        <li key={row.id}>
-                                            <MeetingRow
-                                                classroom={classroom}
-                                                row={row}
-                                            />
-                                        </li>
+                        {past.length > 0 && (
+                            <>
+                                <GroupLabel className="border-t">
+                                    Já foram
+                                </GroupLabel>
+                                <ul className="divide-y">
+                                    {past.map((row) => (
+                                        <AgendaRow
+                                            key={row.id}
+                                            classroom={classroom}
+                                            row={row}
+                                            today={overview.today}
+                                            here={here}
+                                        />
                                     ))}
                                 </ul>
-                            ) : (
-                                <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                    Nada marcado depois deste {words.one}.
-                                </p>
-                            )}
-                            <Link
-                                href={meetingsIndex(classroom.slug)}
-                                className="mt-3 inline-flex min-h-10 items-center gap-1 text-sm font-medium text-primary hover:underline"
-                            >
-                                Todos os {words.many}{' '}
-                                <ChevronRight className="size-4" />
-                            </Link>
-                        </Section>
-
-                        {upcoming.total > 0 && (
-                            <GroupMessages
-                                classroom={classroom}
-                                items={upcoming.data}
-                            />
-                        )}
-
-                        {overview.recent.length > 0 && (
-                            <Past
-                                classroom={classroom}
-                                items={overview.recent}
-                                last={overview.last_sunday}
-                            />
+                            </>
                         )}
                     </div>
+                )}
 
-                    <aside className="min-w-0 space-y-8" aria-label="Alunos">
-                        <Attention
-                            classroom={classroom}
-                            items={overview.attention}
-                            thresholds={overview.thresholds}
-                        />
-
-                        {overview.birthdays.length > 0 && (
-                            <Birthdays
-                                items={overview.birthdays}
-                                today={overview.today}
-                                program={words.program}
-                            />
-                        )}
-
-                        <nav
-                            aria-label={`Mais da classe ${classroom.name}`}
-                            className="divide-y overflow-hidden rounded-2xl border bg-card text-sm"
-                        >
-                            <MoreLink
-                                href={studentsIndex.url(classroom.slug)}
-                                icon={<Users />}
-                                label={`Todos os alunos (${stats.students})`}
-                            />
-                            <MoreLink
-                                href={report.url(classroom.slug)}
-                                icon={<FileText />}
-                                label="Relatório"
-                                hint={
-                                    overview.home_study?.rate != null
-                                        ? `${overview.home_study.rate}% estudaram em casa`
-                                        : undefined
-                                }
-                            />
-                            <MoreLink
-                                href={questions.url(classroom.slug)}
-                                icon={<MessageCircleQuestion />}
-                                label="Dúvidas dos alunos"
-                            />
-                        </nav>
-                    </aside>
-                </div>
+                <Link
+                    href={meetingsIndex.url(classroom.slug)}
+                    className="mt-3 inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline"
+                >
+                    Datas anteriores e todos os {words.many}
+                </Link>
             </Page>
         </>
     );
 }
 
-function MoreLink({
-    href,
-    icon,
-    label,
-    hint,
+function GroupLabel({
+    children,
+    className,
 }: {
-    href: string;
-    icon: ReactNode;
-    label: string;
-    hint?: string;
+    children: ReactNode;
+    className?: string;
 }) {
     return (
-        <Link
-            href={href}
-            className="flex min-h-12 items-center gap-3 px-4 py-2.5 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-muted-foreground"
+        <h2
+            className={cn(
+                'px-4 pt-4 pb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase',
+                className,
+            )}
         >
-            {icon}
-            <span className="min-w-0 flex-1">
-                <span className="block font-medium">{label}</span>
-                {hint && (
-                    <span className="block text-muted-foreground">{hint}</span>
-                )}
-            </span>
-            <ChevronRight />
-        </Link>
+            {children}
+        </h2>
     );
 }
 
-function Pending({
-    classroom,
-    items,
-}: {
-    classroom: Classroom;
-    items: Overview['pending'];
-}) {
-    const words = meetingWords(classroom);
-
+function MenuLink({ href, children }: { href: string; children: ReactNode }) {
     return (
-        <section className="rounded-2xl border border-warning/50 bg-warning-soft p-4">
-            <h2 className="flex items-center gap-2 font-semibold text-warning-foreground">
-                <AlertTriangle className="size-5" /> {words.Many} para confirmar
-            </h2>
-            <p className="mt-1 text-sm text-warning-foreground/80">
-                Já passaram e continuam “planejados”. Faça a chamada ou marque
-                se teve aula.
-            </p>
-            <ul className="mt-3 space-y-2">
-                {items.map((item) => (
-                    <li key={item.id}>
-                        <Link
-                            href={meetingPage({
-                                classroom: classroom.slug,
-                                meeting: item.id,
-                            })}
-                            className="flex items-center gap-3 rounded-xl bg-card px-3 py-2.5 text-sm hover:bg-muted/60"
-                        >
-                            <span className="min-w-0 flex-1">
-                                <span className="font-medium">
-                                    {dayMonth(item.held_on)}
-                                </span>
-                                <span className="text-muted-foreground">
-                                    {' · '}
-                                    {item.lesson ??
-                                        item.title ??
-                                        'Lição a definir'}
-                                </span>
-                            </span>
-                            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                        </Link>
-                    </li>
-                ))}
-            </ul>
-        </section>
-    );
-}
-
-function WeekCard({
-    classroom,
-    week,
-    here,
-}: {
-    classroom: Classroom;
-    week: NonNullable<Overview['week']>;
-    here: string;
-}) {
-    const { meeting, lesson, summary } = week;
-    const words = meetingWords(classroom);
-    const url = meetingPage({ classroom: classroom.slug, meeting: meeting.id });
-
-    return (
-        <section className="rounded-2xl border border-primary/30 bg-accent/40 p-5 sm:p-6">
-            <p className="text-sm font-medium text-primary">
-                {meeting.is_today
-                    ? 'Hoje'
-                    : `Próximo ${words.one} · ${dayMonth(meeting.held_on)}`}
-            </p>
-            <h2 className="mt-1 font-serif text-2xl font-semibold text-balance sm:text-3xl">
-                {lesson?.display_title ?? meeting.title ?? 'Lição a definir'}
-            </h2>
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                {week.meeting_total > 1 && (
-                    <span>
-                        {words.one} {week.meeting_index} de {week.meeting_total}{' '}
-                        da lição
-                    </span>
-                )}
-                {lesson?.status === 'draft' && (
-                    <StatusBadge status="draft" label="Rascunho" />
-                )}
-            </p>
-
-            {week.cancelled_before.map((item) => (
-                <p
-                    key={item.held_on}
-                    className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm"
-                >
-                    {longDate(item.held_on)}: sem {words.program}
-                    {item.title ? ` (${item.title})` : ''}.
-                </p>
-            ))}
-
-            {summary && (
-                <p className="mt-4 flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-sm text-success-foreground">
-                    <CalendarCheck className="size-4 shrink-0" /> Chamada feita:{' '}
-                    {summary.present} de {summary.expected} presentes
-                    {summary.visitors > 0 &&
-                        ` · ${plural(summary.visitors, 'visitante', 'visitantes')}`}
-                </p>
-            )}
-
-            <div className="mt-4 flex flex-wrap gap-2">
-                {lesson && (
-                    <Button asChild>
-                        <Link
-                            href={sunday.url(lesson.slug, {
-                                query: { voltar: here },
-                            })}
-                        >
-                            <Presentation /> Modo Domingo
-                        </Link>
-                    </Button>
-                )}
-                {lesson && meeting.is_today && !meeting.is_finished && (
-                    <FinishMeetingDialog
-                        meetingId={meeting.id}
-                        initialNotes={meeting.notes}
-                        classroom={classroom}
-                    >
-                        <Button variant="outline">
-                            <Flag /> Encerrar aula
-                        </Button>
-                    </FinishMeetingDialog>
-                )}
-                {lesson && (
-                    <Button asChild variant="outline">
-                        <Link href={editLesson(lesson.id)}>
-                            <Pencil /> Editar lição
-                        </Link>
-                    </Button>
-                )}
-                <Button asChild variant="outline">
-                    <Link href={url}>
-                        {week.can_take_attendance && !meeting.has_attendance ? (
-                            <>
-                                <Users /> Fazer chamada
-                            </>
-                        ) : (
-                            <>
-                                <CalendarCheck /> Ver o {words.one}
-                            </>
-                        )}
-                    </Link>
-                </Button>
-            </div>
-
-            {week.weekly_message && (
-                <details className="group mt-4 rounded-xl border bg-background/60">
-                    <summary className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm font-medium marker:content-none">
-                        <MessageSquareText className="size-4 text-primary" />
-                        Mensagem da semana para o grupo
-                        <ChevronRight className="ml-auto size-4 text-muted-foreground transition-transform group-open:rotate-90" />
-                    </summary>
-                    <div className="border-t px-3 py-3">
-                        <pre className="max-h-56 overflow-auto rounded-lg bg-muted/60 p-3 font-sans text-sm whitespace-pre-wrap">
-                            {week.weekly_message}
-                        </pre>
-                        <div className="mt-3">
-                            <CopyWhatsAppButtons
-                                text={week.weekly_message}
-                                copyLabel="Copiar mensagem"
-                            />
-                        </div>
-                    </div>
-                </details>
-            )}
-        </section>
+        <DropdownMenuItem asChild>
+            <Link href={href}>{children}</Link>
+        </DropdownMenuItem>
     );
 }
 
 /**
- * Mensagens prontas das próximas lições, para adiantar o envio no grupo.
- * Recolhidas: só abrem quando a pessoa quer mandar.
+ * Uma data da agenda: quando, qual lição, como está e a ação que falta.
+ * Futuras: apresentar, mandar a mensagem, terminar ou escolher a lição.
+ * Passadas: a chamada (ou "fazer a chamada", se ficou pendente) e quem faltou.
  */
-function GroupMessages({
+function AgendaRow({
     classroom,
-    items,
+    row,
+    today,
+    here,
+    highlight = false,
+    message,
+    readers = null,
 }: {
     classroom: Classroom;
-    items: UpcomingLesson[];
+    row: Row;
+    today: string;
+    here: string;
+    highlight?: boolean;
+    message?: string;
+    readers?: { readers: number; expected: number } | null;
 }) {
+    const [absentOpen, setAbsentOpen] = useState(false);
     const words = meetingWords(classroom);
-    const withMessage = items.filter((item) => item.message);
+    const cancelled = row.status === 'cancelled';
+    const future = row.held_on > today;
+    const url = meetingPage.url({ classroom: classroom.slug, meeting: row.id });
+    const lesson = row.lesson;
+    const date = `${dateTile(row.held_on).weekday}, ${dayMonth(row.held_on)}`;
+    const when = row.is_today ? 'hoje' : relativeDay(row.held_on, today);
+    const title = cancelled
+        ? `Sem ${words.program}${row.title ? ` · ${row.title}` : ''}`
+        : (lesson?.display_title ?? row.title ?? 'Sem lição');
+    const needsAttendance =
+        !cancelled &&
+        !row.has_attendance &&
+        (row.is_today || row.awaiting_confirmation);
 
-    if (withMessage.length === 0) {
-        return null;
+    const details = [
+        row.position &&
+            row.position.total > 1 &&
+            `${words.one} ${row.position.index} de ${row.position.total}`,
+        readers && `${readers.readers} de ${readers.expected} já leram`,
+        row.summary &&
+            `${row.summary.present} de ${row.summary.expected} presentes${
+                row.summary.visitors > 0
+                    ? ` · ${plural(row.summary.visitors, 'visitante', 'visitantes')}`
+                    : ''
+            }`,
+        row.awaiting_confirmation && !row.has_attendance && 'chamada pendente',
+    ].filter(Boolean);
+
+    const actions: ReactNode[] = [];
+
+    if (needsAttendance) {
+        actions.push(
+            <Button key="chamada" asChild>
+                <Link href={url}>Fazer chamada</Link>
+            </Button>,
+        );
+    }
+
+    if (!cancelled && (future || row.is_today)) {
+        if (!lesson) {
+            actions.push(
+                <Button key="escolher" asChild variant="outline">
+                    <Link href={url}>Escolher lição</Link>
+                </Button>,
+            );
+        } else if (lesson.status === 'draft') {
+            actions.push(
+                <Button key="terminar" asChild variant="outline">
+                    <Link href={editLesson.url(lesson.id)}>Terminar lição</Link>
+                </Button>,
+            );
+        } else if (highlight) {
+            actions.push(
+                <Button
+                    key="apresentar"
+                    asChild
+                    variant={needsAttendance ? 'outline' : 'default'}
+                >
+                    <Link
+                        href={sunday.url(lesson.slug, {
+                            query: { voltar: here },
+                        })}
+                    >
+                        <Presentation /> Apresentar lição
+                    </Link>
+                </Button>,
+            );
+        }
+
+        if (lesson?.status === 'published' && message) {
+            actions.push(
+                <MessageDialog
+                    key="mensagem"
+                    title={lesson.display_title}
+                    text={message}
+                />,
+            );
+        }
+    }
+
+    if (!future && !row.is_today && row.has_attendance) {
+        actions.push(
+            row.absent.length > 0 ? (
+                <Button
+                    key="ausentes"
+                    variant="outline"
+                    aria-expanded={absentOpen}
+                    onClick={() => setAbsentOpen((open) => !open)}
+                    className="border-warning/50 text-warning-foreground"
+                >
+                    Ausentes ({row.absent.length})
+                    <ChevronDown
+                        className={cn(
+                            'transition-transform',
+                            absentOpen && 'rotate-180',
+                        )}
+                    />
+                </Button>
+            ) : (
+                <span
+                    key="todos"
+                    className="self-center px-1 text-sm text-muted-foreground"
+                >
+                    Todos vieram
+                </span>
+            ),
+            <Button key="ver" asChild variant="outline">
+                <Link href={url}>Chamada</Link>
+            </Button>,
+        );
     }
 
     return (
-        <Section title="Mensagens para o grupo" icon={<MessageSquareText />}>
-            <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
-                {withMessage.map((item) => (
-                    <li key={item.lesson.id}>
-                        <details className="group">
-                            <summary className="flex min-h-12 cursor-pointer items-center gap-3 px-4 py-2.5 marker:content-none hover:bg-muted/50 [&::-webkit-details-marker]:hidden">
-                                <span className="min-w-0 flex-1">
-                                    <span className="block truncate font-medium">
-                                        {item.lesson.display_title}
-                                    </span>
-                                    <span className="block text-sm text-muted-foreground">
-                                        {item.is_today
-                                            ? 'Hoje'
-                                            : `${classroom.meeting_weekday_label ?? words.One}, ${dayMonth(item.held_on)}`}
-                                    </span>
-                                </span>
-                                {item.lesson.status === 'draft' && (
-                                    <StatusBadge
-                                        status="draft"
-                                        label="Rascunho"
-                                    />
-                                )}
-                                <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
-                            </summary>
-                            <div className="px-4 pb-4">
-                                {item.lesson.status === 'draft' && (
-                                    <p className="mb-2 text-sm text-warning-foreground">
-                                        Rascunho: publique a lição antes de
-                                        mandar, senão os alunos não conseguem
-                                        abrir o link.
-                                    </p>
-                                )}
-                                <pre className="max-h-56 overflow-auto rounded-lg bg-muted/60 p-3 font-sans text-sm whitespace-pre-wrap">
-                                    {item.message}
-                                </pre>
-                                <div className="mt-3">
-                                    <CopyWhatsAppButtons
-                                        text={item.message ?? ''}
-                                        copyLabel="Copiar mensagem"
-                                    />
-                                </div>
-                            </div>
-                        </details>
-                    </li>
-                ))}
-            </ul>
-        </Section>
-    );
-}
-
-/** Domingos que já foram: presença de cada um e "onde paramos" no último. */
-function Past({
-    classroom,
-    items,
-    last,
-}: {
-    classroom: Classroom;
-    items: SundayRow[];
-    last: Overview['last_sunday'];
-}) {
-    const words = meetingWords(classroom);
-
-    return (
-        <Section title={`Já foram`} icon={<CalendarCheck />}>
-            {last?.notes && (
-                <p className="mb-3 flex gap-2 rounded-xl bg-highlight/50 px-3 py-2 text-sm text-highlight-foreground">
-                    <StickyNote className="mt-0.5 size-4 shrink-0" />
-                    <span>
-                        <span className="font-medium">Onde paramos:</span>{' '}
-                        {last.notes}
-                    </span>
-                </p>
+        <li
+            className={cn(
+                'px-4 py-3 sm:grid sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center sm:gap-4',
+                highlight && 'bg-accent/40',
             )}
-            <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
-                {items.map((item) => (
-                    <li key={item.id}>
-                        <Link
-                            href={meetingPage({
-                                classroom: classroom.slug,
-                                meeting: item.id,
-                            })}
-                            className="flex min-h-12 items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
-                        >
-                            <span className="w-20 shrink-0 whitespace-nowrap text-muted-foreground tabular-nums">
-                                {dayMonth(item.held_on)}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">
-                                {item.lesson ?? item.title ?? 'Sem lição'}
-                            </span>
-                            <span className="shrink-0 tabular-nums">
-                                {item.present} de {item.expected}
-                            </span>
-                            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                        </Link>
-                    </li>
-                ))}
-            </ul>
-            <p className="mt-2 text-xs text-muted-foreground">
-                Presentes em cada {words.one}, sem contar visitantes.
-            </p>
-        </Section>
-    );
-}
-
-function Attention({
-    classroom,
-    items,
-    thresholds,
-}: {
-    classroom: Classroom;
-    items: Overview['attention'];
-    thresholds: Overview['thresholds'];
-}) {
-    return (
-        <Section
-            title="Precisam de atenção"
-            icon={<AlertTriangle />}
-            description={`${thresholds.missed_meetings} faltas seguidas ou ${thresholds.inactive_days} dias sem leitura. Quem entrou há menos de ${thresholds.new_student_days} dias fica de fora.`}
         >
-            {items.length === 0 ? (
-                <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                    Ninguém por enquanto.
-                </p>
-            ) : (
-                <ul className="divide-y rounded-2xl border bg-card">
-                    {items.map((student) => (
+            <p className="hidden text-sm font-semibold sm:block">
+                {date}
+                {(future || row.is_today) && (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                        {when}
+                    </span>
+                )}
+            </p>
+            <div className="min-w-0">
+                <div className="flex items-baseline justify-between gap-3">
+                    <Link
+                        href={url}
+                        className={cn(
+                            'min-w-0 font-medium hover:underline',
+                            (cancelled || (!lesson && !row.title)) &&
+                                'text-muted-foreground',
+                        )}
+                    >
+                        {title}
+                        {lesson?.status === 'draft' && (
+                            <StatusBadge
+                                status="draft"
+                                label="Rascunho"
+                                className="ml-2 align-middle"
+                            />
+                        )}
+                    </Link>
+                    <span className="shrink-0 text-xs font-semibold text-muted-foreground sm:hidden">
+                        {row.is_today ? 'hoje' : date}
+                    </span>
+                </div>
+                {details.length > 0 && (
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                        {details.join(' · ')}
+                    </p>
+                )}
+            </div>
+            {(actions.length > 0 || future) && (
+                <div className="mt-3 flex gap-2 sm:mt-0 sm:flex-wrap sm:justify-end max-sm:[&>*:first-child]:flex-1 max-sm:[&_svg.lucide-presentation]:hidden max-sm:[&_svg.lucide-message-square-text]:hidden">
+                    {actions}
+                    {future && (
+                        <RowMenu
+                            url={url}
+                            lessonId={lesson?.id ?? null}
+                            label={`Mais ações de ${date}`}
+                            words={words}
+                        />
+                    )}
+                </div>
+            )}
+            {absentOpen && (
+                <ul className="mt-3 space-y-2 sm:col-start-2 sm:col-end-4">
+                    {row.absent.map((student) => (
                         <li
                             key={student.id}
-                            className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
+                            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-warning-soft/60 px-3 py-2 text-sm"
                         >
                             <Link
-                                href={studentPage({
+                                href={studentPage.url({
                                     classroom: classroom.slug,
                                     user: student.id,
                                 })}
-                                className="min-w-36 flex-1 hover:underline"
+                                className="min-w-0 flex-1 hover:underline"
                             >
-                                <span className="block truncate font-medium">
+                                <span className="font-medium">
                                     {student.name}
                                 </span>
-                                <span className="block text-sm text-muted-foreground">
-                                    {student.reasons.join(' · ')}
-                                    {student.last_present_on &&
-                                        ` · última presença ${dayMonth(student.last_present_on)}`}
-                                </span>
+                                {student.missed_in_a_row > 1 && (
+                                    <span className="text-muted-foreground">
+                                        {' '}
+                                        · faltou os {
+                                            student.missed_in_a_row
+                                        }{' '}
+                                        últimos
+                                    </span>
+                                )}
                             </Link>
                             <WhatsAppButton
                                 phone={student.phone}
                                 text={missYouMessage(
                                     student.name,
                                     classroom.name,
-                                    meetingWords(classroom).program,
+                                    words.program,
                                 )}
-                                variant="outline"
                             />
                         </li>
                     ))}
                 </ul>
             )}
-        </Section>
+        </li>
     );
 }
 
-function Birthdays({
-    items,
-    today,
-    program,
+function RowMenu({
+    url,
+    lessonId,
+    label,
+    words,
 }: {
-    items: Overview['birthdays'];
-    today: string;
-    program: string;
+    url: string;
+    lessonId: number | null;
+    label: string;
+    words: ReturnType<typeof meetingWords>;
 }) {
     return (
-        <Section title="Aniversariantes do mês" icon={<Cake />}>
-            <ul className="divide-y rounded-2xl border bg-card">
-                {items.map((person) => {
-                    const date = `${today.slice(0, 8)}${String(person.day).padStart(2, '0')}`;
-                    const tile = dateTile(date);
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label={label}>
+                    <Ellipsis />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <MenuLink href={url}>
+                    Abrir o {words.one} (trocar lição, sem {words.program})
+                </MenuLink>
+                {lessonId !== null && (
+                    <MenuLink href={editLesson.url(lessonId)}>
+                        Editar lição
+                    </MenuLink>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
 
-                    return (
-                        <li
-                            key={person.id}
-                            className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
-                        >
-                            <div className="w-10 shrink-0 text-center">
-                                <p className="text-xs text-muted-foreground uppercase">
-                                    {tile.weekday}
-                                </p>
-                                <p className="font-serif text-xl font-semibold tabular-nums">
-                                    {person.day}
-                                </p>
-                            </div>
-                            <div className="min-w-24 flex-1">
-                                <p className="truncate font-medium">
-                                    {person.name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    {person.is_today
-                                        ? `Hoje! Faz ${person.turning} anos 🎉`
-                                        : `${date < today ? 'Fez' : 'Faz'} ${person.turning} anos · ${relativeDay(date, today)}`}
-                                </p>
-                            </div>
-                            <WhatsAppButton
-                                phone={person.phone}
-                                text={birthdayMessage(person.name, program)}
-                                label="Parabéns"
-                                variant={
-                                    person.is_today ? 'default' : 'outline'
-                                }
-                            />
-                        </li>
-                    );
-                })}
-            </ul>
-        </Section>
+/** Mensagem pronta da lição para o grupo da classe. */
+function MessageDialog({ title, text }: { title: string; text: string }) {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <MessageSquareText />
+                    <span>
+                        Mensagem
+                        <span className="hidden sm:inline"> do grupo</span>
+                    </span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Mensagem para o grupo</DialogTitle>
+                    <DialogDescription>{title}</DialogDescription>
+                </DialogHeader>
+                <pre className="max-h-72 overflow-auto rounded-lg bg-muted/60 p-3 font-sans text-sm whitespace-pre-wrap">
+                    {text}
+                </pre>
+                <CopyWhatsAppButtons text={text} copyLabel="Copiar mensagem" />
+            </DialogContent>
+        </Dialog>
     );
 }
