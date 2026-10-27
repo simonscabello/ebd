@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Chamada de um domingo (Modo Domingo, página do domingo e MCP). Recebe a lista
+ * Chamada de um domingo (página do domingo e MCP). Recebe a lista
  * completa de presentes da classe (sincroniza), então reenviar por causa de
  * Wi-Fi ruim não duplica nada. Só a lista dos alunos atuais é sincronizada:
  * quem saiu da classe depois daquele domingo continua na chamada dele.

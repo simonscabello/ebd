@@ -160,7 +160,7 @@ export default function ClassroomReport({
                         icon={<FileBarChart />}
                         title={`Nenhum ${words.one} com chamada neste período`}
                     >
-                        A chamada é feita no Modo Domingo ou na página de cada{' '}
+                        A chamada é feita em Fazer chamada ou na página de cada{' '}
                         {words.one}.
                     </EmptyState>
                 ) : (

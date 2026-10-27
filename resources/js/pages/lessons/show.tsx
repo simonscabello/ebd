@@ -15,7 +15,6 @@ import {
     NotebookText,
     Paperclip,
     PenLine,
-    Presentation,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { BiblePassage } from '@/components/lesson/bible-passage';
@@ -45,7 +44,7 @@ import { Button } from '@/components/ui/button';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { home, library, login } from '@/routes';
 import { edit } from '@/routes/admin/lessons';
-import { show, sunday } from '@/routes/lessons';
+import { show } from '@/routes/lessons';
 import type { Lesson, LessonAudioFile } from '@/types';
 
 type Study = {
@@ -287,11 +286,6 @@ export default function LessonShow({
                         title={lesson.title}
                         text={shareText}
                     />
-                    <Button asChild variant="outline">
-                        <Link href={sunday(lesson.slug)}>
-                            <Presentation /> Modo Domingo
-                        </Link>
-                    </Button>
                     {canManage && (
                         <Button asChild variant="outline">
                             <Link href={edit(lesson.id)}>

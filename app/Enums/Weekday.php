@@ -69,7 +69,7 @@ enum Weekday: int
 
     /**
      * Nome do encontro na interface: quem se reúne no domingo continua vendo
-     * "Domingo" (Modo Domingo); os outros dias, "Encontro".
+     * "Domingo"; os outros dias, "Encontro".
      */
     public function meetingName(): string
     {

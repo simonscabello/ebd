@@ -40,7 +40,6 @@ Route::get('/', HomeController::class)->name('home');
 Route::get('apoie', [SiteController::class, 'support'])->name('support');
 
 Route::get('licoes/{lesson:slug}', [LessonController::class, 'show'])->name('lessons.show');
-Route::get('licoes/{lesson:slug}/domingo', [LessonController::class, 'sunday'])->name('lessons.sunday');
 
 // Texto das referências bíblicas clicáveis no estudo (painel com os versículos).
 Route::get('biblia', BibleController::class)->middleware('throttle:library')->name('bible.show');

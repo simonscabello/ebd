@@ -12,7 +12,6 @@ import {
     FileText,
     Layers,
     Paperclip,
-    Presentation,
     Send,
     Trash2,
 } from 'lucide-react';
@@ -53,7 +52,6 @@ type EditableLesson = {
     title: string;
     slug: string;
     url: string;
-    sunday_url: string;
     summary: string | null;
     bible_reference: string | null;
     key_verse: string | null;
@@ -199,11 +197,6 @@ export default function EditLesson({
                             <a href={lesson.url} target="_blank" rel="noopener">
                                 <ExternalLink /> Ver lição
                             </a>
-                        </Button>
-                        <Button asChild variant="outline">
-                            <Link href={lesson.sunday_url}>
-                                <Presentation /> Apresentar lição
-                            </Link>
                         </Button>
                     </div>
                     {lesson.status === 'draft' && (

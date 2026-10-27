@@ -13,7 +13,7 @@ export type Classroom = {
     meeting_weekday_label?: string;
     /** "domingo", "quarta-feira". */
     meeting_day?: string;
-    /** "Domingo" (Modo Domingo) ou "Encontro" nos outros dias. */
+    /** "Domingo" ou "Encontro" nos outros dias. */
     meeting_name?: string;
     meeting_name_plural?: string;
     program_name?: string | null;
@@ -192,7 +192,7 @@ export type Lesson = {
     teacher_blocks?: LessonBlock[];
     meetings?: ClassMeeting[];
     materials_count?: number;
-    /** Só na página da lição e no Modo Domingo. */
+    /** Só na página da lição. */
     bible_passage?: BiblePassage | null;
     content_html?: string | null;
     topics?: string[];

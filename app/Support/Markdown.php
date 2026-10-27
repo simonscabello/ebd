@@ -27,7 +27,7 @@ class Markdown
     }
 
     /**
-     * Títulos de seção (## e ###) usados como tópicos no Modo Domingo.
+     * Títulos de seção (## e ###): as partes do estudo.
      *
      * @return list<string>
      */

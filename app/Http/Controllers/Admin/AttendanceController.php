@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * Chamada (Modo Domingo e página do domingo) e "Encerrar aula".
+ * Chamada (página do domingo) e "Encerrar aula".
  */
 class AttendanceController extends Controller
 {

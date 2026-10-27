@@ -23,7 +23,7 @@ class LessonResource extends JsonResource
 
     private bool $withTeacherContent = false;
 
-    /** Inclui o conteúdo completo em HTML (página da lição / Modo Domingo). */
+    /** Inclui o conteúdo completo em HTML (página da lição). */
     public function withContent(): static
     {
         $this->withContent = true;

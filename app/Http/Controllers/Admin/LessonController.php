@@ -145,7 +145,6 @@ class LessonController extends Controller
                 'title' => $lesson->title,
                 'slug' => $lesson->slug,
                 'url' => route('lessons.show', $lesson->slug),
-                'sunday_url' => route('lessons.sunday', $lesson->slug),
                 'summary' => $lesson->summary,
                 'bible_reference' => $lesson->bible_reference,
                 'key_verse' => $lesson->key_verse,

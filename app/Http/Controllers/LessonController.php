@@ -8,7 +8,6 @@ use App\Http\Resources\ClassMeetingResource;
 use App\Http\Resources\LessonAudioResource;
 use App\Http\Resources\LessonResource;
 use App\Models\Lesson;
-use App\Queries\MeetingForLessonQuery;
 use App\Support\ChurchCalendar;
 use App\Support\ChurchFeatures;
 use App\Support\ReadingWeeks;
@@ -39,27 +38,6 @@ class LessonController extends Controller
         ]);
     }
 
-    /**
-     * Modo Domingo: visual limpo para conduzir/acompanhar a aula.
-     */
-    public function sunday(Request $request, Lesson $lesson): Response
-    {
-        $this->authorizeView($request, $lesson);
-
-        $canManage = $request->user()?->can('update', $lesson) ?? false;
-
-        $back = $request->query('voltar');
-
-        return Inertia::render('lessons/sunday', [
-            'lesson' => $this->present($request, $lesson),
-            'canManage' => $canManage,
-            // Chamada e "encerrar aula": só para quem conduz a classe.
-            'conduct' => $canManage ? $this->conduct($request, $lesson) : null,
-            // "Sair" volta para a gestão quando o Modo Domingo foi aberto de lá.
-            'backUrl' => $canManage && is_string($back) && str_starts_with($back, '/admin/') && ! str_contains($back, '//') ? $back : null,
-        ]);
-    }
-
     private function authorizeView(Request $request, Lesson $lesson): void
     {
         // Visitante tentando abrir lição restrita a membros: manda para o login
@@ -72,39 +50,6 @@ class LessonController extends Controller
         if (Gate::denies('view', $lesson)) {
             abort(404);
         }
-    }
-
-    /**
-     * Encontro conduzido agora e lista de alunos para a chamada.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function conduct(Request $request, Lesson $lesson): ?array
-    {
-        $meeting = app(MeetingForLessonQuery::class)->for($lesson);
-
-        if ($meeting === null) {
-            return null;
-        }
-
-        $roster = $lesson->classroom->students()
-            ->orderBy('name')
-            ->get(['users.id', 'users.name'])
-            ->map(fn ($student) => ['id' => $student->id, 'name' => $student->name]);
-
-        return [
-            'meeting' => ClassMeetingResource::make($meeting)->withNotes()->resolve($request),
-            // Domingo passado já com chamada: a correção é feita na página do domingo.
-            'can_take_attendance' => $meeting->held_on->toDateString() === ChurchCalendar::todayString()
-                || ($meeting->held_on->toDateString() < ChurchCalendar::todayString() && $meeting->attendance_taken_at === null),
-            'roster' => $roster,
-            // Só quem continua na classe: a chamada reenvia esta lista inteira.
-            'present' => $meeting->attendances()->pluck('user_id')
-                ->map(fn ($id) => (int) $id)
-                ->intersect($roster->pluck('id'))
-                ->values(),
-            'meeting_url' => route('admin.classrooms.meetings.show', [$lesson->classroom, $meeting]),
-        ];
     }
 
     /**

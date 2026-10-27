@@ -9,7 +9,6 @@ import {
     ChevronRight,
     ExternalLink,
     Pencil,
-    Presentation,
     RotateCcw,
     StickyNote,
 } from 'lucide-react';
@@ -34,11 +33,9 @@ import { useAutosave } from '@/hooks/use-autosave';
 import { dayMonth, longDate } from '@/lib/dates';
 import { meetingWords } from '@/lib/meeting-words';
 import { show as classroomPage } from '@/routes/admin/classrooms';
-import { show } from '@/routes/admin/classrooms/meetings';
 import { edit as editLesson } from '@/routes/admin/lessons';
 import { held, restore, update } from '@/routes/admin/meetings';
 import { update as updateNotes } from '@/routes/admin/meetings/notes';
-import { sunday } from '@/routes/lessons';
 import type {
     ClassMeeting,
     Classroom,
@@ -89,7 +86,6 @@ export default function MeetingPage({
     const words = meetingWords(classroom);
     const past = !meeting.is_future;
     const date = longDate(meeting.held_on);
-    const here = show.url({ classroom: classroom.slug, meeting: meeting.id });
     const lessonTitle = meeting.lesson?.display_title ?? 'Sem lição';
 
     const post = (url: string) =>
@@ -133,18 +129,6 @@ export default function MeetingPage({
                         }
                         actions={
                             <>
-                                {meeting.lesson && !cancelled && (
-                                    <Button asChild>
-                                        <Link
-                                            href={sunday.url(
-                                                meeting.lesson.slug,
-                                                { query: { voltar: here } },
-                                            )}
-                                        >
-                                            <Presentation /> Apresentar lição
-                                        </Link>
-                                    </Button>
-                                )}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline">

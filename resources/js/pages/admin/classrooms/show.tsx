@@ -1,11 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import {
-    BookOpen,
-    Check,
-    MessageSquareText,
-    Pencil,
-    Presentation,
-} from 'lucide-react';
+import { BookOpen, Check, MessageSquareText, Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ClassroomShell } from '@/components/admin/classroom-header';
 import type { ClassroomHeaderData } from '@/components/admin/classroom-header';
@@ -32,12 +26,12 @@ import { WhatsAppButton } from '@/components/whatsapp-button';
 import { dayMonth, relativeDay } from '@/lib/dates';
 import { meetingWords } from '@/lib/meeting-words';
 import { missYouMessage } from '@/lib/whatsapp';
-import { lessons, show as classroomPage } from '@/routes/admin/classrooms';
+import { lessons } from '@/routes/admin/classrooms';
 import { advance } from '@/routes/admin/classrooms/current-lesson';
 import { show as meetingPage } from '@/routes/admin/classrooms/meetings';
 import { show as studentPage } from '@/routes/admin/classrooms/students';
 import { edit as editLesson } from '@/routes/admin/lessons';
-import { sunday } from '@/routes/lessons';
+import { show } from '@/routes/lessons';
 import type { Classroom, LessonStatus } from '@/types';
 
 type LessonRow = {
@@ -110,7 +104,6 @@ export default function ClassroomOverview({
     upNext,
 }: Props) {
     const words = meetingWords(classroom);
-    const here = classroomPage.url(classroom.slug);
     const lastAttendance = overview.recent[0] ?? null;
 
     return (
@@ -133,7 +126,6 @@ export default function ClassroomOverview({
                                 next={upNext[0] ?? null}
                                 overview={overview}
                                 canManage={header.can_manage}
-                                here={here}
                             />
                         ) : (
                             <section className="rounded-2xl border border-dashed p-6">
@@ -358,14 +350,12 @@ function CurrentLessonCard({
     next,
     overview,
     canManage,
-    here,
 }: {
     classroom: Classroom;
     current: Current;
     next: LessonRow | null;
     overview: Overview;
     canManage: boolean;
-    here: string;
 }) {
     const words = meetingWords(classroom);
     const meeting = overview.week?.meeting ?? null;
@@ -442,12 +432,8 @@ function CurrentLessonCard({
                     )
                 ) : (
                     <Button asChild>
-                        <Link
-                            href={sunday.url(current.slug, {
-                                query: { voltar: here },
-                            })}
-                        >
-                            <Presentation /> Apresentar lição
+                        <Link href={show.url(current.slug)}>
+                            <BookOpen /> Ver lição
                         </Link>
                     </Button>
                 )}
