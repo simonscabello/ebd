@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $source_series_id estudo oficial de onde veio a cópia
  * @property int|null $source_version versão do estudo oficial que a cópia conhece
  * @property int|null $library_origin_series_id na biblioteca oficial: a série da turma que foi copiada para cá
+ * @property Carbon|null $concluded_at marcada como concluída pelo professor
  */
 #[Fillable(['title', 'slug', 'description', 'starts_on', 'ends_on'])]
 class Series extends Model
@@ -41,6 +42,7 @@ class Series extends Model
             'starts_on' => 'date',
             'ends_on' => 'date',
             'source_version' => 'integer',
+            'concluded_at' => 'datetime',
         ];
     }
 
