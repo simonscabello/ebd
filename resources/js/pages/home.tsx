@@ -335,18 +335,6 @@ function NextLesson({
                     }
                 />
                 <StudyTile
-                    href={readingsHref}
-                    icon={<CalendarDays />}
-                    title="Leituras"
-                    detail={
-                        week?.progress
-                            ? `${week.progress.days_done} de ${week.progress.days_total} dias lidos`
-                            : readings.length
-                              ? `${plural(readings.length, 'leitura', 'leituras')} na semana`
-                              : 'Texto base'
-                    }
-                />
-                <StudyTile
                     href={`${lessonUrl}#materiais`}
                     icon={<BookMarked />}
                     title="Materiais"

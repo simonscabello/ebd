@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookMarked,
+    CalendarDays,
     Heart,
     Home,
     LayoutDashboard,
@@ -31,6 +32,7 @@ import {
     library,
     login,
     logout,
+    myWeek,
     support,
 } from '@/routes';
 import { dashboard } from '@/routes/admin';
@@ -51,8 +53,8 @@ export type NavLinkItem = {
 };
 
 /**
- * Itens do app de estudo. A semana de estudo está no Início (e "Leituras da
- * semana" abre por lá). A gestão não entra aqui: é uma área à parte, aberta
+ * Itens do app de estudo. A semana de estudo aparece resumida no Início e
+ * inteira, dia a dia, em "Minha semana". A gestão não entra aqui: é uma área à parte, aberta
  * pelo botão "Gestão" do topo (ver AdminLayout).
  */
 function useStudyNavItems(): NavLinkItem[] {
@@ -61,6 +63,16 @@ function useStudyNavItems(): NavLinkItem[] {
     const items: NavLinkItem[] = [
         { title: 'Início', href: home.url(), icon: Home },
     ];
+
+    // A semana de estudo dia a dia: só para quem é de uma classe.
+    if (auth.user?.is_member) {
+        items.push({
+            title: 'Minha semana',
+            short: 'Semana',
+            href: myWeek.url(),
+            icon: CalendarDays,
+        });
+    }
 
     items.push({ title: 'Biblioteca', href: library.url(), icon: BookMarked });
 
@@ -90,7 +102,6 @@ export function useIsActive() {
               : item.href === '/'
                 ? currentUrl === '/' ||
                   currentUrl.startsWith('/licoes') ||
-                  currentUrl.startsWith('/minha-semana') ||
                   currentUrl.startsWith('/meu-progresso')
                 : currentUrl.startsWith(
                       new URL(item.href, 'http://x').pathname,

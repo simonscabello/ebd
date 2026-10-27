@@ -113,6 +113,8 @@ class StudyWeekQuery
                     $todayWeekday,
                 )->resolve($request),
                 'blocks_count' => count($blocksByDay[$weekday->value] ?? []),
+                // Conteúdo do dia (Minha semana). Não é bloqueado: a lição mostra tudo.
+                'blocks' => LessonBlockResource::collection($blocksByDay[$weekday->value] ?? [])->resolve($request),
             ];
         }
 

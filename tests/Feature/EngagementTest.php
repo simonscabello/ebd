@@ -122,6 +122,11 @@ class EngagementTest extends TestCase
                 ->where('week.days.2.done', false)
                 ->has('week.todayBlocks', 1)
                 ->where('week.todayBlocks.0.title', 'Siloé significa Enviado')
+                // Cada dia traz o próprio conteúdo; o de sexta já vem (só avisa que chega lá).
+                ->has('week.days.2.blocks', 1)
+                ->where('week.days.4.is_future', true)
+                ->where('week.days.4.blocks.0.title', 'Sexta')
+                ->has('week.days.0.blocks', 0)
                 ->where('week.progress.days_done', 1)
                 ->where('week.progress.days_total', 2)
                 ->missing('week.review')

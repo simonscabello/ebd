@@ -1,13 +1,15 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { ArrowLeft, CalendarDays, Hourglass } from 'lucide-react';
+import { BookOpen, CalendarDays, ChevronRight, Hourglass } from 'lucide-react';
+import { BlockIcon } from '@/components/lesson/block-icon';
 import { ReadingRow, ReadToggle } from '@/components/lesson/reading-plan';
 import { ReadingSheet } from '@/components/lesson/reading-sheet';
 import { EmptyState, Page } from '@/components/page';
 import { WeekBar } from '@/components/progress/week-bar';
+import { DailyBlocks } from '@/components/week/daily-blocks';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn } from '@/lib/utils';
-import { home, myWeek } from '@/routes';
+import { myWeek } from '@/routes';
 import type {
     Classroom,
     LessonReading,
@@ -22,26 +24,19 @@ type Props = {
 };
 
 /**
- * "Leituras da semana": só a lista dos dias, para ler e marcar (adiantar ou
- * pôr em dia). A leitura de hoje, o progresso e o conteúdo do dia ficam no
- * Início.
+ * Minha semana (aba do menu): a semana de estudo dia a dia até a aula. Cada
+ * dia traz a leitura (para ler e marcar, adiantar ou pôr em dia) e o conteúdo
+ * liberado nele. Os próximos dias só avisam quando o conteúdo chega; nada é
+ * bloqueado (a lição mostra tudo).
  */
 export default function WeekReadings({ classrooms, classroom, week }: Props) {
     return (
         <>
-            <Head title="Leituras da semana" />
+            <Head title="Minha semana" />
             <Page>
-                <Link
-                    href={home({
-                        query: classroom ? { classe: classroom.slug } : {},
-                    })}
-                    className="mb-4 inline-flex min-h-9 items-center gap-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                    <ArrowLeft className="size-4" /> Início
-                </Link>
                 <header className="mb-6">
                     <h1 className="font-serif text-3xl font-semibold tracking-tight">
-                        Leituras da semana
+                        Minha semana
                     </h1>
                     {week?.lesson && (
                         <p className="mt-1 text-muted-foreground">
@@ -99,18 +94,18 @@ export default function WeekReadings({ classrooms, classroom, week }: Props) {
                                 : 'Nenhuma lição marcada ainda'
                         }
                     >
-                        Assim que o professor publicar, as leituras da semana
-                        aparecem aqui.
+                        Assim que o professor publicar, as leituras e o conteúdo
+                        de cada dia aparecem aqui.
                     </EmptyState>
                 ) : (
-                    <ReadingList week={week} lesson={week.lesson} />
+                    <DayList week={week} lesson={week.lesson} />
                 )}
             </Page>
         </>
     );
 }
 
-function ReadingList({
+function DayList({
     week,
     lesson,
 }: {
@@ -124,20 +119,14 @@ function ReadingList({
         reading: LessonReading;
     } | null>(null);
 
-    // Uma linha por leitura do plano. Sem plano, cada dia de segunda a sábado
-    // é para reler o texto base.
-    const withReadings = days.filter((d) => d.readings.length > 0);
-    const rows =
-        withReadings.length > 0
-            ? withReadings.flatMap((day) =>
-                  day.readings.map((reading) => ({ day, reading })),
-              )
-            : days
-                  .filter((d) => !d.is_meeting_day)
-                  .map((day) => ({
-                      day,
-                      reading: baseTextReading(day, lesson.bible_reference),
-                  }));
+    // Sem plano de leitura, cada dia antes da aula é para reler o texto base.
+    const hasPlan = days.some((d) => d.readings.length > 0);
+    const readingsOf = (day: StudyWeekDay): LessonReading[] =>
+        hasPlan
+            ? day.readings
+            : day.is_meeting_day
+              ? []
+              : [baseTextReading(day, lesson.bible_reference)];
 
     const openDay = open
         ? (days.find((d) => d.weekday === open.weekday) ?? null)
@@ -181,24 +170,79 @@ function ReadingList({
                 )}
             </section>
 
-            <ul className="space-y-2.5">
-                {rows.map(({ day, reading }) => (
-                    <li key={`${day.date}-${reading.id}`}>
-                        <ReadingRow
-                            badge={day.short}
-                            label={
-                                day.is_today ? `Hoje · ${day.label}` : day.label
-                            }
-                            reference={reading.reference}
-                            isToday={day.is_today}
-                            done={day.done}
-                            onRead={() =>
-                                setOpen({ weekday: day.weekday, reading })
-                            }
-                        />
+            <ol className="space-y-5">
+                {days.map((day) => (
+                    <li key={day.date} className="space-y-2.5">
+                        {readingsOf(day).map((reading) => (
+                            <ReadingRow
+                                key={reading.id}
+                                badge={day.short}
+                                label={
+                                    day.is_today
+                                        ? `Hoje · ${day.label}`
+                                        : day.label
+                                }
+                                reference={reading.reference}
+                                isToday={day.is_today}
+                                done={day.done}
+                                onRead={() =>
+                                    setOpen({ weekday: day.weekday, reading })
+                                }
+                            />
+                        ))}
+                        {day.is_meeting_day && (
+                            <Link
+                                href={lesson.url}
+                                className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-accent/40 p-3 transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            >
+                                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                                    <BookOpen className="size-5" />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                    <span className="block text-xs font-medium text-primary">
+                                        {day.label} · aula
+                                    </span>
+                                    <span className="block truncate font-serif text-lg font-semibold">
+                                        {lesson.display_title}
+                                    </span>
+                                </span>
+                                <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+                            </Link>
+                        )}
+                        {day.blocks.length > 0 &&
+                            (day.is_future ? (
+                                <ul className="space-y-2">
+                                    {day.blocks.map((block) => (
+                                        <li
+                                            key={block.id}
+                                            className="flex items-start gap-2 rounded-xl border border-dashed px-3 py-2.5 text-sm text-muted-foreground"
+                                        >
+                                            <BlockIcon
+                                                kind={block.kind}
+                                                className="size-4 shrink-0"
+                                            />
+                                            <span className="line-clamp-2 min-w-0 flex-1">
+                                                {block.kind_label}:{' '}
+                                                {block.display_title}
+                                            </span>
+                                            <span className="shrink-0 font-medium">
+                                                chega {arrives(day)}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <DailyBlocks
+                                    blocks={day.blocks}
+                                    label={
+                                        day.is_today ? 'Para hoje' : day.label
+                                    }
+                                    className=""
+                                />
+                            ))}
                     </li>
                 ))}
-            </ul>
+            </ol>
         </div>
     );
 }
@@ -229,4 +273,11 @@ function countdown(days: number, day: string, program = 'EBD'): string {
     if (days === 1) return `amanhã é dia de ${program}`;
 
     return `faltam ${days} dias para ${day}`;
+}
+
+/** "na quarta", "no sábado": quando o conteúdo do dia chega. */
+function arrives(day: StudyWeekDay): string {
+    const name = day.label.split('-')[0].toLowerCase();
+
+    return day.weekday >= 6 ? `no ${name}` : `na ${name}`;
 }
