@@ -72,6 +72,31 @@ class HomeTest extends TestCase
                 ->has('recentLessons', 0));
     }
 
+    /** Com o número da revista, o rótulo é o número; a introdução (0) vem antes da lição 1. */
+    public function test_magazine_numbers_label_the_lessons_and_the_introduction_comes_first(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $series = Series::factory()->for($classroom)->create();
+        $student = User::factory()->studentOf($classroom)->create();
+
+        $intro = Lesson::factory()->forSeries($series)->published()->number(0)->completed()->on('2026-09-20')->create(['title' => 'Panorama']);
+        Lesson::factory()->forSeries($series)->published()->number(2)->create(['title' => 'Segunda']);
+        $first = Lesson::factory()->forSeries($series)->published()->number(1)->on('2026-09-27')->create(['title' => 'Primeira']);
+        $classroom->forceFill(['current_lesson_id' => $first->id, 'current_series_id' => $series->id])->save();
+
+        $this->actingAs($student)->get('/')->assertInertia(fn (Assert $page) => $page
+            ->where('nextLesson.title', 'Primeira')
+            // Na ordem da série a introdução é a 1ª; no rótulo, a lição é a 1 de 2.
+            ->where('series.index', 2)
+            ->where('series.number', 1)
+            ->where('series.of', 2)
+            ->where('series.studied', 1)
+            ->where('series.upcoming.0.index', 2)
+            ->where('series.upcoming.0.title', 'Segunda'));
+
+        $this->assertSame('Panorama', $intro->displayTitle());
+    }
+
     /** A próxima da série ainda em rascunho aparece sem título ("em preparação"). */
     public function test_next_lesson_still_in_draft_goes_without_title(): void
     {

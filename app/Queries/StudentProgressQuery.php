@@ -33,7 +33,7 @@ class StudentProgressQuery
      *     streak: array{current: int, best: int, today_done: bool},
      *     badges: Collection<int, array{badge: value-of<Badge>, label: string, description: string, emoji: string, series: string|null, awarded_at: string}>,
      *     available_badges: list<array{badge: value-of<Badge>, label: string, description: string, emoji: string, progress: array{current: int, target: int}|null}>,
-     *     lessons: Collection<int, array{id: int, slug: string, display_title: string, date_short: string|null, days_read: int, readings_total: int, meetings: int, present: int, current: bool, position: int<1, max>|null, series: array{id: int, title: string, current: bool, concluded_on: string|null}|null}>,
+     *     lessons: Collection<int, array{id: int, slug: string, display_title: string, date_short: string|null, days_read: int, readings_total: int, meetings: int, present: int, current: bool, position: int|null, series: array{id: int, title: string, current: bool, concluded_on: string|null}|null}>,
      * }
      */
     public function for(User $user, Classroom $classroom, int $limit = 12): array
@@ -137,7 +137,8 @@ class StudentProgressQuery
                     'meetings' => $presence ? (int) $presence->meetings : 0,
                     'present' => $presence ? (int) $presence->present : 0,
                     'current' => $lesson->id === $currentId,
-                    'position' => $position === false ? null : $position + 1,
+                    // O número da revista; sem número, a posição na série.
+                    'position' => $lesson->number ?? ($position === false ? null : $position + 1),
                     'series' => $lesson->series === null ? null : [
                         'id' => $lesson->series->id,
                         'title' => $lesson->series->title,

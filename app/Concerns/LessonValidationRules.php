@@ -26,7 +26,8 @@ trait LessonValidationRules
     protected function lessonFieldRules(): array
     {
         return [
-            'number' => ['nullable', 'integer', 'min:1', 'max:999'],
+            // 0: a introdução da série, antes da lição 1.
+            'number' => ['nullable', 'integer', 'min:0', 'max:999'],
             'title' => ['required', 'string', 'max:180'],
             'summary' => ['nullable', 'string', 'max:2000'],
             'bible_reference' => ['nullable', 'string', 'max:120'],

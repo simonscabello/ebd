@@ -263,9 +263,11 @@ export default function LessonShow({
                             </>
                         )}
                     </p>
-                    {lesson.number && (
+                    {lesson.number !== null && (
                         <p className="mt-3 text-sm font-semibold tracking-wide text-primary uppercase">
-                            Lição {lesson.number}
+                            {lesson.number === 0
+                                ? 'Introdução'
+                                : `Lição ${lesson.number}`}
                         </p>
                     )}
                     <h1 className="mt-1 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">

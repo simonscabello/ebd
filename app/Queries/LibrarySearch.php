@@ -101,7 +101,8 @@ class LibrarySearch
                             $position = array_search($lesson->id, $sequences[$lesson->series_id ?? 0] ?? [], true);
 
                             return [
-                                'position' => $position === false ? null : $position + 1,
+                                // O número da revista; sem número, a posição na série.
+                                'position' => $lesson->number ?? ($position === false ? null : $position + 1),
                                 'slug' => $lesson->slug,
                                 'title' => $lesson->title,
                                 'bible_reference' => $lesson->bible_reference,

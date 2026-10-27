@@ -150,12 +150,13 @@ export function LessonForm({
                     label="Nº na revista"
                     htmlFor="number"
                     error={errors.number}
+                    hint="0 para a introdução."
                 >
                     <Input
                         id="number"
                         type="number"
                         inputMode="numeric"
-                        min={1}
+                        min={0}
                         max={999}
                         value={data.number}
                         onChange={(event) =>
