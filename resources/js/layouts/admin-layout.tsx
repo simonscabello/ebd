@@ -38,16 +38,16 @@ import {
     index as classroomsIndex,
     show as classroomPage,
 } from '@/routes/admin/classrooms';
-import { index as lessonsIndex } from '@/routes/admin/lessons';
+import { index as libraryIndex } from '@/routes/admin/library';
 import { index as churchesIndex } from '@/routes/owner/churches';
-import { index as seriesIndex } from '@/routes/admin/series';
 
 /**
  * Área de gestão (backoffice): casca própria, separada do app de estudo.
  *
- * As classes ficam sempre à vista (barra lateral no computador, botões no
- * topo do celular): cada classe é uma agenda. Lições (com as séries) e os
- * dados da igreja ficam abaixo, como apoio.
+ * Igreja → classe → o resto: as classes ficam sempre à vista (barra lateral
+ * no computador, botões no topo do celular) e cada uma tem as abas Visão
+ * geral, Lições, Alunos e Ajustes. Abaixo, a biblioteca oficial e os dados
+ * da igreja, como apoio.
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -209,11 +209,11 @@ function AdminNav() {
 
             <div className="h-4" />
             <NavItem
-                href={lessonsIndex.url()}
+                href={libraryIndex.url()}
                 icon={Library}
-                active={starts(lessonsIndex.url()) || starts(seriesIndex.url())}
+                active={starts(libraryIndex.url())}
             >
-                Lições
+                Biblioteca oficial
             </NavItem>
 
             <div className="mt-auto flex flex-col gap-1 pt-6">

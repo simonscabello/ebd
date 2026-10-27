@@ -65,7 +65,7 @@ class SeriesController extends Controller
 
         $this->toast("Série \"{$series->title}\" criada.");
 
-        return to_route('admin.series.index');
+        return to_route('admin.classrooms.lessons', $classroom);
     }
 
     public function edit(Request $request, Series $series): Response
@@ -112,7 +112,7 @@ class SeriesController extends Controller
 
         $this->toast('Série atualizada.');
 
-        return to_route('admin.series.index');
+        return to_route('admin.classrooms.lessons', $series->classroom);
     }
 
     public function destroy(Series $series, DeleteSeries $delete): RedirectResponse
@@ -123,7 +123,7 @@ class SeriesController extends Controller
 
         $this->toast('Série excluída.');
 
-        return to_route('admin.series.index');
+        return to_route('admin.classrooms.lessons', $series->classroom);
     }
 
     private function manageableClassrooms(User $user): mixed

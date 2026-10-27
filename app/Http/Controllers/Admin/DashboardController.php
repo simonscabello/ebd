@@ -39,10 +39,10 @@ class DashboardController extends Controller
             ->withCount('students')
             ->get();
 
-        // Próximas lições (com encontro de hoje em diante), cada uma no primeiro
-        // encontro dela.
+        // A lição atual de cada classe, no próximo encontro dela.
         $scheduled = Lesson::query()
             ->tap($scope)
+            ->whereIn('lessons.id', $classrooms->pluck('current_lesson_id')->filter()->values())
             ->whereHas('meetings', fn ($m) => $m->active()->whereDate('held_on', '>=', $today))
             ->with(['classroom', 'series'])
             ->withCount(['materials'])

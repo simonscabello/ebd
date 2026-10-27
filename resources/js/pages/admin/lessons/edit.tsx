@@ -1,3 +1,7 @@
+import {
+    lessons as classroomLessons,
+    show as classroomPage,
+} from '@/routes/admin/classrooms';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     AudioLines,
@@ -28,12 +32,7 @@ import { SectionNav } from '@/components/section-nav';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { meetingWords } from '@/lib/meeting-words';
-import { dashboard } from '@/routes/admin';
-import {
-    destroy,
-    index as lessonsIndex,
-    status as changeStatus,
-} from '@/routes/admin/lessons';
+import { destroy, status as changeStatus } from '@/routes/admin/lessons';
 import type {
     ClassMeeting,
     Classroom,
@@ -151,8 +150,14 @@ export default function EditLesson({
             <Page>
                 <Breadcrumbs
                     items={[
-                        { title: 'Visão geral', href: dashboard.url() },
-                        { title: 'Lições', href: lessonsIndex.url() },
+                        {
+                            title: lesson.classroom.name,
+                            href: classroomPage.url(lesson.classroom.slug),
+                        },
+                        {
+                            title: 'Lições',
+                            href: classroomLessons.url(lesson.classroom.slug),
+                        },
                         { title: lesson.title },
                     ]}
                 />

@@ -3,12 +3,15 @@
 namespace Tests\Feature\Admin;
 
 use App\Actions\Meetings\RecordAttendance;
+use App\Actions\Teaching\SetCurrentLesson;
 use App\Enums\Gender;
 use App\Models\ClassMeeting;
 use App\Models\Classroom;
+use App\Models\Lesson;
 use App\Models\StudentNote;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -81,6 +84,39 @@ class StudentPagesTest extends TestCase
                 ->where('students.2.is_new', true)
                 ->where('students.3.name', 'Davi')
                 ->where('students.3.access', 'never_entered'));
+    }
+
+    public function test_list_shows_the_last_sundays_and_who_read_the_current_lesson(): void
+    {
+        $ana = $this->student('Ana');
+        $bia = $this->student('Bia');
+        $this->sunday('2026-09-13', [$ana, $bia]);
+        $this->sunday('2026-09-20', [$ana]);
+
+        $lesson = Lesson::factory()->for($this->classroom)->published()->create();
+        app(SetCurrentLesson::class)->handle($this->classroom, $lesson);
+        DB::table('reading_checkins')->insert(['user_id' => $ana->id, 'lesson_id' => $lesson->id, 'weekday' => 1, 'read_on' => '2026-09-21', 'created_at' => now()]);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens/alunos')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('header.students', 2)
+                ->where('students.0.name', 'Ana')
+                ->where('students.0.recent', [true, true])
+                ->where('students.0.read_current', true)
+                ->where('students.1.recent', [true, false])
+                ->where('students.1.read_current', false));
+    }
+
+    public function test_class_settings_open_inside_the_class_card(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->get('/admin/classes/jovens/editar')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('admin/classrooms/form')
+                ->where('header.can_edit', true)
+                ->where('classroom.slug', 'jovens'));
     }
 
     public function test_student_page_has_history_notes_and_access(): void
