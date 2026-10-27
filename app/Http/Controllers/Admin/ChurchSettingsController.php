@@ -23,6 +23,7 @@ class ChurchSettingsController extends Controller
             // Não "church": essa prop é a compartilhada pelo cabeçalho (seletor de igreja).
             'settings' => $church->only(['id', 'name', 'timezone']),
             'timezones' => \DateTimeZone::listIdentifiers(),
+            'podcastUrl' => route('churches.podcast', $church),
         ]);
     }
 

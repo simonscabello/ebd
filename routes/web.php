@@ -14,6 +14,7 @@ use App\Http\Controllers\MaterialFileController;
 use App\Http\Controllers\MyProgressController;
 use App\Http\Controllers\MyWeekController;
 use App\Http\Controllers\Owner;
+use App\Http\Controllers\PodcastController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReadingCheckinController;
 use App\Http\Controllers\SiteController;
@@ -84,6 +85,11 @@ Route::get('materiais/{material}/arquivo', MaterialFileController::class)
 Route::get('licoes/{lesson:slug}/audio', LessonAudioController::class)
     ->middleware('throttle:downloads')
     ->name('lessons.audio');
+
+// Podcast da igreja: o endereço que se cadastra no Spotify for Creators.
+Route::get('igrejas/{church:slug}/podcast.xml', PodcastController::class)
+    ->middleware('throttle:library')
+    ->name('churches.podcast');
 
 // Link pessoal de acesso dos alunos: /entrar#token (ver AccessLinkController).
 Route::get('entrar', [AccessLinkController::class, 'show'])->name('access-link.show');
