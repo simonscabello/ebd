@@ -5,11 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LibraryRequest;
 use App\Http\Resources\ClassroomResource;
 use App\Http\Resources\LessonResource;
-use App\Http\Resources\SeriesResource;
 use App\Models\Church;
 use App\Models\Classroom;
-use App\Models\Lesson;
-use App\Models\Series;
 use App\Queries\LibrarySearch;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,14 +19,7 @@ class LibraryController extends Controller
         $filters = $request->filters();
 
         $results = $library->search($filters, $user);
-
-        // Só oferece nos filtros séries que possuem alguma lição visível.
-        $series = Series::query()
-            ->whereIn('id', Lesson::query()->visibleTo($user)->whereNotNull('series_id')->select('series_id'))
-            ->when($filters['classroom'], fn ($q, $id) => $q->where('classroom_id', $id))
-            ->with('classroom')
-            ->orderBy('title')
-            ->get();
+        $browsing = blank($filters['q'] ?? null);
 
         return Inertia::render('library/index', [
             'filters' => [
@@ -40,8 +30,8 @@ class LibraryController extends Controller
             ],
             'results' => LessonResource::collection($results),
             'classrooms' => ClassroomResource::collection(Classroom::query()->whereIn('church_id', Church::idsVisibleTo($user))->ordered()->get()),
-            'series' => SeriesResource::collection($series),
-            'years' => $library->availableYears($user),
+            // Sem busca, a biblioteca é por série.
+            'shelves' => $browsing ? $library->shelves($filters, $user) : [],
         ]);
     }
 }

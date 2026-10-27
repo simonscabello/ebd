@@ -122,7 +122,8 @@ class StudentController extends Controller
         $book = $books->for($classroom);
         $link = $user->accessLinks()->usable()->first();
         $studentProgress = $progress->for($user, $classroom);
-        $lessons = $studentProgress['lessons'];
+        // A conta de estudos é das lições que já passaram; a da semana em curso fica de fora.
+        $lessons = $studentProgress['lessons']->where('current', false);
         $since = $book->since[$user->id] ?? null;
 
         return Inertia::render('admin/classrooms/students/show', [

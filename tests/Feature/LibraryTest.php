@@ -84,6 +84,29 @@ class LibraryTest extends TestCase
         );
     }
 
+    public function test_without_search_the_library_is_grouped_by_series_current_first(): void
+    {
+        $current = Lesson::query()->where('title', 'A Santidade de Deus')->sole();
+        $this->jovens->forceFill(['current_series_id' => $this->milagres->id, 'current_lesson_id' => $current->id])->save();
+
+        $this->actingAs($this->reader)->get('/biblioteca')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('shelves', 2)
+                ->where('shelves.0.title', 'Jornada dos Milagres de Jesus')
+                ->where('shelves.0.current', true)
+                ->where('shelves.0.lessons.0.title', 'Jesus Acalma a Tempestade')
+                ->where('shelves.0.lessons.0.position', 1)
+                ->where('shelves.0.lessons.1.title', 'A Santidade de Deus')
+                ->where('shelves.0.lessons.1.current', true)
+                // Sem série: "Lições avulsas" da classe; rascunho e restrita não aparecem.
+                ->where('shelves.1.title', 'Lições avulsas')
+                ->where('shelves.1.classroom', 'Adultos')
+                ->has('shelves.1.lessons', 1));
+
+        $this->actingAs($this->reader)->get('/biblioteca?q=pesca')
+            ->assertInertia(fn (Assert $page) => $page->has('shelves', 0));
+    }
+
     public function test_searches_by_title_ignoring_accents_and_using_prefixes(): void
     {
         $this->assertSame(['A Santidade de Deus'], $this->titles('q=santid'));

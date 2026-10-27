@@ -6,6 +6,7 @@ import {
     Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -136,6 +137,132 @@ function BadgeCard({
                 </p>
                 <div className="text-xs text-muted-foreground">{children}</div>
             </div>
+        </div>
+    );
+}
+
+/** Circunferência do anel de progresso (r = 26). */
+const RING = 2 * Math.PI * 26;
+
+/**
+ * Selos em grade de ícones (Meu progresso): conquistados cheios, os outros
+ * com um anel de quanto falta. Tocar num selo mostra como ganhá-lo.
+ */
+export function BadgeGrid({
+    earned,
+    available,
+}: {
+    earned: EarnedBadge[];
+    available: AvailableBadge[];
+}) {
+    const [selected, setSelected] = useState<string | null>(null);
+    const count = (key: string) => earned.filter((b) => b.badge === key).length;
+    const chosen = available.find((b) => b.badge === selected) ?? null;
+    const lastEarned = chosen
+        ? earned.find((b) => b.badge === chosen.badge)
+        : undefined;
+
+    return (
+        <div>
+            <ul className="grid grid-cols-5 gap-1">
+                {available.map((badge) => {
+                    const times = count(badge.badge);
+                    const Icon = badgeIcons[badge.badge] ?? Award;
+                    const progress = badge.progress;
+                    const ratio =
+                        progress && progress.target > 0
+                            ? Math.min(1, progress.current / progress.target)
+                            : 0;
+
+                    return (
+                        <li key={badge.badge}>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setSelected((current) =>
+                                        current === badge.badge
+                                            ? null
+                                            : badge.badge,
+                                    )
+                                }
+                                aria-pressed={selected === badge.badge}
+                                aria-label={`${badge.label}: ${
+                                    times > 0
+                                        ? 'conquistado'
+                                        : progress
+                                          ? `${progress.current} de ${progress.target}`
+                                          : 'ainda não'
+                                }`}
+                                className={cn(
+                                    'flex w-full flex-col items-center gap-1.5 rounded-xl px-0.5 py-2 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                    selected === badge.badge && 'bg-muted/60',
+                                )}
+                            >
+                                <span className="relative flex size-14 items-center justify-center">
+                                    {times === 0 && (
+                                        <svg
+                                            className="absolute inset-0 -rotate-90"
+                                            viewBox="0 0 56 56"
+                                            aria-hidden
+                                        >
+                                            <circle
+                                                cx="28"
+                                                cy="28"
+                                                r="26"
+                                                fill="none"
+                                                strokeWidth="3"
+                                                className="stroke-muted"
+                                            />
+                                            <circle
+                                                cx="28"
+                                                cy="28"
+                                                r="26"
+                                                fill="none"
+                                                strokeWidth="3"
+                                                strokeLinecap="round"
+                                                strokeDasharray={`${ratio * RING} ${RING}`}
+                                                className="stroke-primary"
+                                            />
+                                        </svg>
+                                    )}
+                                    <span
+                                        className={cn(
+                                            'flex items-center justify-center rounded-full',
+                                            times > 0
+                                                ? 'size-13 bg-primary text-primary-foreground'
+                                                : 'size-11 bg-muted text-muted-foreground',
+                                        )}
+                                        aria-hidden
+                                    >
+                                        <Icon className="size-5" />
+                                    </span>
+                                    {times > 1 && (
+                                        <span className="absolute -top-0.5 -right-0.5 rounded-full bg-foreground px-1.5 text-[10px] font-semibold text-background">
+                                            ×{times}
+                                        </span>
+                                    )}
+                                </span>
+                                <span className="line-clamp-2 text-center text-[11px] leading-tight">
+                                    {badge.label}
+                                </span>
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
+            {chosen && (
+                <p className="mt-3 rounded-xl bg-muted/60 px-3 py-2.5 text-sm">
+                    <span className="font-medium">{chosen.label}.</span>{' '}
+                    <span className="text-muted-foreground">
+                        {chosen.description}
+                        {lastEarned
+                            ? ` Conquistado em ${lastEarned.awarded_at}${lastEarned.series ? ` (${lastEarned.series})` : ''}.`
+                            : chosen.progress && chosen.progress.target > 0
+                              ? ` Até agora: ${chosen.progress.current} de ${chosen.progress.target}.`
+                              : ''}
+                    </span>
+                </p>
+            )}
         </div>
     );
 }
