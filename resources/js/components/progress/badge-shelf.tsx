@@ -3,7 +3,13 @@ import {
     BookOpenCheck,
     CalendarCheck,
     Flame,
+    Footprints,
+    Moon,
+    NotebookPen,
+    ScrollText,
     Sparkles,
+    Sprout,
+    Sunrise,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -17,6 +23,12 @@ const badgeIcons: Record<string, LucideIcon> = {
     streak_30: Sparkles,
     faithful_reader: Award,
     perfect_attendance: CalendarCheck,
+    first_step: Footprints,
+    note_taker: NotebookPen,
+    berean: ScrollText,
+    comeback: Sprout,
+    night_owl: Moon,
+    early_bird: Sunrise,
 };
 
 export type EarnedBadge = {

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Engagement\AwardBadges;
+use App\Http\Controllers\Concerns\CelebratesBadges;
 use App\Models\Lesson;
 use App\Models\LessonNote;
 use App\Models\User;
@@ -15,7 +17,9 @@ use Illuminate\Support\Facades\Gate;
  */
 class LessonNoteController extends Controller
 {
-    public function update(Request $request, Lesson $lesson): RedirectResponse
+    use CelebratesBadges;
+
+    public function update(Request $request, Lesson $lesson, AwardBadges $awardBadges): RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -31,6 +35,8 @@ class LessonNoteController extends Controller
                 ['user_id' => $user->id, 'lesson_id' => $lesson->id],
                 ['body' => $body],
             );
+
+            $this->celebrate($awardBadges->handle($user, $lesson->series), $lesson->classroom->meeting_weekday);
         }
 
         return back();

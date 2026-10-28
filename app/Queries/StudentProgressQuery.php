@@ -96,16 +96,18 @@ class StudentProgressQuery
         // mostra ao professor) séries e datas da outra.
         $churchClassrooms = Classroom::query()->where('church_id', $classroom->church_id)->select('id');
 
+        $earned = UserBadge::query()
+            ->where('user_id', $user->id)
+            ->where(fn ($query) => $query
+                ->whereNull('series_id')
+                ->orWhereIn('series_id', Series::query()->whereIn('classroom_id', $churchClassrooms)->select('id')))
+            ->with('series:id,title')
+            ->orderByDesc('awarded_at')
+            ->get();
+
         return [
             'streak' => $this->streak->for($user, churchId: $classroom->church_id),
-            'badges' => UserBadge::query()
-                ->where('user_id', $user->id)
-                ->where(fn ($query) => $query
-                    ->whereNull('series_id')
-                    ->orWhereIn('series_id', Series::query()->whereIn('classroom_id', $churchClassrooms)->select('id')))
-                ->with('series:id,title')
-                ->orderByDesc('awarded_at')
-                ->get()
+            'badges' => $earned
                 ->map(fn (UserBadge $b) => [
                     'badge' => $b->badge->value,
                     'label' => $b->badge->label($classroom->meeting_weekday),
@@ -120,7 +122,11 @@ class StudentProgressQuery
                 'description' => $b->description($classroom->meeting_weekday),
                 'emoji' => $b->emoji(),
                 'progress' => $progress[$b->value] ?? null,
-            ], Badge::cases()),
+            ], array_values(array_filter(
+                Badge::cases(),
+                // Surpresa só entra na estante depois de conquistada.
+                fn (Badge $b) => ! $b->isSurprise() || $earned->contains('badge', $b),
+            ))),
             'lessons' => $lessons->map(function (Lesson $lesson) use ($daysRead, $attendance, $currentId, $sequences, $classroom) {
                 $presence = $attendance->get($lesson->id);
                 $position = array_search($lesson->id, $sequences[$lesson->series_id ?? 0] ?? [], true);

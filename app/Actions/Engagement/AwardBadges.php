@@ -8,6 +8,7 @@ use App\Models\ClassMeeting;
 use App\Models\Lesson;
 use App\Models\Series;
 use App\Models\User;
+use App\Support\ChurchCalendar;
 use App\Support\Enrollment;
 use App\Support\ReadingWeeks;
 use App\Support\StudyStreak;
@@ -57,6 +58,34 @@ class AwardBadges
             }
         }
 
+        $readDays = $this->readDays($user);
+
+        if ($readDays !== []) {
+            $awarded[] = $this->award($user, Badge::FirstStep);
+        }
+
+        if ($this->cameBack($readDays)) {
+            $awarded[] = $this->award($user, Badge::Comeback);
+        }
+
+        if ($this->notedLessons($user) >= 5) {
+            $awarded[] = $this->award($user, Badge::NoteTaker);
+        }
+
+        if ($this->questionsAsked($user) >= 10) {
+            $awarded[] = $this->award($user, Badge::Berean);
+        }
+
+        ['night' => $night, 'early' => $early] = $this->readingHours($user);
+
+        if ($night >= 5) {
+            $awarded[] = $this->award($user, Badge::NightOwl);
+        }
+
+        if ($early >= 5) {
+            $awarded[] = $this->award($user, Badge::EarlyBird);
+        }
+
         return array_values(array_filter($awarded));
     }
 
@@ -91,7 +120,79 @@ class AwardBadges
             Badge::Streak30->value => ['current' => min($best, 30), 'target' => 30],
             Badge::FaithfulReader->value => $series ? $this->faithfulReaderProgress($user, $series) : null,
             Badge::PerfectAttendance->value => $series ? $this->attendanceProgress($user, $series) : null,
+            Badge::FirstStep->value => ['current' => min(count($this->readDays($user)), 1), 'target' => 1],
+            Badge::NoteTaker->value => ['current' => min($this->notedLessons($user), 5), 'target' => 5],
+            Badge::Berean->value => ['current' => min($this->questionsAsked($user), 10), 'target' => 10],
         ];
+    }
+
+    /**
+     * Dias (no fuso da igreja) em que marcou alguma leitura, em ordem.
+     *
+     * @return list<string>
+     */
+    private function readDays(User $user): array
+    {
+        return array_values(DB::table('reading_checkins')
+            ->where('user_id', $user->id)
+            ->distinct()
+            ->orderBy('read_on')
+            ->pluck('read_on')
+            ->map(fn ($day) => substr((string) $day, 0, 10))
+            ->all());
+    }
+
+    /**
+     * Voltou a ler depois de pelo menos 14 dias inteiros sem marcar leitura.
+     *
+     * @param  list<string>  $days
+     */
+    private function cameBack(array $days): bool
+    {
+        foreach (array_slice($days, 1) as $i => $day) {
+            if (ChurchCalendar::daysBetween($days[$i], $day) > 14) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function notedLessons(User $user): int
+    {
+        return DB::table('lesson_notes')->where('user_id', $user->id)->count();
+    }
+
+    private function questionsAsked(User $user): int
+    {
+        return DB::table('study_questions')->where('user_id', $user->id)->count();
+    }
+
+    /**
+     * Em quantos dias marcou leitura à noite (22h às 4h, contando a
+     * madrugada na noite anterior) e de manhã cedo (4h às 7h), pela hora
+     * em que tocou em "lido", no fuso da igreja.
+     *
+     * @return array{night: int, early: int}
+     */
+    private function readingHours(User $user): array
+    {
+        $night = [];
+        $early = [];
+
+        $times = DB::table('reading_checkins')->where('user_id', $user->id)->whereNotNull('created_at')->pluck('created_at');
+
+        foreach ($times as $time) {
+            $local = CarbonImmutable::parse((string) $time, 'UTC')->setTimezone(ChurchCalendar::timezone());
+
+            if ($local->hour >= 22 || $local->hour < 4) {
+                $night[$local->subHours(4)->toDateString()] = true;
+            } elseif ($local->hour < 7) {
+                $early[$local->toDateString()] = true;
+            }
+        }
+
+        return ['night' => count($night), 'early' => count($early)];
     }
 
     /** Marcou as leituras dos seis dias antes do encontro de uma mesma lição. */

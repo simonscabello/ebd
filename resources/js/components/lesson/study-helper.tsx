@@ -5,6 +5,7 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { toastBadges } from '@/hooks/use-flash-toast';
 import { meetingWords } from '@/lib/meeting-words';
 import { plural, xsrfToken } from '@/lib/utils';
 import { store } from '@/routes/lessons/questions';
@@ -101,6 +102,7 @@ export function StudyHelperSheet({
                 { question: trimmed, answer: data.answer },
             ]);
             setRemaining(data.remaining);
+            toastBadges(data.badges);
         } catch {
             setQuestion(trimmed);
             setError('Sem conexão. Confira a internet e tente de novo.');
