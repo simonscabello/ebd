@@ -386,7 +386,7 @@ function CurrentLesson({
                         when={when(meeting, meetingIndex)}
                         continues={meetingIndex > 1}
                     >
-                        <div className="flex flex-col gap-2 sm:flex-row">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                             <Button asChild size="lg" className="sm:flex-none">
                                 <Link href={lessonUrl}>Estudar a lição</Link>
                             </Button>

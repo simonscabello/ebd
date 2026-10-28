@@ -170,6 +170,7 @@ export type Lesson = {
     url: string;
     /** Miniatura da capa (400 px), quando a lição tem. */
     cover_url: string | null;
+    cover_large_url: string | null;
     summary: string | null;
     scheduled_for: string | null;
     date_label: string | null;
