@@ -97,25 +97,11 @@ export default function Home({
             <Page className={cn(wide && 'lg:max-w-5xl')}>
                 <InstallAppBanner />
                 {isMember && <RemindersBanner />}
-                <header className="mb-6 flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
-                            {greeting}
-                            {name ? `, ${name}` : ''}.
-                        </h1>
-                        <p className="mt-2 text-lg text-muted-foreground">
-                            {headline(
-                                meeting,
-                                classroom?.program_short_name ?? 'EBD',
-                            )}
-                        </p>
-                    </div>
-                    {week && (
-                        <StreakChip
-                            streak={week.streak}
-                            className={cn(wide && 'lg:hidden')}
-                        />
-                    )}
+                <header className="mb-6">
+                    <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
+                        {greeting}
+                        {name ? `, ${name}` : ''}.
+                    </h1>
                 </header>
 
                 {classrooms.length > 1 && classroom && (
@@ -256,25 +242,6 @@ export default function Home({
             </Page>
         </>
     );
-}
-
-function headline(meeting: ClassMeeting | null, program = 'EBD'): string {
-    if (!meeting || meeting.days_until < 0) {
-        return 'Que bom ter você por aqui.';
-    }
-
-    if (meeting.days_until === 0) {
-        return `Hoje é dia de ${program}!`;
-    }
-
-    if (meeting.days_until === 1) {
-        return `Amanhã tem ${program}. Vamos nos preparar?`;
-    }
-
-    // "nossa próxima EBD" pede artigo: os outros programas falam do encontro.
-    return program === 'EBD'
-        ? `Faltam ${meeting.days_until} dias para a nossa próxima EBD.`
-        : `Faltam ${meeting.days_until} dias para o próximo encontro.`;
 }
 
 /** Quando a classe estuda a lição: previsão, não regra. */
@@ -476,31 +443,6 @@ function HeroLink({ href, children }: { href: string; children: ReactNode }) {
             className="inline-flex h-12 items-center justify-center rounded-xl border border-primary/20 bg-card/70 px-2 text-[13px] font-medium whitespace-nowrap transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:px-4 sm:text-sm"
         >
             {children}
-        </Link>
-    );
-}
-
-/** A sequência de leitura no topo; abre Meu progresso. */
-function StreakChip({
-    streak,
-    className,
-}: {
-    streak: StudyWeek['streak'];
-    className?: string;
-}) {
-    return (
-        <Link
-            href={myProgress.url()}
-            aria-label={`Meu progresso: ${plural(streak.current, 'dia seguido', 'dias seguidos')} de leitura`}
-            className={cn(
-                'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3 text-sm font-semibold text-accent-foreground',
-                className,
-            )}
-        >
-            <Flame className="size-4" />
-            {streak.current > 0
-                ? plural(streak.current, 'dia', 'dias')
-                : 'Progresso'}
         </Link>
     );
 }
