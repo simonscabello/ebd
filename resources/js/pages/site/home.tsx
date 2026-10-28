@@ -1,9 +1,15 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
+    Award,
+    BellRing,
     BookOpen,
+    CalendarDays,
     ClipboardCheck,
+    Headphones,
     Heart,
+    MessageCircleQuestion,
+    Podcast,
     Users,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -24,19 +30,18 @@ type Props = {
 const screenshots = [
     {
         src: '/site/aluno-semana.jpg',
-        alt: 'Tela inicial do aluno com a leitura do dia e o progresso da semana',
-        caption:
-            'A semana do aluno: a leitura de hoje e o progresso até a aula.',
+        alt: 'Tela inicial do aluno com a lição atual, a série e a capa da lição',
+        caption: 'O Início do aluno: a lição da vez, com a capa e a série.',
     },
     {
         src: '/site/estudo.jpg',
-        alt: 'Página de uma lição com o texto bíblico e o estudo',
+        alt: 'Página de uma lição com a capa, o texto base e o estudo',
         caption: 'O estudo da lição, com o texto bíblico a um toque.',
     },
     {
         src: '/site/chamada.jpg',
-        alt: 'Tela de chamada da classe no celular do professor',
-        caption: 'A chamada da classe feita no celular, na hora da aula.',
+        alt: 'Gestão da classe no celular do professor, com a lição atual e o botão de chamada',
+        caption: 'O professor acompanha a classe e faz a chamada no celular.',
     },
 ] as const;
 
@@ -55,6 +60,39 @@ const benefits = [
         icon: ClipboardCheck,
         title: 'Chamada no celular',
         text: 'Presença marcada em segundos durante a aula, com o histórico de cada aluno guardado.',
+    },
+] as const;
+
+const extras = [
+    {
+        icon: CalendarDays,
+        title: 'Minha semana',
+        text: 'A leitura de cada dia até a aula, para adiantar ou pôr em dia.',
+    },
+    {
+        icon: Headphones,
+        title: 'Estudo em áudio',
+        text: 'A lição narrada para ouvir no ônibus, no carro ou na cozinha.',
+    },
+    {
+        icon: Podcast,
+        title: 'Podcast da igreja',
+        text: 'Os áudios das lições num podcast próprio, que dá para pôr no Spotify.',
+    },
+    {
+        icon: MessageCircleQuestion,
+        title: 'Tirar dúvida',
+        text: 'O aluno pergunta sobre o texto na própria lição. O professor vê as dúvidas da turma, sem nomes.',
+    },
+    {
+        icon: Award,
+        title: 'Sequência e selos',
+        text: 'Dias seguidos de estudo e selos que incentivam sem expor ninguém.',
+    },
+    {
+        icon: BellRing,
+        title: 'Lembretes no celular',
+        text: 'A leitura do dia e a lição nova chegam como notificação.',
     },
 ] as const;
 
@@ -157,17 +195,39 @@ export default function SiteHome({ examples, pixKey }: Props) {
                 </ul>
             </Section>
 
+            {/* Recursos */}
+            <Section
+                title="E tem mais"
+                description="O que a classe ganhou nos últimos meses."
+                className="bg-card"
+            >
+                <ul className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+                    {extras.map(({ icon: Icon, title, text }) => (
+                        <li key={title} className="flex gap-4">
+                            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                                <Icon className="size-5" aria-hidden />
+                            </span>
+                            <div>
+                                <h3 className="font-semibold">{title}</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {text}
+                                </p>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </Section>
+
             {/* Como funciona */}
             <Section
                 title="Como funciona"
                 description="Do cadastro à primeira aula em poucos passos."
-                className="bg-card"
             >
                 <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     {steps.map((step, index) => (
                         <li
                             key={step.title}
-                            className="rounded-2xl border border-border bg-background p-5"
+                            className="rounded-2xl border border-border bg-card p-5"
                         >
                             <span className="inline-flex size-8 items-center justify-center rounded-full bg-primary font-serif text-sm font-semibold text-primary-foreground">
                                 {index + 1}
@@ -186,38 +246,50 @@ export default function SiteHome({ examples, pixKey }: Props) {
                 <Section
                     title="Veja um estudo"
                     description="Abra um estudo de exemplo, do jeito que o aluno vê."
+                    className="bg-card"
                 >
                     <ul className="grid gap-4 md:grid-cols-2">
                         {examples.map((lesson) => (
                             <li key={lesson.id}>
                                 <Link
                                     href={show(lesson.slug)}
-                                    className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                    className="group flex h-full gap-5 rounded-2xl border border-border bg-background p-5 transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 >
-                                    {lesson.series && (
-                                        <span className="text-xs font-medium text-primary">
-                                            {lesson.series.title}
-                                        </span>
-                                    )}
-                                    <span className="mt-1 font-serif text-xl font-semibold">
-                                        {lesson.title}
-                                    </span>
-                                    {lesson.bible_reference && (
-                                        <span className="mt-1 text-sm text-muted-foreground">
-                                            {lesson.bible_reference}
-                                        </span>
-                                    )}
-                                    {lesson.summary && (
-                                        <span className="mt-3 line-clamp-3 text-sm text-muted-foreground">
-                                            {lesson.summary}
-                                        </span>
-                                    )}
-                                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                                        Abrir o estudo
-                                        <ArrowRight
-                                            className="size-4 transition-transform group-hover:translate-x-0.5"
-                                            aria-hidden
+                                    {lesson.cover_url && (
+                                        <img
+                                            src={lesson.cover_url}
+                                            alt=""
+                                            loading="lazy"
+                                            decoding="async"
+                                            className="size-24 shrink-0 rounded-xl object-cover sm:size-28"
                                         />
+                                    )}
+                                    <span className="flex min-w-0 flex-col">
+                                        {lesson.series && (
+                                            <span className="text-xs font-medium text-primary">
+                                                {lesson.series.title}
+                                            </span>
+                                        )}
+                                        <span className="mt-1 font-serif text-xl font-semibold">
+                                            {lesson.title}
+                                        </span>
+                                        {lesson.bible_reference && (
+                                            <span className="mt-1 text-sm text-muted-foreground">
+                                                {lesson.bible_reference}
+                                            </span>
+                                        )}
+                                        {lesson.summary && (
+                                            <span className="mt-3 line-clamp-3 text-sm text-muted-foreground">
+                                                {lesson.summary}
+                                            </span>
+                                        )}
+                                        <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                                            Abrir o estudo
+                                            <ArrowRight
+                                                className="size-4 transition-transform group-hover:translate-x-0.5"
+                                                aria-hidden
+                                            />
+                                        </span>
                                     </span>
                                 </Link>
                             </li>
@@ -235,7 +307,7 @@ export default function SiteHome({ examples, pixKey }: Props) {
             )}
 
             {/* Apoie */}
-            <Section className="bg-card">
+            <Section>
                 <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-center">
                     <div>
                         <span className="inline-flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
@@ -251,7 +323,7 @@ export default function SiteHome({ examples, pixKey }: Props) {
                             pelo Pix.
                         </p>
                     </div>
-                    <div className="rounded-2xl border border-border bg-background p-5">
+                    <div className="rounded-2xl border border-border bg-card p-5">
                         <CopyField
                             label="Chave Pix (aleatória)"
                             value={pixKey}
@@ -268,7 +340,7 @@ export default function SiteHome({ examples, pixKey }: Props) {
             </Section>
 
             {/* Fechamento */}
-            <Section>
+            <Section className="bg-card">
                 <div className="text-center">
                     <h2 className="font-serif text-3xl font-semibold tracking-tight text-balance">
                         Leve a lição da semana para o celular da sua classe
