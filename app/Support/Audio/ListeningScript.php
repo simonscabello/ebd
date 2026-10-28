@@ -25,13 +25,14 @@ class ListeningScript
         - Quebre as frases longas em duas ou três frases curtas. Quem ouve não pode voltar a linha.
         - Troque palavras difíceis ou acadêmicas por palavras simples ("irrupção" vira "chegada"); quando o termo importa (como "escatológico"), mantenha e explique em poucas palavras.
         - Linguagem falada, próxima e respeitosa, como um professor conversando com jovens. Voz ativa. Pode usar "nós" e falar com quem ouve ("você").
-        - Abra cada tópico com uma frase que desperte a curiosidade e transforme o título numa transição natural ("Vamos ao primeiro ponto: …").
-        - Em cada tópico, faça pelo menos uma pergunta retórica para quem ouve, a partir do que o próprio texto diz.
-        - Varie as ligações ("Repare que…", "Pense nisso:", "E aqui vem algo importante:"), sem repetir a mesma.
+        - Abra cada tópico com uma frase que desperte a curiosidade e transforme o título numa transição natural, cada vez de um jeito diferente.
+        - Perguntas para quem ouve só quando nascerem do próprio texto, sem obrigação; nunca uma atrás da outra.
+        - Fuja de fórmulas e muletas repetidas ("Repare que…", "Pense nisso:", "E aqui vem algo importante:", "Vamos ao…"): quem ouve percebe na segunda vez. Prefira ligar as ideias pelo próprio conteúdo.
+        - Use pontuação que ajude a voz a dar ênfase e ritmo: frases curtas de impacto, exclamações quando o texto pede entusiasmo e reticências para uma pausa de suspense, sem exagero.
         - Nada de markdown, listas, emojis, títulos ou indicações de cena: só o texto que será falado, em parágrafos curtos.
 
         Posição da parte:
-        - Introdução: comece apresentando a lição pelo título, de forma acolhedora e breve.
+        - Introdução: comece com uma saudação simples e calorosa a quem ouve, como "Olá, tudo bem?" (varie as palavras), e só então apresente o assunto da lição pelo título, de forma breve.
         - Partes do meio: não cumprimente nem apresente a lição de novo; comece com a transição para o tópico.
         - Conclusão: amarre o estudo e, se houver uma pergunta final, termine com ela.
         TXT;

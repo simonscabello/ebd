@@ -3,6 +3,7 @@
 namespace App\Actions\Lessons;
 
 use App\Models\Lesson;
+use App\Support\Audio\BackgroundMusic;
 use App\Support\Audio\ListeningScript;
 use App\Support\Audio\Mp3;
 use App\Support\Audio\OpenAiSpeech;
@@ -17,7 +18,8 @@ use Throwable;
 /**
  * Narra o estudo pela OpenAI e guarda um único MP3 no disco dos materiais.
  * Cada parte do estudo vira roteiro para ouvir (ListeningScript) e é lida
- * por um narrador, revezando entre as vozes configuradas.
+ * por um narrador, revezando entre as vozes configuradas; com a música
+ * configurada, ela vai por baixo, com um interlúdio entre as partes.
  * Roda depois da resposta (ver RequestLessonAudio): leva de segundos a alguns
  * minutos, conforme o tamanho do estudo. O áudio anterior continua valendo
  * até o novo ficar pronto.
@@ -27,6 +29,7 @@ class GenerateLessonAudio
     public function __construct(
         private OpenAiSpeech $speech,
         private ListeningScript $script,
+        private BackgroundMusic $music,
     ) {}
 
     public function handle(Lesson $lesson): void
@@ -51,10 +54,14 @@ class GenerateLessonAudio
 
             // Os narradores se revezam a cada parte do estudo.
             $voices = (array) config('ebd.audio.voices') ?: ['cedar'];
-            $audio = Mp3::concat(array_map(
-                fn (array $chunk) => $this->speech->synthesize($chunk['text'], (string) $voices[$chunk['part'] % count($voices)]),
-                $chunks,
-            ));
+            $parts = [];
+
+            foreach ($chunks as $chunk) {
+                $parts[$chunk['part']][] = $this->speech->synthesize($chunk['text'], (string) $voices[$chunk['part'] % count($voices)]);
+            }
+
+            $parts = array_map(Mp3::concat(...), array_values($parts));
+            $audio = $this->music->isAvailable() ? $this->music->mix($parts) : Mp3::concat($parts);
 
             $disk = (string) config('ebd.materials.disk');
             $path = config('ebd.audio.directory').'/'.$lesson->id.'/'.Str::random(32).'.mp3';

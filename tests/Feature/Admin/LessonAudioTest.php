@@ -8,6 +8,7 @@ use App\Models\AiUsage;
 use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\User;
+use App\Support\Audio\BackgroundMusic;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -33,7 +34,8 @@ class LessonAudioTest extends TestCase
         Storage::fake('local');
         Http::preventStrayRequests();
         // O roteiro para ouvir tem testes próprios; aqui a voz lê o texto do estudo.
-        config(['services.openai.key' => 'sk-test', 'ebd.materials.disk' => 'local', 'ebd.audio.script' => false]);
+        // A música de fundo também tem teste próprio; aqui o áudio é só a voz.
+        config(['services.openai.key' => 'sk-test', 'ebd.materials.disk' => 'local', 'ebd.audio.script' => false, 'ebd.audio.music' => null]);
 
         $this->classroom = Classroom::factory()->create();
         $this->teacher = User::factory()->teacherOf($this->classroom)->create();
@@ -371,6 +373,25 @@ class LessonAudioTest extends TestCase
         $speech = Http::recorded()->map(fn (array $pair) => $pair[0])->filter(fn (Request $r) => str_ends_with($r->url(), '/speech'))->values();
         $this->assertStringContainsString('Jesus ensinava às multidões', (string) $speech[0]['input']);
         $this->assertStringNotContainsString('Resumo curto', (string) $speech[0]['input']);
+    }
+
+    public function test_background_music_goes_under_the_voice_with_an_interlude_between_parts(): void
+    {
+        config(['ebd.audio.music' => resource_path('audio/fundo.mp3')]);
+
+        if (! app(BackgroundMusic::class)->isAvailable()) {
+            $this->markTestSkipped('Sem ffmpeg nesta máquina.');
+        }
+
+        // 250 quadros = 6 s por parte; duas partes, 2,5 s de abertura, 4 s de interlúdio e 4 s de fim.
+        $this->fakeOpenAi();
+        $lesson = $this->lesson();
+
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
+
+        $lesson->refresh();
+        $this->assertTrue($lesson->hasAudio());
+        $this->assertEqualsWithDelta(6 + 6 + 2.5 + 4 + 4, $lesson->audio_duration, 1);
     }
 
     public function test_share_message_points_to_the_player_on_the_lesson_page(): void

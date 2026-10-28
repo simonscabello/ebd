@@ -38,7 +38,7 @@ class ChurchAiSwitchTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
-        config(['services.openai.key' => 'sk-test', 'ebd.materials.disk' => 'local', 'ebd.audio.script' => false]);
+        config(['services.openai.key' => 'sk-test', 'ebd.materials.disk' => 'local', 'ebd.audio.script' => false, 'ebd.audio.music' => null]);
 
         Classroom::factory()->create(); // a primeira igreja, do dono
         $this->church = Church::factory()->create();
