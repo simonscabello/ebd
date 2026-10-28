@@ -125,6 +125,12 @@ return [
         // Sem o arquivo ou sem o ffmpeg, o áudio sai só com a voz.
         'music' => env('EBD_AUDIO_MUSIC', resource_path('audio/fundo.mp3')),
         'music_volume' => (float) env('EBD_AUDIO_MUSIC_VOLUME', 0.18),
+        // Estimativa de custo mostrada antes de gerar de novo (US$ por minuto de
+        // áudio: voz ~0,015 + roteiro; ~900 caracteres por minuto narrado).
+        // shortcut: preço fixo no config, conferir em developers.openai.com/api/docs/pricing quando mudar de modelo.
+        'usd_per_minute' => (float) env('EBD_AUDIO_USD_PER_MINUTE', 0.017),
+        'chars_per_minute' => 900,
+        'usd_brl' => (float) env('EBD_USD_BRL', 5.5),
         'directory' => 'lesson-audio',
         'max_chars' => (int) env('EBD_AUDIO_MAX_CHARS', 3500),
         // Segundos de espera por trecho na OpenAI.

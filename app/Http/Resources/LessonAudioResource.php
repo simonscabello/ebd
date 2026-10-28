@@ -52,6 +52,23 @@ final class LessonAudioResource
             'enabled' => ChurchFeatures::audioAvailable($lesson),
             'remaining' => ChurchFeatures::audioAvailable($lesson) ? ChurchFeatures::audioRemainingThisMonth($lesson) : 0,
             'monthly_limit' => ChurchFeatures::churchOf($lesson)->audio_monthly_limit,
+            // Gerar de novo com o áudio em dia (administrador), com o custo estimado.
+            'regenerate' => request()->user()?->can('regenerateAudio', $lesson) ? self::estimate($lesson) : null,
+        ];
+    }
+
+    /**
+     * @return array{minutes: int, usd: float, brl: float}
+     */
+    private static function estimate(Lesson $lesson): array
+    {
+        $minutes = mb_strlen($lesson->narration()->text()) / (int) config('ebd.audio.chars_per_minute');
+        $usd = $minutes * (float) config('ebd.audio.usd_per_minute');
+
+        return [
+            'minutes' => max(1, (int) round($minutes)),
+            'usd' => round($usd, 2),
+            'brl' => round($usd * (float) config('ebd.audio.usd_brl'), 2),
         ];
     }
 }

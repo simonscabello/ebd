@@ -32,9 +32,12 @@ class RequestLessonAudio
         private GenerateLessonAudio $generate,
     ) {}
 
-    public function handle(Lesson $lesson): string
+    /**
+     * @param  bool  $force  gera de novo mesmo com o áudio em dia (só administrador, ver LessonAudioController)
+     */
+    public function handle(Lesson $lesson, bool $force = false): string
     {
-        if ($lesson->hasAudio() && ! $lesson->isAudioStale()) {
+        if (! $force && $lesson->hasAudio() && ! $lesson->isAudioStale()) {
             return self::UP_TO_DATE;
         }
 

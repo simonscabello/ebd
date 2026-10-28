@@ -225,6 +225,8 @@ export type LessonAudioManage = {
     /** Áudios que a igreja ainda pode gerar neste mês. */
     remaining: number;
     monthly_limit: number;
+    /** Só para administrador: gerar de novo com o áudio em dia, e quanto deve custar. */
+    regenerate: { minutes: number; usd: number; brl: number } | null;
 };
 
 export type Option<T = string> = { value: T; label: string };

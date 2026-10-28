@@ -53,6 +53,13 @@ class LessonPolicy
         return $user->canManageClassroom($lesson->classroom_id);
     }
 
+    /** Gerar de novo um áudio que já está em dia: gasta OpenAI, só administrador da igreja. */
+    public function regenerateAudio(User $user, Lesson $lesson): bool
+    {
+        return $this->update($user, $lesson)
+            && in_array($lesson->classroom->church_id, $user->administeredChurchIds(), true);
+    }
+
     public function delete(User $user, Lesson $lesson): bool
     {
         return $user->canManageClassroom($lesson->classroom_id);

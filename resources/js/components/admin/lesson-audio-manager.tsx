@@ -5,6 +5,16 @@ import { CopyWhatsAppButtons } from '@/components/copy-whatsapp-button';
 import { LessonAudioPlayer } from '@/components/lesson/lesson-audio';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { audio as generateAudio } from '@/routes/admin/lessons';
 import type { LessonAudioManage } from '@/types';
@@ -23,6 +33,8 @@ export function LessonAudioManager({
     const generating = audio.status === 'generating';
     const [requesting, setRequesting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [confirming, setConfirming] = useState(false);
+    const [typed, setTyped] = useState('');
 
     // Enquanto o servidor gera, a página confere o andamento a cada 5 s.
     const { start, stop } = usePoll(
@@ -41,21 +53,24 @@ export function LessonAudioManager({
         return stop;
     }, [generating, start, stop]);
 
-    const request = () => {
+    const request = (data?: { force: true; confirmation: string }) => {
         if (requesting || generating) {
             return;
         }
 
-        router.post(generateAudio.url(lessonId), undefined, {
+        router.post(generateAudio.url(lessonId), data, {
             preserveScroll: true,
             preserveState: true,
             onStart: () => {
                 setRequesting(true);
                 setError(null);
             },
+            onSuccess: () => setConfirming(false),
             onError: (errors) =>
                 setError(
-                    errors.audio ?? 'Não foi possível pedir o áudio agora.',
+                    errors.audio ??
+                        errors.confirmation ??
+                        'Não foi possível pedir o áudio agora.',
                 ),
             onFinish: () => setRequesting(false),
         });
@@ -68,7 +83,7 @@ export function LessonAudioManager({
                 mês).
             </span>
         ) : (
-            <Button variant="outline" onClick={request}>
+            <Button variant="outline" onClick={() => request()}>
                 <AudioLines /> {label}
             </Button>
         );
@@ -132,10 +147,25 @@ export function LessonAudioManager({
                         {button('Regenerar áudio')}
                     </>
                 ) : audio.file ? (
-                    <span className="text-muted-foreground">
-                        Gerado em {audio.generated_at}. A classe ouve na página
-                        da lição, em Estudo.
-                    </span>
+                    <>
+                        <span className="text-muted-foreground">
+                            Gerado em {audio.generated_at}. A classe ouve na
+                            página da lição, em Estudo.
+                        </span>
+                        {audio.regenerate && audio.enabled && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setTyped('');
+                                    setError(null);
+                                    setConfirming(true);
+                                }}
+                            >
+                                <AudioLines /> Gerar de novo
+                            </Button>
+                        )}
+                    </>
                 ) : (
                     <>
                         {button('Gerar áudio')}
@@ -144,13 +174,107 @@ export function LessonAudioManager({
                         </span>
                     </>
                 )}
-                {error && (
+                {error && !confirming && (
                     <p className="flex w-full items-start gap-2 text-destructive">
                         <AlertCircle className="mt-0.5 size-4 shrink-0" />
                         {error}
                     </p>
                 )}
             </div>
+
+            {audio.regenerate && (
+                <Dialog open={confirming} onOpenChange={setConfirming}>
+                    <DialogContent className="sm:max-w-md">
+                        <form
+                            className="space-y-4"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+
+                                if (typed === 'CONFIRMAR') {
+                                    request({
+                                        force: true,
+                                        confirmation: typed,
+                                    });
+                                }
+                            }}
+                        >
+                            <DialogHeader>
+                                <DialogTitle>
+                                    Gerar o áudio de novo?
+                                </DialogTitle>
+                                <DialogDescription>
+                                    O áudio atual já está em dia com o estudo.
+                                    Gerar de novo chama a OpenAI outra vez e
+                                    substitui o áudio que a classe ouve.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <ul className="list-disc space-y-1 pl-5 text-sm">
+                                <li>
+                                    Custo estimado:{' '}
+                                    <strong>
+                                        cerca de{' '}
+                                        {audio.regenerate.brl.toLocaleString(
+                                            'pt-BR',
+                                            {
+                                                style: 'currency',
+                                                currency: 'BRL',
+                                            },
+                                        )}
+                                    </strong>{' '}
+                                    (US${' '}
+                                    {audio.regenerate.usd.toLocaleString(
+                                        'pt-BR',
+                                        { minimumFractionDigits: 2 },
+                                    )}
+                                    ), para uns {audio.regenerate.minutes} min
+                                    de áudio.
+                                </li>
+                                <li>
+                                    Conta 1 dos áudios do mês da igreja (restam{' '}
+                                    {audio.remaining} de {audio.monthly_limit}).
+                                </li>
+                            </ul>
+                            <div className="space-y-2">
+                                <Label htmlFor="audio-confirmation">
+                                    Digite CONFIRMAR para continuar
+                                </Label>
+                                <Input
+                                    id="audio-confirmation"
+                                    value={typed}
+                                    onChange={(event) =>
+                                        setTyped(event.target.value)
+                                    }
+                                    autoComplete="off"
+                                />
+                            </div>
+                            {error && (
+                                <p className="flex items-start gap-2 text-sm text-destructive">
+                                    <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                                    {error}
+                                </p>
+                            )}
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setConfirming(false)}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={
+                                        typed !== 'CONFIRMAR' || requesting
+                                    }
+                                >
+                                    {requesting && <Spinner />} Gerar de novo
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 }
