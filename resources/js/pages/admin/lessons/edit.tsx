@@ -71,6 +71,7 @@ type EditableLesson = {
     blocks: LessonBlock[];
     meetings: (ClassMeeting & { url: string })[];
     meetings_url: string;
+    forecast_label: string | null;
 };
 
 type Props = {
@@ -317,7 +318,9 @@ export default function EditLesson({
                             </ul>
                         ) : (
                             <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                Esta lição ainda não está em nenhum {words.one}.
+                                {lesson.forecast_label
+                                    ? `Previsão: ${lesson.forecast_label}. A data anda sozinha se a lição atual ganhar mais ${words.many}.`
+                                    : `Esta lição ainda não está em nenhum ${words.one}.`}
                             </p>
                         )}
                         <Button asChild variant="outline" className="mt-3">

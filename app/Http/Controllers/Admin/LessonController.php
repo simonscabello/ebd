@@ -29,6 +29,7 @@ use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Models\Series;
 use App\Models\User;
+use App\Queries\LessonForecastQuery;
 use App\Support\ChurchCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -130,11 +131,14 @@ class LessonController extends Controller
         return to_route('admin.lessons.edit', $lesson);
     }
 
-    public function edit(Request $request, Lesson $lesson): Response
+    public function edit(Request $request, Lesson $lesson, LessonForecastQuery $forecastQuery, SyncUpcomingMeeting $sync): Response
     {
         Gate::authorize('update', $lesson);
 
         $lesson->load(['classroom', 'series', 'authors', 'materials', 'readings', 'blocks', 'meetings']);
+        // Como na página da classe: o encontro da lição atual precisa estar em dia para a previsão.
+        $sync->handle($lesson->classroom);
+        $forecast = $forecastQuery->for($lesson->classroom->refresh());
 
         return Inertia::render('admin/lessons/edit', [
             'lesson' => [
@@ -165,6 +169,10 @@ class LessonController extends Controller
                     'url' => route('admin.classrooms.meetings.show', [$lesson->classroom, $meeting]),
                 ]),
                 'meetings_url' => route('admin.classrooms.meetings.index', $lesson->classroom),
+                // Só para a que ainda não tem encontro: a previsão, se ela vem a seguir na série.
+                'forecast_label' => $lesson->meetings->isEmpty() && isset($forecast[$lesson->id])
+                    ? ChurchCalendar::formatLong($forecast[$lesson->id])
+                    : null,
             ],
             // Fora de "lesson" para a página recarregar só isto enquanto o áudio é gerado.
             'audio' => LessonAudioResource::manage($lesson),
