@@ -30,14 +30,18 @@ class SaveLessonCover
         $path = config('ebd.covers.directory').'/'.$lesson->id.'/'.Str::random(32).'.jpg';
         $options = ['visibility' => 'private', 'ContentType' => 'image/jpeg'];
 
-        if (! Storage::disk($disk)->put($path, $this->squareJpeg($source, max(1, (int) config('ebd.covers.size'))), $options)
+        $large = $this->squareJpeg($source, max(1, (int) config('ebd.covers.size')));
+
+        if (! Storage::disk($disk)->put($path, $large, $options)
             || ! Storage::disk($disk)->put(self::thumbnailPath($path), $this->squareJpeg($source, max(1, (int) config('ebd.covers.thumbnail_size'))), $options)) {
             Storage::disk($disk)->delete([$path, self::thumbnailPath($path)]);
 
             throw ValidationException::withMessages([$field => 'Não foi possível salvar a capa. Tente de novo.']);
         }
 
-        $cutout = $this->cutout->make($source, max(1, (int) config('ebd.covers.cutout_size')))['image'];
+        // Da capa quadrada, como o ebd:capas-recorte: os dois dão o mesmo recorte.
+        $square = imagecreatefromstring($large);
+        $cutout = $square === false ? null : $this->cutout->make($square, max(1, (int) config('ebd.covers.cutout_size')))['image'];
         $cutout = $cutout !== null && self::storeCutout($cutout, $disk, $path);
         $previous = $lesson->hasCover() ? [$lesson->cover_disk, $lesson->cover_path] : null;
 

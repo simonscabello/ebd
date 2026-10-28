@@ -43,13 +43,23 @@ class GenerateCoverCutouts extends Command
                     Storage::disk('local')->put("recortes-preview/{$lesson->id}-{$lesson->slug}.png", (string) ob_get_clean());
                 }
             } elseif ($image !== false) {
+                $disk = Storage::disk((string) $lesson->cover_disk);
+                $cutoutPath = SaveLessonCover::cutoutPath((string) $lesson->cover_path);
                 $saved = $result['image'] !== null && SaveLessonCover::storeCutout($result['image'], (string) $lesson->cover_disk, (string) $lesson->cover_path);
 
                 if (! $saved) {
-                    Storage::disk((string) $lesson->cover_disk)->delete(SaveLessonCover::cutoutPath((string) $lesson->cover_path));
+                    $disk->delete($cutoutPath);
                 }
-                // Sem mexer em updated_at: a lição não mudou para quem estuda.
-                Lesson::query()->whereKey($lesson->id)->update(['cover_cutout' => $saved]);
+
+                // Sem mexer em updated_at (a lição não mudou para quem estuda), mas
+                // com ?v= novo para o navegador não reusar o recorte antigo. Se a
+                // capa foi trocada no meio, o recorte gravado aqui é de uma capa apagada.
+                $updated = Lesson::query()->whereKey($lesson->id)->where('cover_path', $lesson->cover_path)->toBase()
+                    ->update(['cover_cutout' => $saved, 'cover_updated_at' => now()]);
+
+                if ($updated === 0) {
+                    $disk->delete($cutoutPath);
+                }
             }
 
             $this->line(sprintf('%d %s: %s (%s)', $lesson->id, $lesson->displayTitle(), $result['image'] ? 'recorte ok' : 'sem recorte', $result['note']));
