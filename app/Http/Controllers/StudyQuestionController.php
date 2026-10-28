@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Engagement\AwardBadges;
 use App\Actions\Lessons\AnswerStudyQuestion;
+use App\Enums\Badge;
 use App\Models\Lesson;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +17,7 @@ use Illuminate\Support\Facades\Gate;
  */
 class StudyQuestionController extends Controller
 {
-    public function store(Request $request, Lesson $lesson, AnswerStudyQuestion $answer): JsonResponse
+    public function store(Request $request, Lesson $lesson, AnswerStudyQuestion $answer, AwardBadges $awardBadges): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -31,6 +33,8 @@ class StudyQuestionController extends Controller
         return response()->json([
             'answer' => $asked->answer,
             'remaining' => AnswerStudyQuestion::remainingToday($user, $lesson),
+            // A resposta não passa pelo Inertia: a comemoração vai junto.
+            'badges' => array_map(fn (Badge $b) => ['label' => $b->label(), 'emoji' => $b->emoji()], $awardBadges->handle($user, $lesson->series)),
         ]);
     }
 

@@ -11,6 +11,7 @@ use App\Models\LessonBlock;
 use App\Models\LessonReading;
 use App\Models\Series;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -250,16 +251,79 @@ class EngagementTest extends TestCase
         $this->checkIn($this->lesson, 2, '2026-09-22');
 
         $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 3])->assertRedirect();
-        $this->assertSame([Badge::Streak7->label(), Badge::FirstFullWeek->label()], collect(session('inertia.flash_data.badges'))->pluck('label')->all());
+        $this->assertSame([Badge::Streak7->label(), Badge::FirstFullWeek->label(), Badge::FirstStep->label()], collect(session('inertia.flash_data.badges'))->pluck('label')->all());
 
         $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 4]);
-        $this->assertSame(2, DB::table('user_badges')->where('user_id', $this->student->id)->count());
+        $this->assertSame(3, DB::table('user_badges')->where('user_id', $this->student->id)->count());
 
         $this->actingAs($this->student)->get('/meu-progresso')
             ->assertInertia(fn (Assert $page) => $page
                 ->component('my-progress')
                 ->where('progress.streak.current', 10)
-                ->has('progress.badges', 2));
+                ->has('progress.badges', 3));
+    }
+
+    public function test_first_reading_earns_first_step(): void
+    {
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 3]);
+
+        $this->assertSame([Badge::FirstStep->label()], collect(session('inertia.flash_data.badges'))->pluck('label')->all());
+    }
+
+    public function test_coming_back_after_two_weeks_without_reading_earns_comeback(): void
+    {
+        // 14 dias inteiros sem ler (9 a 22) ainda não contam como volta.
+        $this->checkIn($this->lesson, 1, '2026-09-08');
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 3]);
+        $this->assertDatabaseHas('user_badges', ['user_id' => $this->student->id, 'badge' => Badge::Comeback->value]);
+
+        $other = User::factory()->studentOf($this->classroom)->create();
+        DB::table('reading_checkins')->insert(['user_id' => $other->id, 'lesson_id' => $this->lesson->id, 'weekday' => 1, 'read_on' => '2026-09-09', 'created_at' => now()]);
+        $this->actingAs($other)->post('/licoes/e-necessario/leituras', ['weekday' => 3]);
+        $this->assertDatabaseMissing('user_badges', ['user_id' => $other->id, 'badge' => Badge::Comeback->value]);
+    }
+
+    public function test_reading_at_night_or_early_earns_surprise_badges_that_only_show_once_earned(): void
+    {
+        $at = fn (string $madrid) => CarbonImmutable::parse($madrid, 'Europe/Madrid')->utc()->toDateTimeString();
+        $previous = Lesson::factory()->for($this->classroom)->published()->on('2026-09-20')->create();
+        // Quatro noites; a 1h do dia 14 ainda é a noite do dia 13.
+        foreach (['2026-09-10 23:00', '2026-09-11 22:30', '2026-09-12 23:59', '2026-09-13 23:10', '2026-09-14 01:00'] as $i => $time) {
+            DB::table('reading_checkins')->insert(['user_id' => $this->student->id, 'lesson_id' => $previous->id, 'weekday' => $i + 1, 'read_on' => substr($time, 0, 10), 'created_at' => $at($time)]);
+        }
+        // Cinco manhãs cedo, em dias salteados (sem sequência de 7).
+        $older = Lesson::factory()->for($this->classroom)->published()->on('2026-09-06')->create();
+        foreach (['01', '03', '05', '07', '16'] as $i => $day) {
+            DB::table('reading_checkins')->insert(['user_id' => $this->student->id, 'lesson_id' => $older->id, 'weekday' => $i + 1, 'read_on' => "2026-09-{$day}", 'created_at' => $at("2026-09-{$day} 06:30")]);
+        }
+
+        $this->actingAs($this->student)->get('/meu-progresso')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('progress.available_badges', fn ($badges) => collect($badges)->pluck('badge')->intersect(['night_owl', 'early_bird', 'comeback'])->isEmpty()));
+
+        $this->travelTo(CarbonImmutable::parse('2026-09-23 22:15', 'Europe/Madrid'));
+        $this->actingAs($this->student)->post('/licoes/e-necessario/leituras', ['weekday' => 3]);
+
+        $this->assertSame([Badge::FirstStep->label(), Badge::NightOwl->label(), Badge::EarlyBird->label()], collect(session('inertia.flash_data.badges'))->pluck('label')->all());
+        $this->actingAs($this->student)->get('/meu-progresso')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('progress.available_badges', fn ($badges) => collect($badges)->pluck('badge')->intersect(['night_owl', 'early_bird'])->count() === 2));
+    }
+
+    public function test_notes_in_five_lessons_earn_note_taker(): void
+    {
+        foreach (range(1, 4) as $i) {
+            $lesson = Lesson::factory()->for($this->classroom)->published()->create();
+            DB::table('lesson_notes')->insert(['user_id' => $this->student->id, 'lesson_id' => $lesson->id, 'body' => "Nota {$i}", 'created_at' => now(), 'updated_at' => now()]);
+        }
+
+        $this->actingAs($this->student)->get('/meu-progresso')
+            ->assertInertia(fn (Assert $page) => $page->where('progress.available_badges.6.badge', Badge::NoteTaker->value)
+                ->where('progress.available_badges.6.progress', ['current' => 4, 'target' => 5]));
+
+        $this->actingAs($this->student)->put('/licoes/e-necessario/anotacao', ['body' => 'A quinta'])->assertRedirect();
+
+        $this->assertSame([Badge::NoteTaker->label()], collect(session('inertia.flash_data.badges'))->pluck('label')->all());
     }
 
     public function test_reading_everything_on_the_weekend_still_completes_the_week(): void

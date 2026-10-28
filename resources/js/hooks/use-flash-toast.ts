@@ -3,6 +3,17 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import type { FlashToast } from '@/types/ui';
 
+/** Selo novo: comemoração discreta, só para a própria pessoa. */
+export function toastBadges(
+    badges: { label: string; emoji: string }[] | undefined,
+): void {
+    badges?.forEach((badge) =>
+        toast.success(`${badge.emoji} Novo selo: ${badge.label}!`, {
+            duration: 6000,
+        }),
+    );
+}
+
 export function useFlashToast(): void {
     useEffect(() => {
         return router.on('flash', (event) => {
@@ -12,12 +23,7 @@ export function useFlashToast(): void {
                 | { label: string; emoji: string }[]
                 | undefined;
 
-            // Selo novo: comemoração discreta, só para a própria pessoa.
-            badges?.forEach((badge) =>
-                toast.success(`${badge.emoji} Novo selo: ${badge.label}!`, {
-                    duration: 6000,
-                }),
-            );
+            toastBadges(badges);
 
             if (!data) {
                 return;
