@@ -15,6 +15,7 @@ import {
     LessonNumber,
     LessonStatusBadge,
 } from '@/components/admin/lesson-row';
+import { LessonCover } from '@/components/lesson/lesson-cover';
 import { Page } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +47,7 @@ type LessonItem = {
     slug: string;
     number: number | null;
     display_title: string;
+    cover_url: string | null;
     status: LessonStatus;
     studied: boolean;
     is_current: boolean;
@@ -349,6 +351,12 @@ function SeriesCard({
                                 number={lesson.number}
                                 done={lesson.studied && !lesson.is_current}
                             />
+                            {lesson.cover_url && (
+                                <LessonCover
+                                    src={lesson.cover_url}
+                                    className="w-10 rounded-lg"
+                                />
+                            )}
                             <Link
                                 href={editLesson.url(lesson.id)}
                                 className={cn(

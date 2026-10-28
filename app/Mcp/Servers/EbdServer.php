@@ -17,6 +17,7 @@ use App\Mcp\Tools\MoveStudent;
 use App\Mcp\Tools\RecordAttendanceTool;
 use App\Mcp\Tools\RemoveLessonItem;
 use App\Mcp\Tools\SaveLessonBlockTool;
+use App\Mcp\Tools\SaveLessonCoverTool;
 use App\Mcp\Tools\SaveLessonDraft;
 use App\Mcp\Tools\SaveLessonMaterial;
 use App\Mcp\Tools\SaveLessonReading;
@@ -75,6 +76,7 @@ class EbdServer extends Server
         SaveLessonBlockTool::class,
         SaveLessonReading::class,
         SaveLessonMaterial::class,
+        SaveLessonCoverTool::class,
         RemoveLessonItem::class,
 
         // Agenda e presença

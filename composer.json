@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.4",
         "ext-bcmath": "*",
+        "ext-gd": "*",
         "ext-intl": "*",
         "ext-pdo_pgsql": "*",
         "bacon/bacon-qr-code": "^3.1",

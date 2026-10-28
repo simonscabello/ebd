@@ -93,6 +93,16 @@ return [
         'temporary_url_minutes' => 10,
     ],
 
+    // Capa da lição: vai para o disco dos materiais, sempre em JPEG quadrado.
+    // 1400 px é o mínimo que o Spotify aceita na imagem do episódio.
+    'covers' => [
+        'directory' => 'lesson-covers',
+        'size' => 1400,
+        // Miniatura dos cards e listas.
+        'thumbnail_size' => 400,
+        'max_upload_kb' => 8 * 1024,
+    ],
+
     /*
     | Áudio do estudo ("Ouvir estudo"), narrado pela API de voz da OpenAI
     | (chave em OPENAI_API_KEY, só no servidor). O arquivo vai para o disco

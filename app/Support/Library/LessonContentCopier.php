@@ -3,6 +3,7 @@
 namespace App\Support\Library;
 
 use App\Actions\Lessons\GenerateLessonSlug;
+use App\Actions\Lessons\SaveLessonCover;
 use App\Actions\Lessons\SyncLessonSearchText;
 use App\Enums\LessonStatus;
 use App\Enums\Weekday;
@@ -69,6 +70,22 @@ class LessonContentCopier
 
         foreach ($data['readings'] as $reading) {
             $lesson->readings()->create([...$reading, 'weekday' => $shift($reading['weekday'] ?? null)]);
+        }
+
+        // Versões publicadas antes das capas não têm a chave.
+        $cover = $data['cover'] ?? null;
+
+        if ($cover !== null) {
+            $disk = (string) $cover['disk'];
+            $path = config('ebd.covers.directory')."/{$lesson->id}/".Str::random(32).'.jpg';
+
+            $copied = SaveLessonCover::copyFiles($disk, (string) $cover['path'], $path)
+                ?? throw new RuntimeException("Não foi possível copiar a capa de \"{$data['title']}\".");
+
+            foreach ($copied as $file) {
+                $this->copiedFiles[] = [$disk, $file];
+            }
+            $lesson->forceFill(['cover_disk' => $disk, 'cover_path' => $path, 'cover_updated_at' => now()])->save();
         }
 
         foreach ($data['materials'] as $material) {

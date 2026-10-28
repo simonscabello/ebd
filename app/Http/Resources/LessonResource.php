@@ -54,6 +54,7 @@ class LessonResource extends JsonResource
             'display_title' => $this->displayTitle(),
             'slug' => $this->slug,
             'url' => route('lessons.show', $this->slug),
+            'cover_url' => $this->coverUrl(thumbnail: true),
             'summary' => $this->summary,
             'scheduled_for' => $date?->toDateString(),
             'date_label' => $date ? ChurchCalendar::formatLong($date) : null,

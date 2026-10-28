@@ -8,6 +8,7 @@ use App\Http\Controllers\CreateChurchController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LessonAudioController;
 use App\Http\Controllers\LessonController;
+use App\Http\Controllers\LessonCoverController;
 use App\Http\Controllers\LessonNoteController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\MaterialFileController;
@@ -84,6 +85,10 @@ Route::get('materiais/{material}/arquivo', MaterialFileController::class)
 Route::get('licoes/{lesson:slug}/audio', LessonAudioController::class)
     ->middleware('throttle:downloads')
     ->name('lessons.audio');
+
+Route::get('licoes/{lesson:slug}/capa', LessonCoverController::class)
+    ->middleware('throttle:covers')
+    ->name('lessons.cover');
 
 // Podcast da igreja: o endereço que se cadastra no Spotify for Creators.
 Route::get('igrejas/{church:slug}/podcast.xml', PodcastController::class)
@@ -237,6 +242,8 @@ Route::middleware(['auth', 'can:access-admin'])
         Route::post('biblioteca-oficial/{series}/usar', [Admin\OfficialLibraryController::class, 'copy'])->name('library.copy');
         Route::post('licoes/{lesson}/status', Admin\LessonStatusController::class)->name('lessons.status');
         Route::post('licoes/{lesson}/audio', Admin\LessonAudioController::class)->name('lessons.audio');
+        Route::post('licoes/{lesson}/capa', [Admin\LessonCoverController::class, 'store'])->name('lessons.cover.store');
+        Route::delete('licoes/{lesson}/capa', [Admin\LessonCoverController::class, 'destroy'])->name('lessons.cover.destroy');
         Route::put('licoes/{lesson}/ordem/{relation}', Admin\LessonOrderController::class)
             ->whereIn('relation', ['materials', 'readings', 'blocks'])
             ->name('lessons.reorder');

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Library;
 
+use App\Actions\Lessons\SaveLessonCover;
 use App\Models\Series;
 use App\Models\SeriesVersion;
 use App\Models\User;
@@ -44,6 +45,19 @@ class PublishSeriesVersion
 
             try {
                 foreach ($snapshot['lessons'] as $l => $lesson) {
+                    if ($lesson['cover'] !== null) {
+                        $disk = (string) $lesson['cover']['disk'];
+                        $path = "library/{$series->id}/v{$version}/".Str::random(16).'-capa.jpg';
+
+                        $files = SaveLessonCover::copyFiles($disk, (string) $lesson['cover']['path'], $path)
+                            ?? throw ValidationException::withMessages(['version' => "Não foi possível copiar a capa de \"{$lesson['title']}\"."]);
+
+                        foreach ($files as $file) {
+                            $copied[] = [$disk, $file];
+                        }
+                        $snapshot['lessons'][$l]['cover']['path'] = $path;
+                    }
+
                     foreach ($lesson['materials'] as $m => $material) {
                         if ($material['file'] === null) {
                             continue;

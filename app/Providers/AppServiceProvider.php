@@ -118,6 +118,8 @@ class AppServiceProvider extends ServiceProvider
     protected function configureRateLimiting(): void
     {
         RateLimiter::for('downloads', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: self::clientIp($request)));
+        // Capas: uma lista de lições carrega várias de uma vez.
+        RateLimiter::for('covers', fn (Request $request) => Limit::perMinute(300)->by($request->user()?->id ?: self::clientIp($request)));
 
         // Tentativas de entrar por link pessoal: o limite apertado é por link
         // (token); o por IP é folgado, porque a classe inteira pode entrar
