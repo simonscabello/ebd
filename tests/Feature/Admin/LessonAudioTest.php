@@ -106,6 +106,42 @@ class LessonAudioTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_only_a_church_admin_who_types_confirmar_can_regenerate_an_up_to_date_audio(): void
+    {
+        $this->fakeOpenAi();
+        $lesson = $this->lesson();
+        $this->actingAs($this->teacher)->post(route('admin.lessons.audio', $lesson));
+        Http::assertSentCount(2);
+
+        // Professor: não vê a opção e não pode forçar.
+        $this->actingAs($this->teacher)
+            ->get(route('admin.lessons.edit', $lesson))
+            ->assertInertia(fn (Assert $page) => $page->where('audio.regenerate', null));
+        $this->actingAs($this->teacher)
+            ->post(route('admin.lessons.audio', $lesson), ['force' => true, 'confirmation' => 'CONFIRMAR'])
+            ->assertForbidden();
+
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.lessons.edit', $lesson))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('audio.regenerate.minutes', 1)
+                ->has('audio.regenerate.brl'));
+
+        // Sem digitar CONFIRMAR, nada acontece.
+        $this->actingAs($admin)
+            ->post(route('admin.lessons.audio', $lesson), ['force' => true, 'confirmation' => 'confirmar'])
+            ->assertSessionHasErrors('confirmation');
+        Http::assertSentCount(2);
+
+        $this->actingAs($admin)
+            ->post(route('admin.lessons.audio', $lesson), ['force' => true, 'confirmation' => 'CONFIRMAR'])
+            ->assertSessionHasNoErrors();
+        Http::assertSentCount(4);
+        $this->assertSame(2, AiUsage::query()->count());
+    }
+
     public function test_long_study_is_split_by_sections_into_a_single_file(): void
     {
         config(['ebd.audio.max_chars' => 120]);
