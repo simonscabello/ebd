@@ -97,23 +97,16 @@ export default function Home({
             <Page className={cn(wide && 'lg:max-w-5xl')}>
                 <InstallAppBanner />
                 {isMember && <RemindersBanner />}
-                <header className="mb-6 flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
-                            {greeting}
-                            {name ? `, ${name}` : ''}.
-                        </h1>
-                        <p className="mt-2 text-lg text-muted-foreground">
-                            {headline(
-                                meeting,
-                                classroom?.program_short_name ?? 'EBD',
-                            )}
-                        </p>
-                    </div>
+                {/* A sequência fica embaixo: ao lado, apertava a saudação. */}
+                <header className="mb-6">
+                    <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
+                        {greeting}
+                        {name ? `, ${name}` : ''}.
+                    </h1>
                     {week && (
                         <StreakChip
                             streak={week.streak}
-                            className={cn(wide && 'lg:hidden')}
+                            className={cn('mt-3', wide && 'lg:hidden')}
                         />
                     )}
                 </header>
@@ -256,25 +249,6 @@ export default function Home({
             </Page>
         </>
     );
-}
-
-function headline(meeting: ClassMeeting | null, program = 'EBD'): string {
-    if (!meeting || meeting.days_until < 0) {
-        return 'Que bom ter você por aqui.';
-    }
-
-    if (meeting.days_until === 0) {
-        return `Hoje é dia de ${program}!`;
-    }
-
-    if (meeting.days_until === 1) {
-        return `Amanhã tem ${program}. Vamos nos preparar?`;
-    }
-
-    // "nossa próxima EBD" pede artigo: os outros programas falam do encontro.
-    return program === 'EBD'
-        ? `Faltam ${meeting.days_until} dias para a nossa próxima EBD.`
-        : `Faltam ${meeting.days_until} dias para o próximo encontro.`;
 }
 
 /** Quando a classe estuda a lição: previsão, não regra. */
