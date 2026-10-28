@@ -52,7 +52,7 @@ class HomeTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('home')
-                ->where('greeting', 'Bom dia')
+                ->where('greeting', 'Feliz quarta-feira')
                 ->where('nextLesson.title', 'A Santidade de Deus')
                 ->where('meeting.held_on', '2026-09-27')
                 ->where('meeting.days_until', 4)
