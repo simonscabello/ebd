@@ -41,7 +41,7 @@ export function Field({
             : children;
 
     return (
-        <div className={cn('grid gap-2', className)}>
+        <div className={cn('grid content-start gap-2', className)}>
             <Label htmlFor={htmlFor}>{label}</Label>
             {control}
             {hint && !error && (
