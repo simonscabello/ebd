@@ -11,6 +11,7 @@ use App\Models\Classroom;
 use App\Models\Lesson;
 use App\Queries\ClassroomHeaderQuery;
 use App\Queries\ClassroomOverviewQuery;
+use App\Queries\LessonForecastQuery;
 use App\Queries\NextLessonsQuery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -20,7 +21,7 @@ use Inertia\Response;
 /**
  * Página da classe (Visão geral): a lição atual no topo, as próximas da
  * série em sequência e, ao lado, quem precisa de atenção e a última chamada.
- * O domingo é só quando a lição acontece.
+ * O domingo é só quando a lição acontece; as próximas trazem a data prevista.
  */
 class ClassroomOverviewController extends Controller
 {
@@ -33,6 +34,7 @@ class ClassroomOverviewController extends Controller
         ClassroomOverviewQuery $overview,
         ClassroomHeaderQuery $header,
         NextLessonsQuery $nextLessons,
+        LessonForecastQuery $forecast,
         SyncUpcomingMeeting $sync,
     ): Response {
         Gate::authorize('viewInsights', $classroom);
@@ -42,6 +44,7 @@ class ClassroomOverviewController extends Controller
         $user = $request->user();
         $lesson = $classroom->currentLesson?->load('series');
         $upNext = $nextLessons->for($classroom, $lesson, self::UP_NEXT);
+        $dates = $forecast->for($classroom, self::UP_NEXT);
 
         return Inertia::render('admin/classrooms/show', [
             'classroom' => ClassroomResource::make($classroom),
@@ -55,7 +58,10 @@ class ClassroomOverviewController extends Controller
                 'meetings_held' => ClassMeeting::query()->whereBelongsTo($classroom)->where('lesson_id', $lesson->id)
                     ->where('status', MeetingStatus::Held)->count(),
             ],
-            'upNext' => $upNext->map(fn (Lesson $l) => $this->lesson($l))->all(),
+            'upNext' => $upNext->map(fn (Lesson $l) => [
+                ...$this->lesson($l),
+                'forecast_on' => isset($dates[$l->id]) ? $dates[$l->id]->toDateString() : null,
+            ])->all(),
         ]);
     }
 

@@ -174,6 +174,47 @@ class ClassroomOverviewTest extends TestCase
         $this->assertNotNull($studied->refresh()->studied_at);
     }
 
+    public function test_up_next_brings_the_forecast_skipping_sundays_without_class(): void
+    {
+        $series = Series::factory()->for($this->classroom)->create();
+        Lesson::factory()->forSeries($series)->published()->number(2)->on('2026-10-04')->create();
+        $three = Lesson::factory()->forSeries($series)->published()->number(3)->create();
+        $four = Lesson::factory()->forSeries($series)->published()->number(4)->create();
+        $five = Lesson::factory()->forSeries($series)->published()->number(5)->create();
+        ClassMeeting::factory()->for($this->classroom)->create(['held_on' => '2026-10-18', 'status' => MeetingStatus::Cancelled]);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('upNext.0.forecast_on', '2026-10-11')
+                ->where('upNext.1.forecast_on', '2026-10-25')
+                ->where('upNext.2.forecast_on', '2026-11-01'));
+
+        $this->actingAs($this->teacher)->get("/admin/licoes/{$four->id}/editar")
+            ->assertInertia(fn (Assert $page) => $page->where('lesson.forecast_label', 'domingo, 25 de outubro de 2026'));
+
+        // A atual ganha mais um domingo: as próximas andam uma semana.
+        $this->classroom->meetings()->whereDate('held_on', '2026-10-04')->update(['status' => MeetingStatus::Held]);
+        $this->travelTo(now()->setDate(2026, 10, 5));
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('upNext.0.id', $three->id)
+                ->where('upNext.0.forecast_on', '2026-10-25')
+                ->where('upNext.2.id', $five->id)
+                ->where('upNext.2.forecast_on', '2026-11-08'));
+    }
+
+    public function test_the_forecast_starts_after_the_lesson_meeting_not_an_event(): void
+    {
+        $series = Series::factory()->for($this->classroom)->create();
+        $current = Lesson::factory()->forSeries($series)->published()->number(1)->on('2026-10-11')->create();
+        Lesson::factory()->forSeries($series)->published()->number(2)->create();
+        ClassMeeting::factory()->for($this->classroom)->create(['held_on' => '2026-10-04', 'lesson_id' => $current->id, 'title' => 'Culto especial']);
+
+        $this->actingAs($this->teacher)->get('/admin/classes/jovens')
+            ->assertInertia(fn (Assert $page) => $page->where('upNext.0.forecast_on', '2026-10-18'));
+    }
+
     public function test_the_menu_lists_only_the_classes_of_the_teacher(): void
     {
         Classroom::factory()->create(['name' => 'Outra classe']);

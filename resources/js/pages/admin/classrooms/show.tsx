@@ -40,6 +40,8 @@ type LessonRow = {
     number: number | null;
     display_title: string;
     status: LessonStatus;
+    /** Só nas próximas: quando devem cair, se a atual não ganhar mais encontros. */
+    forecast_on?: string | null;
 };
 
 type Current = LessonRow & {
@@ -171,9 +173,19 @@ export default function ClassroomOverview({
                                             <LessonNumber
                                                 number={lesson.number}
                                             />
-                                            <span className="min-w-0 flex-1 truncate">
-                                                {lesson.display_title}
-                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <span className="block truncate">
+                                                    {lesson.display_title}
+                                                </span>
+                                                {lesson.forecast_on && (
+                                                    <span className="block text-xs text-muted-foreground">
+                                                        Previsão:{' '}
+                                                        {dayMonth(
+                                                            lesson.forecast_on,
+                                                        )}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <LessonStatusBadge
                                                 status={lesson.status}
                                             />
