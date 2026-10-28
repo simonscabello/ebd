@@ -7,6 +7,9 @@ FROM dunglas/frankenphp:php8.4.26-trixie AS base
 
 RUN install-php-extensions bcmath gd intl pdo_pgsql ctype curl dom fileinfo filter hash mbstring openssl pcre pdo session tokenizer xml
 
+# ffmpeg estático: mistura a música de fundo no áudio do estudo (BackgroundMusic).
+COPY --from=mwader/static-ffmpeg:7.1.1 /ffmpeg /usr/local/bin/ffmpeg
+
 COPY docker/frankenphp/php.ini /usr/local/etc/php/conf.d/php.ini
 COPY docker/frankenphp/Caddyfile /Caddyfile
 COPY --chmod=755 docker/frankenphp/start-container.sh /start-container.sh

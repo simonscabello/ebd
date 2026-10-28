@@ -120,7 +120,11 @@ return [
         'script' => (bool) env('EBD_AUDIO_SCRIPT', true),
         'script_model' => env('EBD_AUDIO_SCRIPT_MODEL', 'gpt-5.4-mini'),
         'voices' => array_values(array_filter(array_map('trim', explode(',', (string) env('EBD_AUDIO_VOICES', 'cedar,marin,ash'))))),
-        'instructions' => env('EBD_AUDIO_INSTRUCTIONS', 'Fale em português do Brasil como um professor de escola bíblica que gosta do assunto e conversa com jovens: voz calorosa, envolvente e próxima, com entonação variada e ênfase nas ideias principais. Ritmo natural e fluido, nem lento nem apressado. Perguntas soam como perguntas de verdade, e as frases de impacto ganham uma pausa curta depois. Mude levemente o tom nas transições entre os tópicos. Expressivo, mas sem exagero teatral.'),
+        'instructions' => env('EBD_AUDIO_INSTRUCTIONS', 'Fale em português do Brasil como um professor de escola bíblica animado, que ama o assunto e está contando uma descoberta para jovens: voz calorosa, enérgica e sorridente, nunca de leitura. Varie bastante a entonação, o volume e o ritmo: acelere um pouco nas partes de empolgação e desacelere nas ideias principais, dando ênfase forte às palavras-chave de cada frase. Perguntas soam como perguntas de verdade, com curiosidade; as frases de impacto ganham uma pausa curta antes e depois. Mude claramente o tom nas transições entre os tópicos. Expressivo e cheio de vida, mas sem exagero teatral.'),
+        // Música de fundo (CC0, ver resources/audio/CREDITOS.md); precisa do ffmpeg.
+        // Sem o arquivo ou sem o ffmpeg, o áudio sai só com a voz.
+        'music' => env('EBD_AUDIO_MUSIC', resource_path('audio/fundo.mp3')),
+        'music_volume' => (float) env('EBD_AUDIO_MUSIC_VOLUME', 0.18),
         'directory' => 'lesson-audio',
         'max_chars' => (int) env('EBD_AUDIO_MAX_CHARS', 3500),
         // Segundos de espera por trecho na OpenAI.
