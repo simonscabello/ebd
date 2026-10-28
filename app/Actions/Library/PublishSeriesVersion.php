@@ -56,6 +56,7 @@ class PublishSeriesVersion
                             $copied[] = [$disk, $file];
                         }
                         $snapshot['lessons'][$l]['cover']['path'] = $path;
+                        $snapshot['lessons'][$l]['cover']['cutout'] = in_array(SaveLessonCover::cutoutPath($path), $files, true);
                     }
 
                     foreach ($lesson['materials'] as $m => $material) {

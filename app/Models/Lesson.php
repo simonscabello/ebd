@@ -47,6 +47,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $audio_requested_at
  * @property string|null $cover_disk
  * @property string|null $cover_path
+ * @property bool $cover_cutout
  * @property Carbon|null $cover_updated_at
  * @property int|null $source_lesson_id lição do estudo oficial de onde veio a cópia
  * @property Carbon|null $studied_at quando a classe concluiu a lição (AdvanceLesson)
@@ -102,6 +103,7 @@ class Lesson extends Model
             'audio_duration' => 'integer',
             'audio_generated_at' => 'datetime',
             'audio_requested_at' => 'datetime',
+            'cover_cutout' => 'boolean',
             'cover_updated_at' => 'datetime',
             'studied_at' => 'datetime',
         ];
@@ -245,6 +247,14 @@ class Lesson extends Model
     {
         return $this->hasCover()
             ? route('lessons.cover', array_filter(['lesson' => $this->slug, 'v' => $this->cover_updated_at?->timestamp, 'tamanho' => $thumbnail ? 'p' : null]))
+            : null;
+    }
+
+    /** Recorte sem o fundo papel (WebP com transparência), quando a capa tem. */
+    public function coverCutoutUrl(): ?string
+    {
+        return $this->hasCover() && $this->cover_cutout
+            ? route('lessons.cover', ['lesson' => $this->slug, 'v' => $this->cover_updated_at?->timestamp, 'tamanho' => 'r'])
             : null;
     }
 

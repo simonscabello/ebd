@@ -85,7 +85,8 @@ class LessonContentCopier
             foreach ($copied as $file) {
                 $this->copiedFiles[] = [$disk, $file];
             }
-            $lesson->forceFill(['cover_disk' => $disk, 'cover_path' => $path, 'cover_updated_at' => now()])->save();
+            $cutout = in_array(SaveLessonCover::cutoutPath($path), $copied, true);
+            $lesson->forceFill(['cover_disk' => $disk, 'cover_path' => $path, 'cover_cutout' => $cutout, 'cover_updated_at' => now()])->save();
         }
 
         foreach ($data['materials'] as $material) {

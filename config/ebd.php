@@ -100,6 +100,8 @@ return [
         'size' => 1400,
         // Miniatura dos cards e listas.
         'thumbnail_size' => 400,
+        // Recorte sem o fundo papel (destaque do Início): lado maior.
+        'cutout_size' => 900,
         'max_upload_kb' => 8 * 1024,
     ],
 

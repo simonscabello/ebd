@@ -245,7 +245,12 @@ export default function LessonShow({
                     </div>
                 </div>
 
-                <header className="flex flex-col-reverse gap-5 sm:flex-row sm:items-start">
+                <header
+                    className={cn(
+                        'flex flex-col-reverse gap-5 sm:flex-row sm:items-start',
+                        lesson.cover_cutout_url && 'relative isolate',
+                    )}
+                >
                     <div className="min-w-0 flex-1">
                         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                             {lesson.classroom && (
@@ -265,14 +270,36 @@ export default function LessonShow({
                                 </>
                             )}
                         </p>
+                        {/* A cena (recorte sem o fundo papel) faz parte do título:
+                            no celular o título pisa no chão dela; na tela larga
+                            ela fica atrás, à direita. */}
+                        {lesson.cover_cutout_url && (
+                            <img
+                                src={lesson.cover_cutout_url}
+                                alt=""
+                                aria-hidden
+                                className="pointer-events-none relative -z-10 mt-4 max-h-44 w-full object-contain object-bottom sm:absolute sm:top-0 sm:right-0 sm:mt-0 sm:h-full sm:max-h-60 sm:w-1/2 sm:[mask-image:linear-gradient(to_left,black_55%,transparent)] sm:object-right dark:brightness-[.85]"
+                            />
+                        )}
                         {lesson.number !== null && (
-                            <p className="mt-3 text-sm font-semibold tracking-wide text-primary uppercase">
+                            <p
+                                className={cn(
+                                    'mt-3 text-sm font-semibold tracking-wide text-primary uppercase',
+                                    lesson.cover_cutout_url && '-mt-5 sm:mt-3',
+                                )}
+                            >
                                 {lesson.number === 0
                                     ? 'Introdução'
                                     : `Lição ${lesson.number}`}
                             </p>
                         )}
-                        <h1 className="mt-1 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
+                        <h1
+                            className={cn(
+                                'mt-1 font-serif text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl',
+                                lesson.cover_cutout_url &&
+                                    '[text-shadow:0_1px_12px_color-mix(in_oklch,var(--background)_85%,transparent)] sm:max-w-[65%]',
+                            )}
+                        >
                             {lesson.title}
                         </h1>
                         <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground">
@@ -306,7 +333,7 @@ export default function LessonShow({
                             )}
                         </div>
                     </div>
-                    {lesson.cover_url && (
+                    {lesson.cover_url && !lesson.cover_cutout_url && (
                         <LessonCover
                             src={lesson.cover_url}
                             className="w-36 sm:w-48"
