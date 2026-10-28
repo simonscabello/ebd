@@ -97,18 +97,11 @@ export default function Home({
             <Page className={cn(wide && 'lg:max-w-5xl')}>
                 <InstallAppBanner />
                 {isMember && <RemindersBanner />}
-                {/* A sequência fica embaixo: ao lado, apertava a saudação. */}
                 <header className="mb-6">
                     <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">
                         {greeting}
                         {name ? `, ${name}` : ''}.
                     </h1>
-                    {week && (
-                        <StreakChip
-                            streak={week.streak}
-                            className={cn('mt-3', wide && 'lg:hidden')}
-                        />
-                    )}
                 </header>
 
                 {classrooms.length > 1 && classroom && (
@@ -450,31 +443,6 @@ function HeroLink({ href, children }: { href: string; children: ReactNode }) {
             className="inline-flex h-12 items-center justify-center rounded-xl border border-primary/20 bg-card/70 px-2 text-[13px] font-medium whitespace-nowrap transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:px-4 sm:text-sm"
         >
             {children}
-        </Link>
-    );
-}
-
-/** A sequência de leitura no topo; abre Meu progresso. */
-function StreakChip({
-    streak,
-    className,
-}: {
-    streak: StudyWeek['streak'];
-    className?: string;
-}) {
-    return (
-        <Link
-            href={myProgress.url()}
-            aria-label={`Meu progresso: ${plural(streak.current, 'dia seguido', 'dias seguidos')} de leitura`}
-            className={cn(
-                'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3 text-sm font-semibold text-accent-foreground',
-                className,
-            )}
-        >
-            <Flame className="size-4" />
-            {streak.current > 0
-                ? plural(streak.current, 'dia', 'dias')
-                : 'Progresso'}
         </Link>
     );
 }
