@@ -145,14 +145,15 @@ class ChurchCalendar
         return $day->subDays(($day->dayOfWeekIso - $weekday->value + 7) % 7);
     }
 
+    /** De manhã, o dia da semana ("Feliz terça-feira"); depois, tarde, noite e madrugada. */
     public static function greeting(): string
     {
-        $hour = self::now()->hour;
+        $now = self::now();
 
         return match (true) {
-            $hour < 5 => 'Boa noite',
-            $hour < 12 => 'Bom dia',
-            $hour < 18 => 'Boa tarde',
+            $now->hour < 5 => 'Boa madrugada',
+            $now->hour < 12 => 'Feliz '.Weekday::from($now->dayOfWeekIso)->lowerLabel(),
+            $now->hour < 18 => 'Boa tarde',
             default => 'Boa noite',
         };
     }
