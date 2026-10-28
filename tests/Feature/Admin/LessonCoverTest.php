@@ -55,6 +55,46 @@ class LessonCoverTest extends TestCase
         return (string) ob_get_clean();
     }
 
+    /**
+     * Ilustração sintética: papel liso com uma cena (retângulo) no meio. $holes
+     * são áreas de papel presas dentro da cena; $cloth, uma roupa clara.
+     *
+     * @param  list<array{int, int, int, int}>  $holes
+     */
+    private function paper(array $holes = [], bool $cloth = false): string
+    {
+        $image = imagecreatetruecolor(1400, 1400);
+        imagefill($image, 0, 0, (int) imagecolorallocate($image, 248, 245, 240));
+        imagefilledrectangle($image, 300, 500, 1099, 1199, (int) imagecolorallocate($image, 180, 60, 40));
+
+        foreach ($holes as [$x1, $y1, $x2, $y2]) {
+            imagefilledrectangle($image, $x1, $y1, $x2, $y2, (int) imagecolorallocate($image, 248, 245, 240));
+        }
+
+        if ($cloth) {
+            imagefilledrectangle($image, 400, 600, 600, 900, (int) imagecolorallocate($image, 225, 215, 195));
+        }
+
+        ob_start();
+        imagepng($image);
+
+        return (string) ob_get_clean();
+    }
+
+    /** @return array{int, int, int} [alfa, largura, altura] no ponto do recorte (em px da capa de 1400). */
+    private function cutoutAlpha(Lesson $lesson, int $x, int $y): array
+    {
+        $cutout = imagecreatefromstring(Storage::disk('local')->get(SaveLessonCover::cutoutPath($lesson->cover_path)));
+        $scale = 900 / 1400;
+        $pad = 9; // folga de 1% em volta da cena, já aparada
+
+        return [
+            (imagecolorat($cutout, (int) round($x * $scale) - (int) round(300 * $scale) + $pad, (int) round($y * $scale) - (int) round(500 * $scale) + $pad) >> 24) & 0x7F,
+            imagesx($cutout),
+            imagesy($cutout),
+        ];
+    }
+
     private function lesson(array $attributes = []): Lesson
     {
         return Lesson::factory()->for($this->classroom)->published()->create(['number' => 4, 'title' => 'A parede caiu', ...$attributes]);
@@ -81,10 +121,14 @@ class LessonCoverTest extends TestCase
         $this->assertLessThan(300 * 1024, $disk->size($lesson->cover_path));
 
         // Trocar apaga a capa e a miniatura antigas.
-        $old = $lesson->cover_path;
+        $this->upload($lesson, $this->paper())->assertSessionHasNoErrors();
+        $old = $lesson->fresh()->cover_path;
+        $this->assertTrue($disk->exists(SaveLessonCover::cutoutPath($old)));
         $this->upload($lesson, $this->png())->assertSessionHasNoErrors();
         $this->assertFalse($disk->exists($old));
         $this->assertFalse($disk->exists(SaveLessonCover::thumbnailPath($old)));
+        $this->assertFalse($disk->exists(SaveLessonCover::cutoutPath($old)));
+        $this->upload($lesson, $this->paper())->assertSessionHasNoErrors();
 
         $this->actingAs($this->teacher)->delete(route('admin.lessons.cover.destroy', $lesson))->assertRedirect();
         $this->assertNull($lesson->fresh()->cover_path);
@@ -157,13 +201,75 @@ class LessonCoverTest extends TestCase
         $this->assertNull($lesson->fresh()->cover_path);
     }
 
+    public function test_cover_on_plain_paper_gets_a_trimmed_transparent_cutout(): void
+    {
+        $lesson = $this->lesson();
+        app(SaveLessonCover::class)->handle($lesson, $this->paper(holes: [[400, 1000, 410, 1010], [800, 600, 1000, 800]], cloth: true));
+
+        $this->assertTrue($lesson->cover_cutout);
+        [$center, $width, $height] = $this->cutoutAlpha($lesson, 700, 1100);
+        $this->assertSame(0, $center);
+        // Aparado à cena (800 × 700 px na capa), com a folga de 1%.
+        $this->assertEqualsWithDelta(800 * 900 / 1400 + 18, $width, 2);
+        $this->assertEqualsWithDelta(700 * 900 / 1400 + 18, $height, 2);
+        $this->assertSame(127, (imagecolorat(imagecreatefromstring(Storage::disk('local')->get(SaveLessonCover::cutoutPath($lesson->cover_path))), 0, 0) >> 24) & 0x7F);
+
+        // Brilho pequeno e roupa clara ficam; o vão grande de papel sai.
+        $this->assertSame(0, $this->cutoutAlpha($lesson, 405, 1005)[0]);
+        $this->assertSame(0, $this->cutoutAlpha($lesson, 500, 750)[0]);
+        $this->assertSame(127, $this->cutoutAlpha($lesson, 900, 700)[0]);
+    }
+
+    public function test_photo_or_dark_background_has_no_cutout(): void
+    {
+        $lesson = $this->lesson();
+        app(SaveLessonCover::class)->handle($lesson, $this->png());
+
+        $this->assertFalse($lesson->cover_cutout);
+        $this->assertFalse(Storage::disk('local')->exists(SaveLessonCover::cutoutPath($lesson->cover_path)));
+        $this->assertNull($lesson->coverCutoutUrl());
+        $this->get(route('lessons.cover', ['lesson' => $lesson->slug, 'tamanho' => 'r']))->assertNotFound();
+    }
+
+    public function test_cutout_is_served_as_webp_with_the_lesson_permission(): void
+    {
+        $public = $this->lesson();
+        $members = $this->lesson(['title' => 'Só da classe', 'visibility' => LessonVisibility::Members]);
+        app(SaveLessonCover::class)->handle($public, $this->paper());
+        app(SaveLessonCover::class)->handle($members, $this->paper());
+
+        $this->get($public->coverCutoutUrl())->assertOk()->assertHeader('Content-Type', 'image/webp');
+        $this->get($members->coverCutoutUrl())->assertNotFound();
+        $restricted = $this->actingAs($this->teacher)->get($members->coverCutoutUrl())->assertOk();
+        $this->assertStringContainsString('private', (string) $restricted->headers->get('Cache-Control'));
+    }
+
+    public function test_command_generates_cutouts_of_existing_covers_and_dry_run_changes_nothing(): void
+    {
+        $lesson = $this->lesson();
+        app(SaveLessonCover::class)->handle($lesson, $this->paper());
+        $disk = Storage::disk('local');
+        $disk->delete(SaveLessonCover::cutoutPath($lesson->cover_path));
+        $lesson->forceFill(['cover_cutout' => false])->save();
+
+        $this->artisan('ebd:capas-recorte', ['--licao' => $lesson->id, '--dry-run' => true])
+            ->expectsOutputToContain('recorte ok')->assertSuccessful();
+        $this->assertFalse($lesson->fresh()->cover_cutout);
+        $this->assertFalse($disk->exists(SaveLessonCover::cutoutPath($lesson->cover_path)));
+        $this->assertCount(1, $disk->files('recortes-preview'));
+
+        $this->artisan('ebd:capas-recorte', ['--licao' => $lesson->id])->assertSuccessful();
+        $this->assertTrue($lesson->fresh()->cover_cutout);
+        $this->assertTrue($disk->exists(SaveLessonCover::cutoutPath($lesson->cover_path)));
+    }
+
     public function test_official_library_freezes_and_copies_the_cover(): void
     {
         Event::fake();
         $owner = User::factory()->admin()->create();
         $official = Series::factory()->for(OfficialLibrary::classroom())->create();
         $source = Lesson::factory()->for(OfficialLibrary::classroom())->forSeries($official)->number(1)->published()->create();
-        app(SaveLessonCover::class)->handle($source, $this->png());
+        app(SaveLessonCover::class)->handle($source, $this->paper());
 
         $version = app(PublishSeriesVersion::class)->handle($owner, $official, null);
         $frozen = $version->snapshot['lessons'][0]['cover']['path'];
@@ -180,5 +286,7 @@ class LessonCoverTest extends TestCase
         $this->assertTrue($copy->hasCover());
         $this->assertSame(Storage::disk('local')->get($frozen), Storage::disk('local')->get($copy->cover_path));
         $this->assertTrue(Storage::disk('local')->exists(SaveLessonCover::thumbnailPath($copy->cover_path)));
+        $this->assertTrue($copy->cover_cutout);
+        $this->assertTrue(Storage::disk('local')->exists(SaveLessonCover::cutoutPath($copy->cover_path)));
     }
 }

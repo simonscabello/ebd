@@ -57,6 +57,7 @@ class LessonResource extends JsonResource
             'cover_url' => $this->coverUrl(thumbnail: true),
             // Capa inteira, para o destaque do Início (a miniatura borra em tela grande).
             'cover_large_url' => $this->coverUrl(),
+            'cover_cutout_url' => $this->coverCutoutUrl(),
             'summary' => $this->summary,
             'scheduled_for' => $date?->toDateString(),
             'date_label' => $date ? ChurchCalendar::formatLong($date) : null,

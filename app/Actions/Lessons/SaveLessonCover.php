@@ -3,6 +3,7 @@
 namespace App\Actions\Lessons;
 
 use App\Models\Lesson;
+use App\Support\Covers\PaperCutout;
 use GdImage;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -11,11 +12,15 @@ use Illuminate\Validation\ValidationException;
 /**
  * Capa da lição, enviada pela gestão ou pelo servidor MCP. Qualquer imagem
  * vira um JPEG quadrado (recorte no centro) do tamanho de config/ebd.php, com
- * cerca de 100 KB, mais uma miniatura de ~15 KB para os cards; as duas ficam
- * no disco dos materiais e a capa anterior é apagada.
+ * cerca de 100 KB, mais uma miniatura de ~15 KB para os cards e, quando a
+ * ilustração tem fundo papel liso, o recorte sem fundo (WebP de ~35 KB) do
+ * destaque do Início. Tudo fica no disco dos materiais e a capa anterior é
+ * apagada.
  */
 class SaveLessonCover
 {
+    public function __construct(private PaperCutout $cutout) {}
+
     /** @param  string  $bytes  conteúdo do arquivo (JPEG, PNG ou WebP) */
     public function handle(Lesson $lesson, string $bytes, string $field = 'cover'): Lesson
     {
@@ -25,16 +30,22 @@ class SaveLessonCover
         $path = config('ebd.covers.directory').'/'.$lesson->id.'/'.Str::random(32).'.jpg';
         $options = ['visibility' => 'private', 'ContentType' => 'image/jpeg'];
 
-        if (! Storage::disk($disk)->put($path, $this->squareJpeg($source, max(1, (int) config('ebd.covers.size'))), $options)
+        $large = $this->squareJpeg($source, max(1, (int) config('ebd.covers.size')));
+
+        if (! Storage::disk($disk)->put($path, $large, $options)
             || ! Storage::disk($disk)->put(self::thumbnailPath($path), $this->squareJpeg($source, max(1, (int) config('ebd.covers.thumbnail_size'))), $options)) {
             Storage::disk($disk)->delete([$path, self::thumbnailPath($path)]);
 
             throw ValidationException::withMessages([$field => 'Não foi possível salvar a capa. Tente de novo.']);
         }
 
+        // Da capa quadrada, como o ebd:capas-recorte: os dois dão o mesmo recorte.
+        $square = imagecreatefromstring($large);
+        $cutout = $square === false ? null : $this->cutout->make($square, max(1, (int) config('ebd.covers.cutout_size')))['image'];
+        $cutout = $cutout !== null && self::storeCutout($cutout, $disk, $path);
         $previous = $lesson->hasCover() ? [$lesson->cover_disk, $lesson->cover_path] : null;
 
-        $lesson->forceFill(['cover_disk' => $disk, 'cover_path' => $path, 'cover_updated_at' => now()])->save();
+        $lesson->forceFill(['cover_disk' => $disk, 'cover_path' => $path, 'cover_cutout' => $cutout, 'cover_updated_at' => now()])->save();
 
         if ($previous !== null) {
             self::deleteFiles((string) $previous[0], (string) $previous[1]);
@@ -47,7 +58,7 @@ class SaveLessonCover
     {
         if ($lesson->hasCover()) {
             self::deleteFiles((string) $lesson->cover_disk, (string) $lesson->cover_path);
-            $lesson->forceFill(['cover_disk' => null, 'cover_path' => null, 'cover_updated_at' => now()])->save();
+            $lesson->forceFill(['cover_disk' => null, 'cover_path' => null, 'cover_cutout' => false, 'cover_updated_at' => now()])->save();
         }
 
         return $lesson;
@@ -59,8 +70,23 @@ class SaveLessonCover
         return (string) preg_replace('/\.jpg$/', '-p.jpg', $path);
     }
 
+    /** O recorte sem fundo papel também fica ao lado, com "-r". */
+    public static function cutoutPath(string $path): string
+    {
+        return (string) preg_replace('/\.jpg$/', '-r.webp', $path);
+    }
+
+    /** Grava o recorte (de PaperCutout) ao lado da capa $path; diz se gravou. */
+    public static function storeCutout(GdImage $image, string $disk, string $path): bool
+    {
+        ob_start();
+        imagewebp($image, null, 82);
+
+        return Storage::disk($disk)->put(self::cutoutPath($path), (string) ob_get_clean(), ['visibility' => 'private', 'ContentType' => 'image/webp']) !== false;
+    }
+
     /**
-     * Copia a capa e a miniatura (biblioteca oficial). Devolve os caminhos
+     * Copia a capa, a miniatura e o recorte (biblioteca oficial). Devolve os caminhos
      * copiados, para apagar se algo falhar depois.
      *
      * @return list<string>|null null quando a cópia falhou
@@ -78,12 +104,19 @@ class SaveLessonCover
             $storage->copy(self::thumbnailPath($from), self::thumbnailPath($to));
         }
 
-        return [$to, self::thumbnailPath($to)];
+        $copied = [$to, self::thumbnailPath($to)];
+
+        // Sem recorte, o destaque usa a capa inteira.
+        if ($storage->exists(self::cutoutPath($from)) && $storage->copy(self::cutoutPath($from), self::cutoutPath($to))) {
+            $copied[] = self::cutoutPath($to);
+        }
+
+        return $copied;
     }
 
     private static function deleteFiles(string $disk, string $path): void
     {
-        Storage::disk($disk)->delete([$path, self::thumbnailPath($path)]);
+        Storage::disk($disk)->delete([$path, self::thumbnailPath($path), self::cutoutPath($path)]);
     }
 
     private function read(string $bytes, string $field): GdImage

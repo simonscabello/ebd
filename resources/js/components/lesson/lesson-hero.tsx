@@ -13,6 +13,7 @@ type HeroLesson = {
     bible_reference: string | null;
     cover_url?: string | null;
     cover_large_url?: string | null;
+    cover_cutout_url?: string | null;
 };
 
 /**
@@ -20,9 +21,10 @@ type HeroLesson = {
  * a classe deve estudá-la (só uma previsão: a lição pode durar mais de um
  * encontro). As ações vêm de quem usa.
  *
- * Com capa, no tema claro a ilustração se funde ao cartão: o fundo papel dela
- * some no "multiply" e a borda se esfuma. No escuro o multiply escureceria a
- * cena, então a capa fica emoldurada ao lado do título.
+ * Com o recorte da capa (a cena sem o fundo papel), a cena fica sobre a cor
+ * do cartão: no escuro, grande atrás do título; no claro, inteira embaixo dos
+ * botões. Sem recorte (foto, capa de fundo escuro), no claro a capa se funde
+ * ao cartão pelo "multiply" e no escuro fica emoldurada ao lado do título.
  */
 export function LessonHero({
     lesson,
@@ -45,6 +47,7 @@ export function LessonHero({
     children: ReactNode;
 }) {
     const cover = lesson.cover_large_url ?? lesson.cover_url ?? null;
+    const cutout = cover && (lesson.cover_cutout_url ?? null);
 
     return (
         <section
@@ -53,14 +56,29 @@ export function LessonHero({
         >
             {cover && (
                 <img
-                    src={cover}
+                    src={cutout || cover}
                     alt=""
                     aria-hidden
-                    className="pointer-events-none absolute right-0 bottom-0 hidden h-full w-1/2 [mask-image:linear-gradient(to_right,transparent,black_35%)] object-cover object-bottom mix-blend-multiply sm:block dark:hidden"
+                    className={cn(
+                        'pointer-events-none absolute right-0 bottom-0 hidden h-full w-1/2 [mask-image:linear-gradient(to_right,transparent,black_35%)] sm:block',
+                        cutout
+                            ? 'object-contain object-right-bottom dark:brightness-[.85]'
+                            : 'object-cover object-bottom mix-blend-multiply dark:hidden',
+                    )}
                 />
             )}
 
-            <div className="relative">
+            <div className="relative isolate z-10">
+                {/* Celular, tema escuro: a cena atrás da parte direita do título. */}
+                {cutout && (
+                    <img
+                        src={cutout}
+                        alt=""
+                        aria-hidden
+                        className="pointer-events-none absolute top-11 -right-5 -z-10 hidden h-[190px] w-[270px] [mask-image:linear-gradient(to_left,black_50%,transparent_95%)] object-contain object-right-bottom brightness-[.85] dark:block sm:dark:hidden"
+                    />
+                )}
+
                 {series && (
                     <>
                         <div className="flex items-baseline justify-between gap-3 text-sm">
@@ -98,7 +116,8 @@ export function LessonHero({
                     <div
                         className={cn(
                             'min-w-0',
-                            cover && 'sm:max-w-[52%] dark:sm:max-w-none',
+                            cover && 'sm:max-w-[52%]',
+                            cover && !cutout && 'dark:sm:max-w-none',
                         )}
                     >
                         {lesson.status === 'draft' && (
@@ -107,13 +126,20 @@ export function LessonHero({
                             </p>
                         )}
                         {/* Tema escuro: a capa emoldurada, com o título em volta. */}
-                        {lesson.cover_url && (
+                        {lesson.cover_url && !cutout && (
                             <LessonCover
                                 src={lesson.cover_url}
                                 className="float-right mt-5 ml-4 hidden w-24 sm:w-32 dark:block"
                             />
                         )}
-                        <h2 className="mt-5 font-serif text-3xl leading-tight font-semibold text-balance sm:text-4xl">
+                        <h2
+                            className={cn(
+                                'mt-5 font-serif text-3xl leading-tight font-semibold text-balance sm:text-4xl',
+                                // Leitura onde as letras passam sobre a cena.
+                                cutout &&
+                                    'dark:[text-shadow:0_1px_12px_color-mix(in_oklch,var(--accent)_80%,transparent)]',
+                            )}
+                        >
                             <Link
                                 href={lesson.url}
                                 className="rounded-md underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -150,13 +176,20 @@ export function LessonHero({
                 </div>
             </div>
 
-            {/* Celular, tema claro: a cena embaixo, esfumando para cima. */}
+            {/* Celular, tema claro: a cena embaixo dos botões. O recorte vai
+                inteiro; a capa inteira esfuma para cima e o céu vazio entra
+                por trás dos botões (z-10 no conteúdo: o multiply pintaria por cima). */}
             {cover && (
                 <img
-                    src={cover}
+                    src={cutout || cover}
                     alt=""
                     aria-hidden
-                    className="pointer-events-none -mx-5 mt-2 -mb-5 aspect-[2/1] w-[calc(100%+2.5rem)] max-w-none [mask-image:linear-gradient(to_bottom,transparent,black_35%)] object-cover object-bottom mix-blend-multiply sm:hidden dark:hidden"
+                    className={cn(
+                        'pointer-events-none relative z-0 -mx-5 -mb-5 w-[calc(100%+2.5rem)] max-w-none sm:hidden dark:hidden',
+                        cutout
+                            ? 'mt-4 max-h-56 object-contain object-bottom'
+                            : '-mt-7 aspect-[10/7] [mask-image:linear-gradient(to_bottom,transparent,black_22%)] object-cover object-bottom mix-blend-multiply',
+                    )}
                 />
             )}
         </section>

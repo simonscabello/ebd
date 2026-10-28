@@ -23,10 +23,14 @@ class LessonCoverController extends Controller
 
         $disk = Storage::disk((string) $lesson->cover_disk);
         $path = (string) $lesson->cover_path;
+        $type = 'image/jpeg';
 
-        // ?tamanho=p: a miniatura dos cards, quando existe.
+        // ?tamanho=p: a miniatura dos cards, quando existe. ?tamanho=r: o recorte.
         if ($request->query('tamanho') === 'p' && $disk->exists(SaveLessonCover::thumbnailPath($path))) {
             $path = SaveLessonCover::thumbnailPath($path);
+        } elseif ($request->query('tamanho') === 'r') {
+            abort_unless($lesson->cover_cutout, 404);
+            [$path, $type] = [SaveLessonCover::cutoutPath($path), 'image/webp'];
         }
 
         if (! $disk->exists($path)) {
@@ -37,12 +41,12 @@ class LessonCoverController extends Controller
             return redirect()->away($disk->temporaryUrl(
                 $path,
                 now()->addMinutes((int) config('ebd.materials.temporary_url_minutes')),
-                ['ResponseContentType' => 'image/jpeg'],
+                ['ResponseContentType' => $type],
             ));
         }
 
         $response = response()->file($disk->path($path), [
-            'Content-Type' => 'image/jpeg',
+            'Content-Type' => $type,
             'X-Content-Type-Options' => 'nosniff',
         ]);
 

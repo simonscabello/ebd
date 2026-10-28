@@ -43,7 +43,7 @@ final class SeriesSnapshot
                 'goal' => $lesson->goal,
                 'content' => $lesson->content,
                 'visibility' => $lesson->visibility->value,
-                'cover' => $lesson->hasCover() ? ['disk' => $lesson->cover_disk, 'path' => $lesson->cover_path] : null,
+                'cover' => $lesson->hasCover() ? ['disk' => $lesson->cover_disk, 'path' => $lesson->cover_path, 'cutout' => $lesson->cover_cutout] : null,
                 'blocks' => array_values($lesson->blocks->map(fn (LessonBlock $block) => [
                     'kind' => $block->kind->value,
                     'audience' => $block->audience->value,
