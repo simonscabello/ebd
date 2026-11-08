@@ -23,6 +23,15 @@ final readonly class CurrentLesson
         public Collection $cancelledBefore,
     ) {}
 
+    /**
+     * Dia que fecha a semana de leitura: o domingo "sem EBD" desta semana, se
+     * houver (a lição atual segue sendo lida nele), senão o encontro.
+     */
+    public function readingDay(): ?\DateTimeInterface
+    {
+        return $this->cancelledBefore->first()->held_on ?? $this->meeting?->held_on;
+    }
+
     public static function none(): self
     {
         return new self(null, null, false, 0, 0, collect());

@@ -146,11 +146,11 @@ class NotificationsTest extends TestCase
         $this->assertSame(0, $this->push->count());
     }
 
-    public function test_the_next_lesson_reading_only_starts_on_monday(): void
+    public function test_a_sunday_without_class_closes_a_reading_week_of_the_current_lesson(): void
     {
-        // Domingo 27/09 sem EBD e a classe já na lição de 04/10: a semana de
-        // leitura dela começa na segunda. A leitura de domingo dela é para o
-        // próximo domingo, não para hoje.
+        // Domingo 27/09 sem EBD e a classe já na lição de 04/10: a lição atual
+        // é lida na semana do domingo cancelado (a leitura de domingo sai nele)
+        // e de novo, desde a segunda, na semana do encontro.
         Lesson::factory()->for($this->classroom)->published()->on('2026-09-27')->create();
         ClassMeeting::query()->whereDate('held_on', '2026-09-27')->update(['status' => MeetingStatus::Cancelled]);
         $next = Lesson::factory()->for($this->classroom)->published()->on('2026-10-04')->create();
@@ -160,8 +160,9 @@ class NotificationsTest extends TestCase
 
         $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 27)->setTime(9, 0));
         app(SendReadingReminders::class)->handle(ReminderSlot::Morning);
-        $this->assertSame(0, $this->push->count());
+        $this->assertSame('Leitura de hoje: Mc 16.14-20', $this->push->sentTo($this->ana)->first()->title);
 
+        $this->push->sent = [];
         $this->travelTo(now('Europe/Madrid')->setDate(2026, 9, 28)->setTime(9, 0));
         app(SendReadingReminders::class)->handle(ReminderSlot::Morning);
         $this->assertSame('Leitura de hoje: Mt 12.38-42', $this->push->sentTo($this->ana)->first()->title);

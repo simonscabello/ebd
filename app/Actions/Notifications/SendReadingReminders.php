@@ -75,14 +75,15 @@ final class SendReadingReminders
 
             // Só dentro da semana de leitura do encontro (os seis dias antes até
             // o dia da aula): no dia da aula, a leitura daquele dia da próxima
-            // lição ainda não começou.
-            $weekday = ChurchCalendar::readingWeekday($current->meeting?->held_on, $today);
+            // lição ainda não começou. Domingo "sem EBD" fecha a semana igual.
+            $readingDay = $current->readingDay();
+            $weekday = ChurchCalendar::readingWeekday($readingDay, $today);
 
             if ($weekday === null) {
                 continue;
             }
 
-            $reading = self::todaysReading($lesson, $weekday, $current->meeting->held_on->dayOfWeekIso);
+            $reading = self::todaysReading($lesson, $weekday, (int) $readingDay->format('N'));
 
             if ($reading === null) {
                 continue;

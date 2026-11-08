@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\MeetingStatus;
 use App\Models\ClassMeeting;
 use Illuminate\Database\Query\Builder;
 
@@ -16,12 +17,17 @@ use Illuminate\Database\Query\Builder;
  * encontro k vai do dia seguinte ao encontro k-1 até o encontro k. A primeira
  * não tem começo (adiantar a leitura conta nela) e a última não tem fim (pôr
  * em dia depois da aula conta nela). Lição de um encontro só tem uma semana
- * sem limites: tudo o que foi marcado vale, como sempre foi.
+ * sem limites: tudo o que foi marcado vale, como sempre foi. Um domingo "sem
+ * EBD" também fecha uma semana: a lição atual é lida de novo nele e de novo na
+ * semana do encontro seguinte.
  */
 final class ReadingWeeks
 {
     /**
-     * Datas (Y-m-d) dos encontros não cancelados de cada lição, em ordem.
+     * Datas (Y-m-d) que fecham cada semana de leitura de cada lição, em ordem:
+     * os encontros não cancelados dela e os domingos "sem EBD" logo antes de
+     * cada um (a lição atual seguiu sendo lida naquela semana, e o encontro
+     * cancelado já não guarda a lição).
      *
      * @param  list<int>  $lessonIds
      * @return array<int, list<string>>
@@ -34,14 +40,29 @@ final class ReadingWeeks
 
         $dates = array_fill_keys($lessonIds, []);
 
-        ClassMeeting::query()
-            ->whereIn('lesson_id', $lessonIds)
-            ->active()
+        $meetings = ClassMeeting::query()
+            ->whereIn('classroom_id', ClassMeeting::query()->whereIn('lesson_id', $lessonIds)->select('classroom_id'))
+            ->where(fn ($q) => $q->whereNotNull('lesson_id')->orWhere('status', MeetingStatus::Cancelled))
             ->chronological()
-            ->get(['lesson_id', 'held_on'])
-            ->each(function (ClassMeeting $meeting) use (&$dates) {
-                $dates[(int) $meeting->lesson_id][] = $meeting->held_on->toDateString();
-            });
+            ->get(['classroom_id', 'lesson_id', 'status', 'held_on']);
+
+        foreach ($meetings->groupBy('classroom_id') as $classroomMeetings) {
+            $cancelled = [];
+
+            foreach ($classroomMeetings as $meeting) {
+                if ($meeting->isCancelled()) {
+                    $cancelled[] = $meeting->held_on->toDateString();
+
+                    continue;
+                }
+
+                if (isset($dates[(int) $meeting->lesson_id])) {
+                    array_push($dates[(int) $meeting->lesson_id], ...$cancelled, ...[$meeting->held_on->toDateString()]);
+                }
+
+                $cancelled = [];
+            }
+        }
 
         return array_map(fn (array $list) => array_values(array_unique($list)), $dates);
     }

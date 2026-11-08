@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LessonStatus;
 use App\Enums\LessonVisibility;
+use App\Enums\MeetingStatus;
 use App\Support\Audio\StudyNarration;
 use App\Support\ChurchCalendar;
 use Database\Factories\LessonFactory;
@@ -180,7 +181,8 @@ class Lesson extends Model
     /**
      * Dia do plano de leitura que cai hoje (1 = segunda ... 7 = domingo), na
      * semana que termina no próximo encontro da lição (hoje incluído). Sem
-     * encontro por vir, ou antes da segunda-feira dessa semana, null.
+     * encontro por vir, ou antes da segunda-feira dessa semana, null. Na lição
+     * atual, um domingo "sem EBD" antes do encontro fecha a semana no lugar dele.
      */
     public function readingWeekdayToday(): ?int
     {
@@ -190,7 +192,16 @@ class Lesson extends Model
             ? $this->meetings->first(fn (ClassMeeting $m) => ! $m->isCancelled() && $m->held_on->toDateString() >= $today->toDateString())
             : $this->meetings()->active()->fromDate($today)->first();
 
-        return ChurchCalendar::readingWeekday($next?->held_on, $today);
+        $cancelled = ClassMeeting::query()
+            ->where('classroom_id', $this->classroom_id)
+            ->whereRelation('classroom', 'current_lesson_id', $this->id)
+            ->where('status', MeetingStatus::Cancelled)
+            ->fromDate($today)
+            ->when($next, fn ($q, ClassMeeting $next) => $q->whereDate('held_on', '<', $next->held_on->toDateString()))
+            ->chronological()
+            ->first();
+
+        return ChurchCalendar::readingWeekday(($cancelled ?? $next)?->held_on, $today);
     }
 
     /**

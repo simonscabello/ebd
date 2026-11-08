@@ -47,8 +47,9 @@ class StudyWeekQuery
 
         // A semana de leitura é a do encontro (os seis dias antes até o dia da
         // aula), não a semana do calendário: na noite da aula, a lição
-        // seguinte ainda não tem "leitura de hoje".
-        $meetingOn = $current->meeting?->held_on;
+        // seguinte ainda não tem "leitura de hoje". Domingo "sem EBD" fecha a
+        // semana como se fosse um encontro.
+        $meetingOn = $current->readingDay();
         $meetingDay = $meetingOn !== null
             ? CarbonImmutable::parse($meetingOn->format('Y-m-d'), ChurchCalendar::timezone())
             : ChurchCalendar::nextMeetingDay($classroom->meeting_weekday);
