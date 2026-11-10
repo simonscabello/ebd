@@ -88,6 +88,9 @@ class StudentProgressQuery
             ->get()
             ->keyBy('lesson_id');
 
+        // O professor não entra na chamada (só alunos): conta presente em todo encontro realizado.
+        $teaches = $user->isTeacherOf($classroom);
+
         // Selos por série: a série da lição dada mais recentemente.
         $series = Series::query()->find($lessons->first()?->series_id);
         $progress = $this->badges->progress($user, $series);
@@ -127,7 +130,7 @@ class StudentProgressQuery
                 // Surpresa só entra na estante depois de conquistada.
                 fn (Badge $b) => ! $b->isSurprise() || $earned->contains('badge', $b),
             ))),
-            'lessons' => $lessons->map(function (Lesson $lesson) use ($daysRead, $attendance, $currentId, $sequences, $classroom) {
+            'lessons' => $lessons->map(function (Lesson $lesson) use ($daysRead, $attendance, $currentId, $sequences, $classroom, $teaches) {
                 $presence = $attendance->get($lesson->id);
                 $position = array_search($lesson->id, $sequences[$lesson->series_id ?? 0] ?? [], true);
 
@@ -141,7 +144,7 @@ class StudentProgressQuery
                     'days_read' => (int) ($daysRead[$lesson->id] ?? 0),
                     'readings_total' => (int) $lesson->getAttribute('readings_count'),
                     'meetings' => $presence ? (int) $presence->meetings : 0,
-                    'present' => $presence ? (int) $presence->present : 0,
+                    'present' => $presence ? (int) ($teaches ? $presence->meetings : $presence->present) : 0,
                     'current' => $lesson->id === $currentId,
                     // O número da revista; sem número, a posição na série.
                     'position' => $lesson->number ?? ($position === false ? null : $position + 1),

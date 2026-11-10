@@ -359,6 +359,18 @@ class EngagementTest extends TestCase
                 ->where('progress.lessons.1.meetings', 1));
     }
 
+    public function test_teacher_is_never_absent_in_meu_progresso(): void
+    {
+        $teacher = User::factory()->teacherOf($this->classroom)->create();
+        $past = Lesson::factory()->for($this->classroom)->published()->on('2026-09-20')->create(['title' => 'Passada']);
+        ClassMeeting::query()->where('lesson_id', $past->id)->sole()->forceFill(['attendance_taken_at' => now()])->save();
+
+        $this->actingAs($teacher)->get('/meu-progresso')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('progress.lessons.1.present', 1)
+                ->where('progress.lessons.1.meetings', 1));
+    }
+
     public function test_meu_progresso_tells_the_series_and_position_of_each_lesson(): void
     {
         $series = Series::factory()->for($this->classroom)->create(['title' => 'Milagres']);
