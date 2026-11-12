@@ -64,7 +64,8 @@ class AttendanceAndInsightsTest extends TestCase
         $this->actingAs($this->teacher)->put("/admin/encontros/{$meeting->id}/chamada", ['present' => [$ana->id], 'visitors' => 1]);
 
         $meeting->refresh();
-        $this->assertSame([$ana->id], $meeting->attendances()->pluck('user_id')->all());
+        // O professor fica presente sem estar na lista.
+        $this->assertEqualsCanonicalizing([$ana->id, $this->teacher->id], $meeting->attendances()->pluck('user_id')->all());
         $this->assertSame(1, $meeting->visitors_count);
         $this->assertSame(MeetingStatus::Held, $meeting->status);
         $this->assertNotNull($meeting->attendance_taken_at);

@@ -49,13 +49,21 @@ class RecordAttendance
             ->map(fn ($id) => (int) $id)
             ->all();
 
+        // O professor não aparece na chamada, mas dá a aula: fica presente sempre.
+        $teachers = DB::table('classroom_user')
+            ->where('classroom_id', $meeting->classroom_id)
+            ->where('role', ClassroomRole::Teacher->value)
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
         $before = $meeting->attendances()->pluck('user_id')->map(fn ($id) => (int) $id)->all();
 
         if (array_diff($presentIds, $roster, $before) !== []) {
             throw ValidationException::withMessages(['present' => 'A lista tem pessoas que não são alunos desta classe.']);
         }
 
-        DB::transaction(function () use ($meeting, $presentIds, $roster, $visitors, $by) {
+        DB::transaction(function () use ($meeting, $presentIds, $roster, $teachers, $visitors, $by) {
             // Cada salvamento manda a lista inteira. Travar o encontro enfileira
             // dois salvamentos ao mesmo tempo (dois professores, dois toques):
             // vale a última lista, e não a soma das duas.
@@ -71,7 +79,7 @@ class RecordAttendance
                 'user_id' => $id,
                 'recorded_by' => $by->id,
                 'created_at' => now(),
-            ], array_values(array_intersect($presentIds, $roster)));
+            ], array_values(array_unique([...array_intersect($presentIds, $roster), ...$teachers])));
 
             DB::table('attendances')->insertOrIgnore($rows);
 
