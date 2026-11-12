@@ -62,12 +62,12 @@ class McpMeetingToolsTest extends TestCase
             ->assertSee(['"present":["Ana Clara","Beatriz"]', '"absent":["Carlos"]', '"visitors":2']);
 
         $meeting->refresh();
-        $this->assertEqualsCanonicalizing([$ana->id, $bia->id], $meeting->attendances()->pluck('user_id')->all());
+        $this->assertEqualsCanonicalizing([$ana->id, $bia->id, $this->teacher->id], $meeting->attendances()->pluck('user_id')->all());
         $this->assertSame(MeetingStatus::Held, $meeting->status);
 
         $last = AuditLog::query()->latest('id')->first();
-        $this->assertSame(['Ana Clara'], $last->changes['before']['present']);
-        $this->assertSame(['Ana Clara', 'Beatriz'], $last->changes['after']['present']);
+        $this->assertEqualsCanonicalizing(['Ana Clara', $this->teacher->name], $last->changes['before']['present']);
+        $this->assertEqualsCanonicalizing(['Ana Clara', 'Beatriz', $this->teacher->name], $last->changes['after']['present']);
     }
 
     public function test_attendance_set_mode_replaces_the_list_and_rejects_unknown_names(): void
@@ -79,7 +79,7 @@ class McpMeetingToolsTest extends TestCase
         EbdServer::actingAs($this->teacher)->tool(RecordAttendanceTool::class, ['classroom' => 'jovens', 'meeting' => $meeting->id, 'mode' => 'set', 'present' => ['Ana', 'Bia']])->assertOk();
         EbdServer::actingAs($this->teacher)->tool(RecordAttendanceTool::class, ['classroom' => 'jovens', 'meeting' => $meeting->id, 'mode' => 'set', 'present' => [(string) $bia->id]])->assertOk();
 
-        $this->assertSame([$bia->id], $meeting->attendances()->pluck('user_id')->all());
+        $this->assertEqualsCanonicalizing([$bia->id, $this->teacher->id], $meeting->attendances()->pluck('user_id')->all());
 
         EbdServer::actingAs($this->teacher)->tool(RecordAttendanceTool::class, ['classroom' => 'jovens', 'meeting' => $meeting->id, 'mode' => 'add', 'present' => ['Zé Ninguém']])
             ->assertHasErrors(['"Zé Ninguém" não é aluno(a) da classe']);
@@ -153,7 +153,7 @@ class McpMeetingToolsTest extends TestCase
             ->assertOk();
         $meeting = ClassMeeting::query()->whereDate('held_on', '2026-09-27')->sole();
         $this->assertSame($second->id, $meeting->lesson_id);
-        $this->assertSame([$student->id], $meeting->attendances()->pluck('user_id')->all());
+        $this->assertEqualsCanonicalizing([$student->id, $this->teacher->id], $meeting->attendances()->pluck('user_id')->all());
     }
 
     public function test_teacher_of_another_classroom_cannot_touch_the_agenda(): void
