@@ -44,7 +44,7 @@ class SaveLessonReading extends EbdTool
             $reading = $lesson->readings()->whereKey((int) $request->get('reading_id'))->first()
                 ?? throw ValidationException::withMessages(['reading_id' => 'Leitura não encontrada nesta lição. Veja os ids com get_lesson.']);
 
-            $this->keepCurrentValues($request, Arr::only(Presenter::reading($reading), ['weekday', 'reference', 'notes']));
+            $this->keepCurrentValues($request, Arr::only(Presenter::reading($reading), ['week', 'weekday', 'reference', 'notes']));
         }
 
         $rules = $this->lessonReadingRules();

@@ -200,8 +200,8 @@ class AnswerStudyQuestion
         return "<licao>\n".$data($this->context($lesson))."\n</licao>\n\n<duvida>\n".$data($question)."\n</duvida>";
     }
 
-    /** A lição como o aluno a vê, em texto, para o modelo. */
-    private function context(Lesson $lesson): string
+    /** A lição como o aluno a vê, em texto, para o modelo (também em GenerateNextReadings). */
+    public function context(Lesson $lesson): string
     {
         $parts = ['# Lição: '.$lesson->displayTitle()];
 

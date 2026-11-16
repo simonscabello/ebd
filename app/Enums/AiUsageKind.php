@@ -9,4 +9,7 @@ enum AiUsageKind: string
 
     /** Um áudio do estudo gerado. */
     case Audio = 'audio';
+
+    /** Uma sequência de leituras escrita para a lição que continuou. */
+    case Readings = 'readings';
 }

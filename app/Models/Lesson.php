@@ -7,11 +7,13 @@ use App\Enums\LessonVisibility;
 use App\Enums\MeetingStatus;
 use App\Support\Audio\StudyNarration;
 use App\Support\ChurchCalendar;
+use App\Support\ReadingWeeks;
 use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -158,6 +160,39 @@ class Lesson extends Model
     public function readings(): HasMany
     {
         return $this->hasMany(LessonReading::class)->ordered()->chaperone();
+    }
+
+    /**
+     * Semana de leitura da lição em que cai a data (1 = a do 1º encontro).
+     * Domingo "sem EBD" conta como semana, como em ReadingWeeks.
+     */
+    public function readingWeek(?string $date = null): int
+    {
+        return ReadingWeeks::index(ReadingWeeks::meetingDates([$this->id])[$this->id], $date ?? ChurchCalendar::todayString()) + 1;
+    }
+
+    /**
+     * A sequência de leituras de uma semana da lição: a dela ou, se não foi
+     * cadastrada, a mais recente antes dela (a lição seguiu e ninguém escreveu
+     * leitura nova; ver GenerateNextReadings).
+     *
+     * @return Collection<int, LessonReading>
+     */
+    public function readingsForWeek(int $week): Collection
+    {
+        $sequence = $this->readings->where('week', '<=', $week)->max('week') ?? $this->readings->min('week');
+
+        return $this->readings->where('week', $sequence)->values();
+    }
+
+    /**
+     * O que o aluno vê hoje: uma sequência só.
+     *
+     * @return Collection<int, LessonReading>
+     */
+    public function readingsNow(): Collection
+    {
+        return $this->readingsForWeek($this->readingWeek());
     }
 
     /**

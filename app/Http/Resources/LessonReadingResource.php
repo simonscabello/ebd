@@ -37,6 +37,7 @@ class LessonReadingResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'week' => $this->week,
             'weekday' => $this->weekday?->value,
             'weekday_label' => $this->weekday?->label(),
             'weekday_short' => $this->weekday?->shortLabel(),

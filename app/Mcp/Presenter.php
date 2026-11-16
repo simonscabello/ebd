@@ -107,6 +107,7 @@ final class Presenter
     {
         return [
             'id' => $reading->id,
+            'week' => $reading->week,
             'weekday' => $reading->weekday?->value,
             'weekday_label' => $reading->weekday?->label(),
             'reference' => $reading->reference,

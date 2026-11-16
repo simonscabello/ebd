@@ -125,7 +125,7 @@ class SaveLessonDraft extends EbdTool
             'classroom' => ['nullable'],
             'series' => ['nullable'],
             ...$fields,
-            'readings' => ['sometimes', 'array', 'max:14'],
+            'readings' => ['sometimes', 'array', 'max:84'],
             ...$this->lessonReadingRules('readings.*.'),
             'blocks' => ['sometimes', 'array', 'max:60'],
             ...$this->lessonBlockRules('blocks.*.'),
@@ -170,7 +170,7 @@ class SaveLessonDraft extends EbdTool
 
         return [
             ...Arr::only($lesson->attributesToArray(), [...ImportLessonDraft::LESSON_FIELDS, 'series_id', 'slug']),
-            'readings' => $lesson->readings->map(fn ($r) => Arr::only($r->attributesToArray(), ['weekday', 'reference', 'notes']))->all(),
+            'readings' => $lesson->readings->map(fn ($r) => Arr::only($r->attributesToArray(), ['week', 'weekday', 'reference', 'notes']))->all(),
             'blocks' => $lesson->blocks->map(fn ($b) => Arr::only($b->attributesToArray(), ['kind', 'audience', 'title', 'body', 'drip_weekday']))->all(),
             'materials' => $lesson->materials->map(fn ($m) => Arr::only($m->attributesToArray(), ['type', 'audience', 'title', 'description', 'url']))->all(),
         ];

@@ -169,7 +169,7 @@ class ImportLesson extends Command
             'author' => ['required', 'email', 'exists:users,email'],
             'meeting_on' => ['nullable', 'date'],
             ...$this->lessonFieldRules(),
-            'readings' => ['nullable', 'array', 'max:14'],
+            'readings' => ['nullable', 'array', 'max:84'],
             ...$this->lessonReadingRules('readings.*.'),
             'blocks' => ['nullable', 'array', 'max:60'],
             ...$this->lessonBlockRules('blocks.*.'),

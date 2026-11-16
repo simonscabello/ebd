@@ -143,7 +143,9 @@ final class SendReadingReminders
     {
         $lesson->loadMissing('readings');
 
-        $today = $lesson->readings
+        $readings = $lesson->readingsNow();
+
+        $today = $readings
             ->filter(fn ($reading) => $reading->weekday?->value === $weekday)
             ->sortBy('position')
             ->values();
@@ -155,7 +157,7 @@ final class SendReadingReminders
             ];
         }
 
-        $hasPlan = $lesson->readings->contains(fn ($reading) => $reading->weekday !== null);
+        $hasPlan = $readings->contains(fn ($reading) => $reading->weekday !== null);
 
         if ($hasPlan || $weekday === $meetingWeekday || ! $lesson->bible_reference) {
             return null;

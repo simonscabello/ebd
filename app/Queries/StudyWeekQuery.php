@@ -81,7 +81,9 @@ class StudyWeekQuery
             'blocks' => fn ($q) => $q->where('audience', ContentAudience::Student),
         ]);
 
-        // Numa lição que continua, só as marcações desta semana de leitura.
+        // Numa lição que continua, só a sequência e as marcações desta semana de leitura.
+        $readings = $lesson->readingsNow();
+
         $checked = ReadingWeeks::constrain(
             DB::table('reading_checkins')->where('user_id', $user->id)->where('lesson_id', $lesson->id),
             $lesson->id,
@@ -110,7 +112,7 @@ class StudyWeekQuery
                 'is_future' => $date->gt($today),
                 'done' => in_array($weekday->value, $checked, true),
                 'readings' => LessonReadingResource::forWeek(
-                    $lesson->readings->filter(fn ($r) => $r->weekday === $weekday)->values(),
+                    $readings->filter(fn ($r) => $r->weekday === $weekday)->values(),
                     $todayWeekday,
                 )->resolve($request),
                 'blocks_count' => count($blocksByDay[$weekday->value] ?? []),
@@ -119,7 +121,7 @@ class StudyWeekQuery
             ];
         }
 
-        $readingDays = $lesson->readings->filter(fn ($r) => $r->weekday !== null && $r->weekday->value !== $meetingWeekday)
+        $readingDays = $readings->filter(fn ($r) => $r->weekday !== null && $r->weekday->value !== $meetingWeekday)
             ->pluck('weekday')->unique()->count();
         $weekDone = collect($days)->filter(fn ($d) => $d['done'] && ! $d['is_meeting_day'])->count();
 
