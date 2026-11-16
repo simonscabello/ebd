@@ -22,20 +22,32 @@ type Props = {
     weekdays: Option<number>[];
 };
 
-type ReadingForm = { weekday: number | ''; reference: string; notes: string };
+type ReadingForm = {
+    week: number;
+    weekday: number | '';
+    reference: string;
+    notes: string;
+};
 
 export function ReadingsManager({
     lessonId,
     classroomId,
-    readings,
+    readings: unsorted,
     weekdays,
 }: Props) {
     const confirm = useConfirm();
     const [editing, setEditing] = useState<number | null>(null);
+    // Uma sequência por semana da lição; dentro dela, a ordem de sempre.
+    const readings = [...unsorted].sort((a, b) => a.week - b.week);
     const ids = readings.map((r) => r.id);
+    const lastWeek = Math.max(1, ...readings.map((r) => r.week));
+    // As semanas que existem e mais uma, para abrir a seguinte.
+    const weeks = Array.from({ length: lastWeek + 1 }, (_, i) => i + 1);
 
-    // Sugere o próximo dia ainda sem leitura.
-    const usedDays = readings.map((r) => r.weekday);
+    // Sugere o próximo dia ainda sem leitura na última semana.
+    const usedDays = readings
+        .filter((r) => r.week === lastWeek)
+        .map((r) => r.weekday);
     const nextDay =
         weekdays.find((d) => d.value !== 7 && !usedDays.includes(d.value))
             ?.value ?? '';
@@ -47,8 +59,14 @@ export function ReadingsManager({
                     {readings.map((reading, index) => (
                         <li
                             key={reading.id}
-                            className="flex items-start gap-2 p-3"
+                            className="flex flex-wrap items-start gap-2 p-3"
                         >
+                            {lastWeek > 1 &&
+                                reading.week !== readings[index - 1]?.week && (
+                                    <p className="w-full text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                        {reading.week}ª semana da lição
+                                    </p>
+                                )}
                             <ReorderButtons
                                 lessonId={lessonId}
                                 relation="readings"
@@ -60,6 +78,7 @@ export function ReadingsManager({
                                     lessonId={lessonId}
                                     classroomId={classroomId}
                                     weekdays={weekdays}
+                                    weeks={weeks}
                                     reading={reading}
                                     onDone={() => setEditing(null)}
                                 />
@@ -140,8 +159,16 @@ export function ReadingsManager({
                 lessonId={lessonId}
                 classroomId={classroomId}
                 weekdays={weekdays}
+                weeks={weeks}
+                defaultWeek={lastWeek}
                 defaultDay={nextDay}
             />
+            <p className="text-xs text-muted-foreground">
+                Se a lição durar mais de um encontro, cada semana mostra a sua
+                sequência de leituras. Sem sequência cadastrada para a semana, o
+                app escreve uma nova sozinho (onde o “Tirar dúvida” está ligado)
+                ou repete a última.
+            </p>
         </div>
     );
 }
@@ -150,18 +177,23 @@ function ReadingEditor({
     lessonId,
     classroomId,
     weekdays,
+    weeks,
     reading,
+    defaultWeek = 1,
     defaultDay = '',
     onDone,
 }: {
     lessonId: number;
     classroomId: number;
     weekdays: Option<number>[];
+    weeks: number[];
     reading?: LessonReading;
+    defaultWeek?: number;
     defaultDay?: number | '';
     onDone?: () => void;
 }) {
     const form = useForm<ReadingForm>({
+        week: reading?.week ?? defaultWeek,
         weekday: reading?.weekday ?? defaultDay,
         reference: reading?.reference ?? '',
         notes: reading?.notes ?? '',
@@ -206,7 +238,26 @@ function ReadingEditor({
             {!reading && (
                 <p className="text-sm font-medium">Adicionar leitura</p>
             )}
-            <div className="grid gap-3 sm:grid-cols-[11rem_1fr]">
+            <div className="grid gap-3 sm:grid-cols-[8rem_11rem_1fr]">
+                <Field
+                    label="Semana"
+                    htmlFor={`week-${reading?.id ?? 'new'}`}
+                    error={form.errors.week}
+                >
+                    <NativeSelect
+                        id={`week-${reading?.id ?? 'new'}`}
+                        value={form.data.week}
+                        onChange={(event) =>
+                            form.setData('week', Number(event.target.value))
+                        }
+                    >
+                        {weeks.map((week) => (
+                            <option key={week} value={week}>
+                                {week}ª semana
+                            </option>
+                        ))}
+                    </NativeSelect>
+                </Field>
                 <Field
                     label="Dia"
                     htmlFor={`weekday-${reading?.id ?? 'new'}`}

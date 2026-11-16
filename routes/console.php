@@ -51,3 +51,8 @@ Schedule::call(function () {
         ChurchCalendar::using($classroom->church, fn () => app(SyncUpcomingMeeting::class)->handle($classroom));
     }
 })->name('ebd:sync-upcoming-meeting')->hourlyAt(50)->onOneServer();
+
+// Depois do encontro projetado: a lição que continua sem leitura nova ganha a
+// sequência da semana seguinte (ver GenerateNextReadings).
+Schedule::call(fn () => Artisan::call('ebd:generate-readings', [], new ConsoleOutput))
+    ->name('ebd:generate-readings')->hourlyAt(55)->onOneServer()->withoutOverlapping();

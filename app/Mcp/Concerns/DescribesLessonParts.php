@@ -21,6 +21,7 @@ trait DescribesLessonParts
     protected function readingProperties(JsonSchema $schema): array
     {
         return [
+            'week' => $schema->integer()->description('Sequência: semana da lição em que a leitura aparece (1 = primeira semana, padrão). Lição que dura mais de um encontro pode ter uma sequência por semana; o aluno vê só a da semana atual.'),
             'weekday' => $schema->integer()->enum(Weekday::class)->description('Dia da leitura: 1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado, 7=domingo. Sem dia = leitura extra.'),
             'reference' => $schema->string()->description('Referência bíblica, ex.: "Gênesis 12.1-9".')->required(),
             'notes' => $schema->string()->description('Orientação curta para a leitura.'),

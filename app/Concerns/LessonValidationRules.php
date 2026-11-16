@@ -44,6 +44,8 @@ trait LessonValidationRules
     protected function lessonReadingRules(string $prefix = ''): array
     {
         return [
+            // Sequência: a semana da lição em que a leitura aparece (sem ela, a 1ª).
+            "{$prefix}week" => ['sometimes', 'integer', 'min:1', 'max:12'],
             "{$prefix}weekday" => ['nullable', Rule::enum(Weekday::class)],
             "{$prefix}reference" => ['required', 'string', 'max:160'],
             "{$prefix}notes" => ['nullable', 'string', 'max:1000'],

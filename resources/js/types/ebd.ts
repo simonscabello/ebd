@@ -82,6 +82,8 @@ export type BiblePassage = {
 
 export type LessonReading = {
     id: number;
+    /** Sequência: semana da lição em que a leitura aparece. */
+    week: number;
     weekday: number | null;
     weekday_label: string | null;
     weekday_short: string | null;

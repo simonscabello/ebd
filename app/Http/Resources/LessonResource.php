@@ -79,7 +79,7 @@ class LessonResource extends JsonResource
             'series' => SeriesResource::make($this->whenLoaded('series')),
             'authors' => $this->whenLoaded('authors', fn () => $this->authors->pluck('name')->all()),
             'materials' => LessonMaterialResource::collection($this->whenLoaded('materials')),
-            'readings' => $this->whenLoaded('readings', fn () => LessonReadingResource::forWeek($this->readings, $this->resource->readingWeekdayToday())),
+            'readings' => $this->whenLoaded('readings', fn () => LessonReadingResource::forWeek($this->resource->readingsNow(), $this->resource->readingWeekdayToday())),
             'blocks' => $this->whenLoaded('blocks', fn () => LessonBlockResource::collection(
                 $this->blocks->reject->isForTeachers()->values()
             )),

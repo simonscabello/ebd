@@ -371,6 +371,7 @@ function baseTextReading(
 ): LessonReading {
     return {
         id: -day.weekday,
+        week: 1,
         weekday: day.weekday,
         weekday_label: day.label,
         weekday_short: day.short,

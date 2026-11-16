@@ -40,7 +40,7 @@ class WeeklyMessage
             $lines[] = '🔑 '.$this->keyVerse($lesson);
         }
 
-        $readings = $lesson->readings->filter(fn ($r) => $r->weekday !== null);
+        $readings = $lesson->readingsForWeek($lesson->readingWeek($meeting->held_on->toDateString()))->filter(fn ($r) => $r->weekday !== null);
 
         if ($readings->isNotEmpty()) {
             $lines[] = '';

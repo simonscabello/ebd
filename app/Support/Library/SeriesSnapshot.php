@@ -53,6 +53,7 @@ final class SeriesSnapshot
                     'position' => $block->position,
                 ])->all()),
                 'readings' => array_values($lesson->readings->map(fn (LessonReading $reading) => [
+                    'week' => $reading->week,
                     'weekday' => $reading->weekday?->value,
                     'reference' => $reading->reference,
                     'notes' => $reading->notes,

@@ -15,16 +15,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $id
  * @property int $lesson_id
+ * @property int $week sequência (semana da lição) a que a leitura pertence
  * @property Weekday|null $weekday
  * @property string $reference
  * @property string|null $notes
  * @property int $position
  */
-#[Fillable(['weekday', 'reference', 'notes', 'position'])]
+#[Fillable(['week', 'weekday', 'reference', 'notes', 'position'])]
 class LessonReading extends Model
 {
     /** @use HasFactory<LessonReadingFactory> */
     use HasFactory, HasPosition;
+
+    /** @var array<string, mixed> */
+    protected $attributes = ['week' => 1];
 
     /**
      * @return array<string, string>
@@ -32,6 +36,7 @@ class LessonReading extends Model
     protected function casts(): array
     {
         return [
+            'week' => 'integer',
             'weekday' => Weekday::class,
             'position' => 'integer',
         ];
