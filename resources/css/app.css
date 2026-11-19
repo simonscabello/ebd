@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '@fontsource-variable/inter';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 @import '@fontsource-variable/lora';
 @import '@fontsource-variable/lora/wght-italic.css';
 
@@ -26,8 +27,9 @@
 
 @theme {
     --font-sans:
-        'Inter Variable', ui-sans-serif, system-ui, sans-serif,
+        'Geist Variable', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
     --font-serif: 'Lora Variable', ui-serif, Georgia, 'Times New Roman', serif;
 
     --radius-lg: var(--radius);
@@ -151,24 +153,24 @@
     --card-foreground: oklch(0.22 0.012 60);
     --popover: oklch(0.997 0.002 85);
     --popover-foreground: oklch(0.22 0.012 60);
-    --primary: oklch(0.42 0.06 170);
+    --primary: oklch(0.43 0.085 165);
     --primary-foreground: oklch(0.985 0.004 85);
     --secondary: oklch(0.95 0.012 85);
     --secondary-foreground: oklch(0.3 0.02 60);
     --muted: oklch(0.955 0.009 85);
     --muted-foreground: oklch(0.5 0.015 60);
-    --accent: oklch(0.94 0.025 170);
-    --accent-foreground: oklch(0.32 0.05 170);
+    --accent: oklch(0.94 0.034 165);
+    --accent-foreground: oklch(0.32 0.07 165);
     --highlight: oklch(0.93 0.07 85);
     --highlight-foreground: oklch(0.38 0.08 60);
     --destructive: oklch(0.55 0.2 27);
     --destructive-foreground: oklch(0.55 0.2 27);
     --border: oklch(0.905 0.012 80);
     --input: oklch(0.87 0.014 80);
-    --ring: oklch(0.6 0.06 170);
-    --success: oklch(0.55 0.13 160);
-    --success-soft: oklch(0.96 0.03 160);
-    --success-foreground: oklch(0.38 0.1 160);
+    --ring: oklch(0.6 0.085 165);
+    --success: oklch(0.55 0.14 145);
+    --success-soft: oklch(0.96 0.035 145);
+    --success-foreground: oklch(0.38 0.1 145);
     --warning: oklch(0.72 0.15 75);
     --warning-soft: oklch(0.97 0.04 85);
     --warning-foreground: oklch(0.42 0.1 60);
@@ -178,39 +180,39 @@
 }
 
 /*
- * Escuro "grafite", não preto: fundo cinza quente e cartões um degrau acima,
- * para cansar menos a vista. Texto e cores conferidos com contraste AA.
+ * Escuro "grafite", não preto: fundo cinza neutro (sem tom quente, que com o
+ * verde lembrava Solarized) e cartões um degrau acima.
  */
 .dark {
-    --background: oklch(0.285 0.008 70);
-    --foreground: oklch(0.95 0.007 85);
-    --card: oklch(0.322 0.009 70);
-    --card-foreground: oklch(0.95 0.007 85);
-    --popover: oklch(0.335 0.009 70);
-    --popover-foreground: oklch(0.95 0.007 85);
-    --primary: oklch(0.8 0.08 170);
-    --primary-foreground: oklch(0.24 0.02 170);
-    --secondary: oklch(0.36 0.01 70);
-    --secondary-foreground: oklch(0.93 0.008 85);
-    --muted: oklch(0.35 0.009 70);
-    --muted-foreground: oklch(0.78 0.012 80);
-    --accent: oklch(0.38 0.035 170);
-    --accent-foreground: oklch(0.92 0.04 170);
+    --background: oklch(0.235 0.003 250);
+    --foreground: oklch(0.95 0.003 250);
+    --card: oklch(0.275 0.003 250);
+    --card-foreground: oklch(0.95 0.003 250);
+    --popover: oklch(0.29 0.003 250);
+    --popover-foreground: oklch(0.95 0.003 250);
+    --primary: oklch(0.8 0.1 165);
+    --primary-foreground: oklch(0.22 0.03 165);
+    --secondary: oklch(0.32 0.004 250);
+    --secondary-foreground: oklch(0.93 0.003 250);
+    --muted: oklch(0.31 0.004 250);
+    --muted-foreground: oklch(0.76 0.005 250);
+    --accent: oklch(0.34 0.045 165);
+    --accent-foreground: oklch(0.92 0.05 165);
     --highlight: oklch(0.43 0.055 80);
     --highlight-foreground: oklch(0.95 0.06 85);
     --destructive: oklch(0.64 0.18 25);
     --destructive-foreground: oklch(0.76 0.16 25);
-    --border: oklch(0.4 0.01 70);
-    --input: oklch(0.45 0.012 70);
-    --ring: oklch(0.68 0.06 170);
-    --success: oklch(0.74 0.13 160);
-    --success-soft: oklch(0.36 0.045 160);
-    --success-foreground: oklch(0.88 0.1 160);
+    --border: oklch(0.36 0.004 250);
+    --input: oklch(0.42 0.005 250);
+    --ring: oklch(0.68 0.085 165);
+    --success: oklch(0.76 0.14 145);
+    --success-soft: oklch(0.34 0.05 145);
+    --success-foreground: oklch(0.88 0.11 145);
     --warning: oklch(0.8 0.14 80);
     --warning-soft: oklch(0.4 0.055 80);
     --warning-foreground: oklch(0.93 0.08 85);
     --destructive-soft: oklch(0.38 0.06 27);
-    --backdrop: oklch(0.15 0.006 70);
+    --backdrop: oklch(0.13 0.003 250);
 }
 
 @layer base {
@@ -225,6 +227,15 @@
     body {
         @apply bg-background text-foreground;
         text-rendering: optimizeLegibility;
+    }
+
+    /*
+     * shortcut: rótulos em maiúsculas e números tabulares em mono por seletor,
+     * para testar o visual; se ficar, virar um utilitário próprio nos componentes.
+     */
+    .uppercase,
+    .tabular-nums:not(.font-serif) {
+        font-family: var(--font-mono);
     }
 
     ::selection {
