@@ -19,7 +19,7 @@
 
     <style>
         html { background-color: oklch(0.982 0.006 85); }
-        html.dark { background-color: oklch(0.18 0.008 70); }
+        html.dark { background-color: oklch(0.235 0.003 250); }
     </style>
 
     <title>Conectar {{ $client->name }} · {{ config('app.name', 'EBD') }}</title>
