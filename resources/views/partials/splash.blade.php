@@ -82,7 +82,7 @@
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--primary, #2f5f53);
+        color: var(--primary, #0e5e44);
     }
 
     .splash__bar {
@@ -100,7 +100,7 @@
         inset: 0;
         width: 40%;
         border-radius: inherit;
-        background: var(--primary, #2f5f53);
+        background: var(--primary, #0e5e44);
         animation: splash-bar 1.3s ease-in-out infinite;
     }
 
@@ -148,7 +148,7 @@
         font: inherit;
         font-weight: 600;
         color: #fff;
-        background: var(--primary, #2f5f53);
+        background: var(--primary, #0e5e44);
         cursor: pointer;
     }
 
