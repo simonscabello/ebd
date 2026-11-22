@@ -510,17 +510,20 @@ function AdvanceDialog({
                     <DialogClose asChild>
                         <Button variant="outline">Voltar</Button>
                     </DialogClose>
-                    <Button
-                        onClick={() =>
-                            router.post(
-                                advance.url(classroom.slug),
-                                { lesson_id: current.id },
-                                { preserveScroll: true },
-                            )
-                        }
-                    >
-                        <Check /> Concluir
-                    </Button>
+                    {/* Fecha ao concluir: aberto, o diálogo passaria a oferecer a próxima lição. */}
+                    <DialogClose asChild>
+                        <Button
+                            onClick={() =>
+                                router.post(
+                                    advance.url(classroom.slug),
+                                    { lesson_id: current.id },
+                                    { preserveScroll: true },
+                                )
+                            }
+                        >
+                            <Check /> Concluir
+                        </Button>
+                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
