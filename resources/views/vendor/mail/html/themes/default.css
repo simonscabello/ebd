@@ -1,11 +1,11 @@
 /* Tema dos e-mails com as cores do app (sálvia e papel). Os clientes de e-mail
-   ignoram fontes da web na maioria: Lora cai para Georgia, Inter para a do sistema. */
+   ignoram fontes da web na maioria: Lora cai para Georgia, Geist para a do sistema. */
 
 body,
 body *:not(html):not(style):not(br):not(tr):not(code) {
     box-sizing: border-box;
     font-family:
-        Inter,
+        Geist,
         -apple-system,
         BlinkMacSystemFont,
         'Segoe UI',
@@ -36,7 +36,7 @@ blockquote {
 }
 
 a {
-    color: #2f5f53;
+    color: #0e5e44;
 }
 
 a img {
@@ -112,7 +112,7 @@ img {
 }
 
 .header a {
-    color: #2f5f53;
+    color: #0e5e44;
     text-decoration: none;
 }
 
@@ -124,7 +124,7 @@ img {
 }
 
 .wordmark {
-    color: #2f5f53;
+    color: #0e5e44;
     display: inline-block;
     font-family: Lora, Georgia, 'Times New Roman', serif;
     font-size: 26px;
@@ -155,7 +155,7 @@ img {
     background-color: #ffffff;
     border: 1px solid #e6e0d4;
     border-radius: 16px;
-    border-top: 4px solid #2f5f53;
+    border-top: 4px solid #0e5e44;
     margin: 0 auto;
     padding: 0;
     width: 570px;
@@ -256,20 +256,20 @@ img {
 
 .button-blue,
 .button-primary {
-    background-color: #2f5f53;
-    border-bottom: 14px solid #2f5f53;
-    border-left: 32px solid #2f5f53;
-    border-right: 32px solid #2f5f53;
-    border-top: 14px solid #2f5f53;
+    background-color: #0e5e44;
+    border-bottom: 14px solid #0e5e44;
+    border-left: 32px solid #0e5e44;
+    border-right: 32px solid #0e5e44;
+    border-top: 14px solid #0e5e44;
 }
 
 .button-green,
 .button-success {
-    background-color: #2f5f53;
-    border-bottom: 14px solid #2f5f53;
-    border-left: 32px solid #2f5f53;
-    border-right: 32px solid #2f5f53;
-    border-top: 14px solid #2f5f53;
+    background-color: #0e5e44;
+    border-bottom: 14px solid #0e5e44;
+    border-left: 32px solid #0e5e44;
+    border-right: 32px solid #0e5e44;
+    border-top: 14px solid #0e5e44;
 }
 
 .button-red,
@@ -284,7 +284,7 @@ img {
 /* Panels */
 
 .panel {
-    border-left: #2f5f53 solid 4px;
+    border-left: #0e5e44 solid 4px;
     margin: 21px 0;
 }
 
