@@ -22,6 +22,7 @@ import { WeekSummary } from '@/components/week/week-summary';
 import { useReadingCheckin } from '@/hooks/use-reading-checkin';
 import { cn, plural } from '@/lib/utils';
 import { home, library, login, myProgress, myWeek } from '@/routes';
+import { show as adventShow } from '@/routes/advent';
 import { show } from '@/routes/lessons';
 import type {
     ClassMeeting,
@@ -51,9 +52,21 @@ type LessonSeries = {
     }[];
 };
 
+type AdventCard = {
+    state: 'upcoming' | 'open';
+    starts_label: string;
+    day: number | null;
+    reference: string | null;
+    today_done: boolean;
+    read: number;
+    total: number;
+};
+
 type Props = {
     greeting: string;
     today: { date: string; weekday: number; label: string };
+    /** Natal em Lucas; null fora da época. */
+    advent: AdventCard | null;
     classrooms: Classroom[];
     classroom: Classroom | null;
     isMember: boolean;
@@ -73,6 +86,7 @@ type Props = {
 
 export default function Home({
     greeting,
+    advent,
     classrooms,
     classroom,
     isMember,
@@ -103,6 +117,8 @@ export default function Home({
                         {name ? `, ${name}` : ''}.
                     </h1>
                 </header>
+
+                {advent && <AdventBanner advent={advent} />}
 
                 {classrooms.length > 1 && classroom && (
                     <nav
@@ -245,6 +261,43 @@ export default function Home({
 }
 
 /** Quando a classe estuda a lição: previsão, não regra. */
+/** Natal em Lucas: o capítulo de hoje e quanto já foi lido. */
+function AdventBanner({ advent }: { advent: AdventCard }) {
+    const line =
+        advent.state === 'upcoming'
+            ? `Um capítulo de Lucas por dia até o Natal. Começa em ${advent.starts_label}.`
+            : advent.reference === null
+              ? `${advent.read} de ${advent.total} capítulos. Ainda dá para pôr em dia.`
+              : `${advent.today_done ? 'Lido hoje' : 'Hoje'}: ${advent.reference} · ${advent.read} de ${advent.total}`;
+
+    return (
+        <Link
+            href={
+                advent.day
+                    ? adventShow.url({ query: { dia: advent.day } })
+                    : adventShow.url()
+            }
+            className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-4 transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+            <img
+                src="/images/advent/capa.webp"
+                alt=""
+                className="h-12 w-auto shrink-0"
+            />
+            <span className="min-w-0 flex-1">
+                <span className="block font-medium">Natal em Lucas</span>
+                <span className="block text-sm text-pretty text-muted-foreground">
+                    {line}
+                </span>
+            </span>
+            <ChevronRight
+                className="size-5 shrink-0 text-muted-foreground"
+                aria-hidden
+            />
+        </Link>
+    );
+}
+
 function when(meeting: ClassMeeting | null, index: number): string | null {
     if (!meeting) {
         return null;

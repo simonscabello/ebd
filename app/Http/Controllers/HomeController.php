@@ -12,6 +12,7 @@ use App\Queries\LessonSeriesQuery;
 use App\Queries\StudyWeekQuery;
 use App\Support\ChurchCalendar;
 use App\Support\ClassroomSelector;
+use App\Support\LukeAdvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -67,6 +68,7 @@ class HomeController extends Controller
                 'weekday' => ChurchCalendar::today()->dayOfWeekIso,
                 'label' => ChurchCalendar::formatLong(ChurchCalendar::today()),
             ],
+            'advent' => LukeAdvent::card($user),
             'classrooms' => ClassroomResource::collection($classrooms),
             'classroom' => $classroom ? ClassroomResource::make($classroom) : null,
             'isMember' => $isMember,

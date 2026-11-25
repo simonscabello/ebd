@@ -61,6 +61,11 @@ return [
         'inactive_days' => (int) env('EBD_RISK_INACTIVE_DAYS', 10),
     ],
 
+    'advent' => [
+        // Natal em Lucas começa em 1º de dezembro; outra data só para testar.
+        'starts_on' => env('EBD_ADVENT_STARTS_ON'),
+    ],
+
     /*
     | Texto bíblico exibido junto das referências (texto base e leituras da
     | semana). Uma única versão, importada com `php artisan bible:import`.

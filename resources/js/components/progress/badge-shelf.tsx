@@ -9,6 +9,7 @@ import {
     ScrollText,
     Sparkles,
     Sprout,
+    Star,
     Sunrise,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -29,6 +30,7 @@ const badgeIcons: Record<string, LucideIcon> = {
     comeback: Sprout,
     night_owl: Moon,
     early_bird: Sunrise,
+    luke_advent: Star,
 };
 
 export type EarnedBadge = {

@@ -80,9 +80,15 @@ class StudyStreak
             ->when($classrooms, fn ($query, $ids) => $query->whereIn('class_meetings.classroom_id', $ids))
             ->pluck('class_meetings.held_on');
 
+        // Natal em Lucas: leitura pessoal, conta em qualquer igreja.
+        $advent = DB::table('advent_checkins')
+            ->where('user_id', $user->id)
+            ->where('read_on', '>=', $since->toDateString())
+            ->pluck('read_on');
+
         return array_values(array_unique(array_map(
             fn ($d) => substr((string) $d, 0, 10),
-            [...$readings->all(), ...$attended->all()],
+            [...$readings->all(), ...$attended->all(), ...$advent->all()],
         )));
     }
 }

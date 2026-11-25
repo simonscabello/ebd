@@ -18,6 +18,7 @@ enum Badge: string
     case Comeback = 'comeback';
     case NightOwl = 'night_owl';
     case EarlyBird = 'early_bird';
+    case LukeAdvent = 'luke_advent';
 
     /**
      * @param  Weekday  $meetingDay  dia de encontro da turma: "domingos" para
@@ -37,6 +38,7 @@ enum Badge: string
             self::Comeback => 'De volta',
             self::NightOwl => 'Coruja noturna',
             self::EarlyBird => 'Madrugador',
+            self::LukeAdvent => 'Natal em Lucas',
         };
     }
 
@@ -54,6 +56,7 @@ enum Badge: string
             self::Comeback => 'Voltou a ler depois de duas semanas sem leitura. Que bom ter você de volta!',
             self::NightOwl => 'Marcou leituras depois das 22h em 5 dias diferentes.',
             self::EarlyBird => 'Marcou leituras antes das 7h em 5 dias diferentes.',
+            self::LukeAdvent => 'Leu o Evangelho de Lucas inteiro em dezembro, um capítulo por dia até o Natal.',
         };
     }
 
@@ -71,6 +74,7 @@ enum Badge: string
             self::Comeback => '🌱',
             self::NightOwl => '🦉',
             self::EarlyBird => '🌅',
+            self::LukeAdvent => '⭐',
         };
     }
 
@@ -80,7 +84,8 @@ enum Badge: string
      */
     public function isSurprise(): bool
     {
-        return in_array($this, [self::Comeback, self::NightOwl, self::EarlyBird], true);
+        // O Natal em Lucas é sazonal: a meta aparece em /natal, não o ano todo na estante.
+        return in_array($this, [self::Comeback, self::NightOwl, self::EarlyBird, self::LukeAdvent], true);
     }
 
     /** Selo conquistado uma vez por série (trimestre). */

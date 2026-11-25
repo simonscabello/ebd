@@ -30,6 +30,8 @@ foreach ([
     'ebd:remind-readings evening' => ['ebd:remind-readings', ['slot' => 'evening', '--due' => true]],
     // Véspera de cada turma (8h): só avisa quem tem encontro amanhã.
     'ebd:remind-lesson' => ['ebd:remind-lesson', ['--due' => true]],
+    // Natal em Lucas (7h, de 1º a 24 de dezembro): o capítulo do dia.
+    'ebd:remind-advent' => ['ebd:remind-advent', ['--due' => true]],
 ] as $name => [$command, $arguments]) {
     Schedule::call(fn () => Artisan::call($command, $arguments, new ConsoleOutput))
         ->name($name)
