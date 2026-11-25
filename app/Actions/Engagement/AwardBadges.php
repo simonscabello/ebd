@@ -10,6 +10,7 @@ use App\Models\Series;
 use App\Models\User;
 use App\Support\ChurchCalendar;
 use App\Support\Enrollment;
+use App\Support\LukeAdvent;
 use App\Support\ReadingWeeks;
 use App\Support\StudyStreak;
 use Carbon\CarbonImmutable;
@@ -84,6 +85,11 @@ class AwardBadges
 
         if ($early >= 5) {
             $awarded[] = $this->award($user, Badge::EarlyBird);
+        }
+
+        if (count(LukeAdvent::readDays($user)) >= LukeAdvent::DAYS) {
+            // shortcut: um selo por pessoa (índice de user_badges); para um por ano, guardar o ano no selo.
+            $awarded[] = $this->award($user, Badge::LukeAdvent);
         }
 
         return array_values(array_filter($awarded));

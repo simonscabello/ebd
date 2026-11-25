@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLinkController;
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\AdventController;
 use App\Http\Controllers\BibleController;
 use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\CreateChurchController;
@@ -51,6 +52,11 @@ Route::get('biblia', BibleController::class)->middleware('throttle:library')->na
 Route::middleware(['auth', 'throttle:engagement'])->group(function () {
     Route::get('minha-semana', MyWeekController::class)->name('my-week');
     Route::get('meu-progresso', MyProgressController::class)->name('my-progress');
+
+    // Natal em Lucas: um capítulo por dia em dezembro (ver LukeAdvent).
+    Route::get('natal', [AdventController::class, 'show'])->name('advent.show');
+    Route::post('natal/{day}', [AdventController::class, 'store'])->whereNumber('day')->name('advent.checkins.store');
+    Route::delete('natal/{day}', [AdventController::class, 'destroy'])->whereNumber('day')->name('advent.checkins.destroy');
 
     Route::post('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'store'])->name('lessons.checkins.store');
     Route::delete('licoes/{lesson:slug}/leituras', [ReadingCheckinController::class, 'destroy'])->name('lessons.checkins.destroy');
