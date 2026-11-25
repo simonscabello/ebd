@@ -90,13 +90,13 @@ final class LukeAdvent
      */
     public static function readDays(User $user, ?CarbonImmutable $today = null): array
     {
-        return DB::table('advent_checkins')
+        return array_values(DB::table('advent_checkins')
             ->where('user_id', $user->id)
             ->where('year', self::year($today))
             ->orderBy('day')
             ->pluck('day')
             ->map(fn ($day) => (int) $day)
-            ->all();
+            ->all());
     }
 
     /**
